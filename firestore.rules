@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Funções auxiliares
+    function isLogado() {
+      return request.auth != null;
+    }
+
+    function isProprioUsuario(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isLogado() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // Perfis de usuário
+    match /users/{uid} {
+      allow read: if isProprioUsuario(uid) || isAdmin();
+      allow create: if isProprioUsuario(uid);
+      allow update: if isProprioUsuario(uid) || isAdmin();
+      allow delete: if isAdmin();
+
+      // Subcoleções do usuário (config, veículos, despesas, etc.)
+      match /{subcollection}/{document=**} {
+        allow read, write: if isProprioUsuario(uid) || isAdmin();
+      }
+    }
+  }
+}
