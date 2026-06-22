@@ -677,6 +677,7 @@ body::before {
   background: var(--dark-surface);
   min-height: auto;
   padding: 60px clamp(24px, 6vw, 100px);
+  scroll-margin-top: 80px;
 }
 .plans-section::before {
   content: '';
@@ -1016,9 +1017,10 @@ body::before {
   .l-footer { flex-direction: column; text-align: center; }
 }
 
-/* ─────────────────────────────────────────────
-   REVEAL ANIMATION
-───────────────────────────────────────────── */
+/* Offset para nav fixa ao usar âncoras */
+section[id] {
+  scroll-margin-top: 80px;
+}
 .reveal {
   opacity: 0;
   transform: translateY(20px);
