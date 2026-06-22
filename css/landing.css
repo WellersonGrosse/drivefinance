@@ -691,8 +691,8 @@ body::before {
 }
 .plans-header {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  grid-template-columns: auto 1fr;
+  gap: 48px;
   align-items: center;
   margin-bottom: 28px;
 }
@@ -705,6 +705,11 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  border-left: 0.5px solid var(--border-md);
+  padding-left: 48px;
+}
+.plans-header-right .section-eyebrow {
+  margin-bottom: 0;
 }
 .plans-header-right .section-sub {
   font-size: 13px;
@@ -714,8 +719,11 @@ body::before {
 @media (max-width: 700px) {
   .plans-header {
     grid-template-columns: 1fr;
-    gap: 12px;
-    text-align: center;
+    gap: 16px;
+  }
+  .plans-header-right {
+    border-left: none;
+    padding-left: 0;
   }
 }
 
