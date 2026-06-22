@@ -78,7 +78,7 @@ function renderPlanos(planos) {
         class="btn-plan ${p.destaque ? "btn-plan-roxo" : "btn-plan-outline"}"
         onclick="window.open('https://wa.me/5531991184300?text=Olá! Tenho interesse no plano ${encodeURIComponent(p.nome)} do Drive Finance.','_blank')"
       >
-        Começar grátis — 30 dias
+        Começar grátis — 15 dias
       </button>
     `;
     grid.appendChild(card);
