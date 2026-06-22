@@ -696,20 +696,22 @@ body::before {
   align-items: center;
   margin-bottom: 28px;
 }
+.plans-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.plans-header-left .section-eyebrow {
+  margin-bottom: 0;
+}
 .plans-header .section-title {
   font-size: clamp(28px, 3.5vw, 48px);
   margin-bottom: 0;
   white-space: nowrap;
 }
 .plans-header-right {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   border-left: 0.5px solid var(--border-md);
   padding-left: 48px;
-}
-.plans-header-right .section-eyebrow {
-  margin-bottom: 0;
 }
 .plans-header-right .section-sub {
   font-size: 13px;
