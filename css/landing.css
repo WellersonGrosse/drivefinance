@@ -232,11 +232,11 @@ body::before {
 
 .hero-title {
   font-family: var(--display);
-  font-size: clamp(28px, 4vw, 54px);
+  font-size: clamp(28px, 3.8vw, 52px);
   font-weight: 900;
-  line-height: 1.0;
+  line-height: 0.95;
   letter-spacing: -2px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 /* Texto com clip gradient animado */
@@ -247,7 +247,7 @@ body::before {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: shimmer 4s linear infinite;
-  display: block;
+  display: inline;
 }
 @keyframes shimmer {
   0%   { background-position: 0% center; }
@@ -326,14 +326,6 @@ body::before {
   width: fit-content;
 }
 
-.hero-title {
-  font-family: var(--display);
-  font-size: clamp(28px, 3.8vw, 52px);
-  font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: -2px;
-  margin-bottom: 20px;
-}
 
 .hero-sub {
   font-size: clamp(14px, 1.2vw, 16px);
