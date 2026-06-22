@@ -1017,10 +1017,11 @@ body::before {
   .l-footer { flex-direction: column; text-align: center; }
 }
 
-/* Offset para nav fixa ao usar âncoras */
-section[id] {
-  scroll-margin-top: 80px;
-}
+/* Offset para nav fixa ao usar âncoras — ajuste por seção */
+#funcionalidades { scroll-margin-top: 20px; }
+#como-funciona   { scroll-margin-top: 20px; }
+#planos          { scroll-margin-top: 80px; }
+#sobre           { scroll-margin-top: 20px; }
 .reveal {
   opacity: 0;
   transform: translateY(20px);
