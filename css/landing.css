@@ -675,6 +675,8 @@ body::before {
 ───────────────────────────────────────────── */
 .plans-section {
   background: var(--dark-surface);
+  min-height: auto;
+  padding: 60px clamp(24px, 6vw, 100px);
 }
 .plans-section::before {
   content: '';
@@ -685,16 +687,21 @@ body::before {
 }
 
 .plans-section .section-header {
-  text-align: center; margin-bottom: 48px;
+  text-align: center; margin-bottom: 28px;
+}
+.plans-section .section-title {
+  font-size: clamp(24px, 3vw, 38px);
+  margin-bottom: 8px;
 }
 .plans-section .section-sub {
   margin: 0 auto;
+  font-size: 13px;
 }
 
 .plans-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 12px;
   align-items: start;
 }
 @media (max-width: 860px) {
