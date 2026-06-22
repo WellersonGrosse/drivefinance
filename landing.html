@@ -34,17 +34,18 @@
       background: var(--dark);
       color: var(--text);
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
 
     a { color: inherit; text-decoration: none; }
 
-    /* ── NAV ── */
+    /* NAV */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 clamp(20px, 5vw, 80px);
       height: 64px;
-      background: rgba(15,15,26,0.85);
+      background: rgba(15,15,26,0.92);
       backdrop-filter: blur(12px);
       border-bottom: 0.5px solid var(--border);
     }
@@ -53,12 +54,13 @@
       font-family: var(--font);
       font-size: 18px; font-weight: 600;
       letter-spacing: -0.3px;
+      display: flex; align-items: center; gap: 2px;
     }
     .nav-logo span { color: var(--roxo); }
     .nav-logo .dot {
       display: inline-block; width: 6px; height: 6px;
       border-radius: 50%; background: var(--teal);
-      margin-left: 2px; vertical-align: middle; margin-bottom: 3px;
+      margin-left: 3px;
     }
 
     .nav-links {
@@ -72,34 +74,49 @@
     .nav-links a:hover { color: var(--text); }
 
     .nav-cta {
-      background: var(--roxo); color: #fff;
+      background: var(--roxo); color: #fff !important;
       padding: 8px 20px; border-radius: 8px;
       font-size: 14px; font-weight: 500;
       transition: background 0.2s;
     }
-    .nav-cta:hover { background: var(--roxo-hover); }
+    .nav-cta:hover { background: var(--roxo-hover) !important; }
 
     .nav-mobile-btn {
       display: none;
       background: none; border: none;
-      color: var(--text); font-size: 22px; cursor: pointer;
+      color: var(--text); font-size: 24px; cursor: pointer;
+      line-height: 1;
     }
 
-    /* ── HERO ── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-mobile-btn { display: block; }
+      .nav-links.open {
+        display: flex; flex-direction: column;
+        position: fixed; top: 64px; left: 0; right: 0;
+        background: var(--dark-surface);
+        border-bottom: 0.5px solid var(--border);
+        padding: 24px; gap: 20px; z-index: 99;
+      }
+    }
+
+    /* HERO */
     .hero {
       min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
-      padding: 100px clamp(20px, 5vw, 80px) 80px;
+      padding: 120px clamp(20px, 5vw, 80px) 80px;
       position: relative; overflow: hidden;
       text-align: center;
     }
 
     .hero-glow {
       position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
-      width: 700px; height: 700px;
-      background: radial-gradient(circle, rgba(123,94,167,0.18) 0%, transparent 70%);
+      width: min(700px, 100vw); height: min(700px, 100vw);
+      background: radial-gradient(circle, rgba(123,94,167,0.16) 0%, transparent 70%);
       pointer-events: none;
     }
+
+    .hero-inner { max-width: 780px; width: 100%; }
 
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px;
@@ -107,55 +124,51 @@
       border: 0.5px solid rgba(123,94,167,0.4);
       border-radius: 999px;
       padding: 6px 16px;
-      font-size: 12px; font-weight: 500; color: var(--text-sec);
-      margin-bottom: 32px;
+      font-size: 13px; font-weight: 500; color: var(--text-sec);
+      margin-bottom: 36px;
     }
     .hero-badge-dot {
       width: 6px; height: 6px; border-radius: 50%;
-      background: var(--teal);
+      background: var(--teal); flex-shrink: 0;
       animation: pulse 2s infinite;
     }
     @keyframes pulse {
-      0%,100% { opacity: 1; }
-      50% { opacity: 0.3; }
+      0%,100% { opacity: 1; } 50% { opacity: 0.3; }
     }
 
     .hero-title {
       font-family: var(--display);
-      font-size: clamp(36px, 6vw, 72px);
+      font-size: clamp(32px, 5.5vw, 68px);
       font-weight: 800;
-      line-height: 1.0;
+      line-height: 1.05;
       letter-spacing: -2px;
       margin-bottom: 24px;
-      max-width: 800px;
-      margin-left: auto; margin-right: auto;
     }
     .hero-title .accent { color: var(--teal); }
 
     .hero-sub {
-      font-size: clamp(15px, 2vw, 18px);
+      font-size: clamp(15px, 1.8vw, 18px);
       color: var(--text-sec);
       line-height: 1.7;
-      max-width: 560px;
+      max-width: 520px;
       margin: 0 auto 40px;
     }
 
     .hero-actions {
       display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
-      margin-bottom: 64px;
+      margin-bottom: 60px;
     }
 
     .btn-hero {
-      padding: 14px 28px; border-radius: 10px;
-      font-family: var(--font); font-size: 15px; font-weight: 500;
+      padding: clamp(11px,1.5vw,14px) clamp(20px,2.5vw,28px);
+      border-radius: 10px;
+      font-family: var(--font); font-size: clamp(13px,1.2vw,15px); font-weight: 500;
       cursor: pointer; border: none; transition: all 0.2s;
       display: inline-flex; align-items: center; gap: 8px;
     }
     .btn-hero:active { transform: scale(0.97); }
 
-    .btn-primary-hero {
-      background: var(--roxo); color: #fff;
-    }
+    .btn-primary-hero { background: var(--roxo); color: #fff; }
     .btn-primary-hero:hover { background: var(--roxo-hover); }
 
     .btn-secondary-hero {
@@ -169,7 +182,7 @@
       background: var(--dark-card);
       border: 0.5px solid var(--border-md);
       border-radius: 16px;
-      padding: 24px 28px;
+      padding: clamp(18px,3vw,28px);
       max-width: 400px;
       margin: 0 auto;
       text-align: left;
@@ -184,21 +197,21 @@
 
     .dre-row {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 0;
+      padding: 9px 0;
       border-bottom: 0.5px solid var(--border);
-      font-size: 14px;
+      font-size: clamp(13px,1.2vw,14px);
     }
     .dre-row:last-child { border-bottom: none; }
     .dre-row.total {
       margin-top: 4px; padding-top: 12px;
       border-top: 0.5px solid var(--border-md);
-      font-weight: 600; font-size: 15px;
+      font-weight: 600;
     }
     .dre-row .label { color: var(--text-sec); }
     .dre-row .value { font-weight: 500; }
     .dre-row .value.positive { color: var(--teal); }
     .dre-row .value.negative { color: var(--coral); }
-    .dre-row .value.result   { color: var(--teal); font-family: var(--display); font-size: 18px; }
+    .dre-row .value.result { color: var(--teal); font-family: var(--display); font-size: clamp(16px,1.5vw,18px); font-weight: 800; }
 
     .preview-tag {
       position: absolute; top: -12px; right: 20px;
@@ -207,9 +220,9 @@
       padding: 4px 12px; border-radius: 999px;
     }
 
-    /* ── SEÇÕES GENÉRICAS ── */
+    /* SEÇÕES */
     section {
-      padding: 100px clamp(20px, 5vw, 80px);
+      padding: clamp(60px,8vw,100px) clamp(20px,5vw,80px);
     }
 
     .section-label {
@@ -221,24 +234,24 @@
 
     .section-title {
       font-family: var(--display);
-      font-size: clamp(28px, 4vw, 44px);
+      font-size: clamp(26px,3.5vw,44px);
       font-weight: 800; letter-spacing: -1px;
       line-height: 1.1; margin-bottom: 16px;
     }
 
     .section-sub {
-      font-size: 16px; color: var(--text-sec);
+      font-size: clamp(14px,1.3vw,16px); color: var(--text-sec);
       line-height: 1.7; max-width: 560px;
     }
 
-    .section-header { margin-bottom: 56px; }
+    .section-header { margin-bottom: clamp(36px,5vw,56px); }
     .section-header.center { text-align: center; }
     .section-header.center .section-sub { margin: 0 auto; }
 
-    /* ── FUNCIONALIDADES ── */
+    /* FUNCIONALIDADES */
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(280px,100%), 1fr));
       gap: 16px;
     }
 
@@ -246,7 +259,7 @@
       background: var(--dark-card);
       border: 0.5px solid var(--border);
       border-radius: 14px;
-      padding: 24px;
+      padding: clamp(18px,2.5vw,24px);
       transition: border-color 0.2s, transform 0.2s;
     }
     .feature-card:hover {
@@ -258,27 +271,27 @@
       width: 44px; height: 44px;
       border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px; margin-bottom: 16px;
+      font-size: 20px; margin-bottom: 14px;
     }
 
     .feature-title {
-      font-size: 16px; font-weight: 600;
-      margin-bottom: 8px; color: var(--text);
+      font-size: clamp(14px,1.2vw,16px); font-weight: 600;
+      margin-bottom: 8px;
     }
 
     .feature-desc {
-      font-size: 14px; color: var(--text-sec);
+      font-size: clamp(13px,1.1vw,14px); color: var(--text-sec);
       line-height: 1.6;
     }
 
-    /* ── DRE EXPLICAÇÃO ── */
+    /* DRE */
     .dre-section {
       background: var(--dark-surface);
       border-radius: 24px;
-      padding: clamp(32px, 5vw, 64px);
+      padding: clamp(28px,5vw,64px);
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 48px;
+      gap: clamp(28px,4vw,48px);
       align-items: center;
     }
 
@@ -306,7 +319,7 @@
 
     .dre-line {
       display: flex; justify-content: space-between;
-      padding: 10px 20px; font-size: 14px;
+      padding: 9px 20px; font-size: clamp(12px,1.1vw,14px);
     }
     .dre-line .k { color: var(--text-sec); }
     .dre-line .v { font-weight: 500; }
@@ -319,17 +332,17 @@
       font-weight: 600;
     }
     .dre-line.resultado {
-      padding: 16px 20px;
+      padding: 14px 20px;
       background: rgba(79,195,161,0.08);
       border-top: 0.5px solid rgba(79,195,161,0.2);
     }
     .dre-line.resultado .k { color: var(--teal); font-weight: 600; }
-    .dre-line.resultado .v { color: var(--teal); font-family: var(--display); font-size: 18px; font-weight: 800; }
+    .dre-line.resultado .v { color: var(--teal); font-family: var(--display); font-size: clamp(15px,1.4vw,18px); font-weight: 800; }
 
-    /* ── PLANOS ── */
+    /* PLANOS */
     .plans-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(260px,100%), 1fr));
       gap: 16px;
       align-items: start;
     }
@@ -338,14 +351,11 @@
       background: var(--dark-card);
       border: 0.5px solid var(--border);
       border-radius: 16px;
-      padding: 28px 24px;
+      padding: clamp(22px,3vw,28px) clamp(18px,2.5vw,24px);
       position: relative;
       transition: border-color 0.2s;
     }
-
-    .plan-card.destaque {
-      border: 2px solid var(--roxo);
-    }
+    .plan-card.destaque { border: 2px solid var(--roxo); }
 
     .plan-badge {
       position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
@@ -356,51 +366,40 @@
     }
 
     .plan-name {
-      font-size: 13px; font-weight: 600;
+      font-size: 12px; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--text-muted); margin-bottom: 12px;
     }
 
     .plan-price {
       font-family: var(--display);
-      font-size: 38px; font-weight: 800;
+      font-size: clamp(32px,3.5vw,38px); font-weight: 800;
       letter-spacing: -1px; line-height: 1;
       margin-bottom: 4px;
     }
-    .plan-price .currency { font-size: 20px; font-weight: 600; vertical-align: top; margin-top: 6px; display: inline-block; }
-    .plan-price .period { font-family: var(--font); font-size: 14px; font-weight: 400; color: var(--text-muted); }
+    .plan-price .currency { font-size: 18px; font-weight: 600; vertical-align: top; margin-top: 5px; display: inline-block; }
+    .plan-price .period { font-family: var(--font); font-size: 13px; font-weight: 400; color: var(--text-muted); }
 
     .plan-anual-note {
       font-size: 12px; color: var(--text-muted);
-      margin-bottom: 20px; line-height: 1.4;
+      margin-bottom: 18px; line-height: 1.5;
     }
     .plan-anual-note strong { color: var(--ambar); }
 
-    .plan-divider {
-      height: 0.5px; background: var(--border);
-      margin: 20px 0;
-    }
+    .plan-divider { height: 0.5px; background: var(--border); margin: 18px 0; }
 
     .plan-features {
       list-style: none; display: flex;
       flex-direction: column; gap: 10px;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
     }
 
     .plan-features li {
       display: flex; align-items: flex-start; gap: 10px;
-      font-size: 13px; color: var(--text-sec); line-height: 1.4;
+      font-size: clamp(12px,1.1vw,13px); color: var(--text-sec); line-height: 1.4;
     }
-
-    .plan-features li .check {
-      color: var(--teal); font-size: 14px;
-      flex-shrink: 0; margin-top: 1px;
-    }
-
-    .plan-features li .x {
-      color: var(--text-muted); font-size: 14px;
-      flex-shrink: 0; margin-top: 1px;
-    }
+    .plan-features li .check { color: var(--teal); flex-shrink: 0; margin-top: 1px; }
+    .plan-features li .x { color: var(--text-muted); flex-shrink: 0; margin-top: 1px; }
 
     .btn-plan {
       width: 100%; padding: 12px;
@@ -409,10 +408,8 @@
       cursor: pointer; transition: all 0.2s;
     }
     .btn-plan:active { transform: scale(0.97); }
-
     .btn-plan-primary { background: var(--roxo); color: #fff; }
     .btn-plan-primary:hover { background: var(--roxo-hover); }
-
     .btn-plan-outline {
       background: transparent; color: var(--text-sec);
       border: 0.5px solid var(--border-md);
@@ -425,159 +422,129 @@
     }
     .plans-note a { color: var(--roxo); }
 
-    /* ── SOBRE ── */
+    /* SOBRE */
     .sobre-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 64px; align-items: center;
+      gap: clamp(32px,5vw,64px); align-items: center;
     }
     @media (max-width: 768px) {
-      .sobre-grid { grid-template-columns: 1fr; gap: 40px; }
+      .sobre-grid { grid-template-columns: 1fr; gap: 36px; }
     }
 
     .sobre-texto p {
-      font-size: 15px; color: var(--text-sec);
+      font-size: clamp(14px,1.2vw,15px); color: var(--text-sec);
       line-height: 1.8; margin-bottom: 16px;
     }
-
     .sobre-texto p:last-child { margin-bottom: 0; }
-
     .sobre-texto strong { color: var(--text); font-weight: 600; }
 
     .sobre-autor {
       background: var(--dark-card);
       border: 0.5px solid var(--border);
       border-radius: 16px;
-      padding: 28px;
+      padding: clamp(22px,3vw,28px);
     }
 
     .autor-avatar {
-      width: 56px; height: 56px; border-radius: 50%;
+      width: 52px; height: 52px; border-radius: 50%;
       background: rgba(123,94,167,0.2);
       display: flex; align-items: center; justify-content: center;
       font-size: 20px; font-weight: 600; color: var(--roxo);
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .autor-nome {
-      font-size: 18px; font-weight: 600; margin-bottom: 4px;
+      font-size: 18px; font-weight: 600; margin-bottom: 6px;
     }
 
     .autor-cargo {
+      font-size: 13px; color: var(--text-sec);
+      margin-bottom: 4px; line-height: 1.5;
+    }
+
+    .autor-exp {
       font-size: 13px; color: var(--text-muted);
-      margin-bottom: 16px; line-height: 1.5;
+      line-height: 1.5;
     }
 
-    .autor-tags {
-      display: flex; flex-wrap: wrap; gap: 8px;
-    }
-
-    .autor-tag {
-      font-size: 11px; font-weight: 500;
-      padding: 4px 10px; border-radius: 999px;
-      background: rgba(123,94,167,0.15);
-      color: var(--text-sec);
-      border: 0.5px solid rgba(123,94,167,0.3);
-    }
-
-    /* ── CTA FINAL ── */
+    /* CTA */
     .cta-section {
       text-align: center;
-      padding: 100px clamp(20px, 5vw, 80px);
+      padding: clamp(60px,8vw,100px) clamp(20px,5vw,80px);
       position: relative; overflow: hidden;
     }
 
     .cta-glow {
       position: absolute; bottom: -200px; left: 50%; transform: translateX(-50%);
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(79,195,161,0.12) 0%, transparent 70%);
+      width: min(600px,100vw); height: min(600px,100vw);
+      background: radial-gradient(circle, rgba(79,195,161,0.10) 0%, transparent 70%);
       pointer-events: none;
     }
 
     .cta-title {
       font-family: var(--display);
-      font-size: clamp(28px, 4vw, 48px);
+      font-size: clamp(26px,4vw,48px);
       font-weight: 800; letter-spacing: -1px;
-      margin-bottom: 16px;
+      margin-bottom: 16px; line-height: 1.1;
     }
 
     .cta-sub {
-      font-size: 16px; color: var(--text-sec);
+      font-size: clamp(14px,1.3vw,16px); color: var(--text-sec);
       margin-bottom: 32px; line-height: 1.6;
     }
 
     .cta-whats {
       display: inline-flex; align-items: center; gap: 10px;
       background: #25D366; color: #fff;
-      padding: 14px 28px; border-radius: 10px;
-      font-size: 15px; font-weight: 500;
+      padding: 13px 26px; border-radius: 10px;
+      font-size: clamp(13px,1.2vw,15px); font-weight: 500;
       transition: filter 0.2s;
       border: none; cursor: pointer; font-family: var(--font);
     }
     .cta-whats:hover { filter: brightness(0.9); }
 
-    /* ── FOOTER ── */
+    /* FOOTER */
     footer {
       border-top: 0.5px solid var(--border);
-      padding: 32px clamp(20px, 5vw, 80px);
+      padding: 28px clamp(20px,5vw,80px);
       display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 16px;
+      flex-wrap: wrap; gap: 12px;
     }
 
-    .footer-logo {
-      font-size: 16px; font-weight: 600;
-    }
+    .footer-logo { font-size: 15px; font-weight: 600; }
     .footer-logo span { color: var(--roxo); }
 
-    .footer-text {
-      font-size: 13px; color: var(--text-muted);
-    }
+    .footer-text { font-size: 12px; color: var(--text-muted); }
 
-    /* ── LOADING PREÇOS ── */
-    .price-loading {
-      display: inline-block; width: 60px; height: 38px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 6px; animation: shimmer 1.5s infinite;
-    }
-    @keyframes shimmer {
-      0%,100% { opacity: 0.5; }
-      50% { opacity: 1; }
-    }
-
-    /* ── SCROLL ANIMATIONS ── */
-    .reveal {
-      opacity: 0; transform: translateY(20px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-    .reveal.visible {
-      opacity: 1; transform: translateY(0);
-    }
-
-    /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
-      .nav-links { display: none; }
-      .nav-mobile-btn { display: block; }
-      .nav-links.open {
-        display: flex; flex-direction: column;
-        position: fixed; top: 64px; left: 0; right: 0;
-        background: var(--dark-surface);
-        border-bottom: 0.5px solid var(--border);
-        padding: 20px; gap: 16px; z-index: 99;
-      }
       footer { flex-direction: column; text-align: center; }
     }
 
-    /* ── DIVIDER ── */
+    /* DIVIDER */
     .section-divider {
-      height: 0.5px;
-      background: var(--border);
-      margin: 0 clamp(20px, 5vw, 80px);
+      height: 0.5px; background: var(--border);
+      margin: 0 clamp(20px,5vw,80px);
     }
+
+    /* SCROLL REVEAL */
+    .reveal {
+      opacity: 0; transform: translateY(16px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* SHIMMER */
+    .price-loading {
+      display: inline-block; width: 60px; height: 36px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 6px; animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { 0%,100%{opacity:.5} 50%{opacity:1} }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <div class="nav-logo">
     Drive<span>Finance</span><span class="dot"></span>
@@ -595,33 +562,24 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-glow"></div>
-  <div>
+  <div class="hero-inner">
     <div class="hero-badge">
       <span class="hero-badge-dot"></span>
       Controle financeiro para quem vive na estrada
     </div>
-
     <h1 class="hero-title">
       Você sabe quanto<br>
       <span class="accent">sobrou no bolso</span><br>
       esse mês?
     </h1>
-
     <p class="hero-sub">
       Drive Finance transforma seus ganhos do app em controle real.
-      Meta diária, despesas, desgaste do carro — tudo num só lugar.
+      Meta diária, despesas, desgaste do carro, tudo num só lugar.
     </p>
-
     <div class="hero-actions">
-      <a href="#planos" class="btn-hero btn-primary-hero">
-        Começar grátis por 30 dias
-      </a>
-      <a href="#dre" class="btn-hero btn-secondary-hero">
-        Ver como funciona
-      </a>
+      <a href="#planos" class="btn-hero btn-primary-hero">Começar grátis por 30 dias</a>
+      <a href="#dre" class="btn-hero btn-secondary-hero">Ver como funciona</a>
     </div>
-
-    <!-- mini DRE preview -->
     <div class="hero-preview reveal">
       <span class="preview-tag">Exemplo real</span>
       <p class="preview-label">Resultado do mês — Junho 2026</p>
@@ -652,37 +610,36 @@
   <div class="section-header center">
     <span class="section-label">Funcionalidades</span>
     <h2 class="section-title">Tudo que você precisa,<br>sem complicação</h2>
-    <p class="section-sub">Desenvolvido para quem trabalha no trânsito, não para quem trabalha em banco — mas com a mesma leitura de quem trabalha em banco.</p>
+    <p class="section-sub">Desenvolvido para quem trabalha no trânsito, não para quem trabalha em banco. Mas com a mesma leitura de quem trabalha em banco.</p>
   </div>
-
   <div class="features-grid">
     <div class="feature-card reveal">
-      <div class="feature-icon" style="background:rgba(79,195,161,0.12);">🎯</div>
+      <div class="feature-icon" style="background:rgba(79,195,161,0.12)">🎯</div>
       <div class="feature-title">Meta diária inteligente</div>
       <p class="feature-desc">O app divide suas dívidas do mês pelos dias que você trabalha. Se um dia foi fraco, o próximo já sabe quanto compensar.</p>
     </div>
     <div class="feature-card reveal">
-      <div class="feature-icon" style="background:rgba(123,94,167,0.12);">📋</div>
+      <div class="feature-icon" style="background:rgba(123,94,167,0.12)">📋</div>
       <div class="feature-title">Registro diário de corridas</div>
       <p class="feature-desc">Lança o total do dia por app ou particular em segundos. Km rodado, valor recebido e combustível num único formulário.</p>
     </div>
     <div class="feature-card reveal">
-      <div class="feature-icon" style="background:rgba(224,92,92,0.12);">💳</div>
+      <div class="feature-icon" style="background:rgba(224,92,92,0.12)">💳</div>
       <div class="feature-title">Controle de dívidas e parcelas</div>
-      <p class="feature-desc">Cadastra cartão, financiamento, aluguel — fixo ou parcelado. As parcelas somem automaticamente quando acabam.</p>
+      <p class="feature-desc">Cadastra cartão, financiamento, aluguel, fixo ou parcelado. As parcelas somem automaticamente quando acabam.</p>
     </div>
     <div class="feature-card reveal">
-      <div class="feature-icon" style="background:rgba(240,168,48,0.12);">🚗</div>
+      <div class="feature-icon" style="background:rgba(240,168,48,0.12)">🚗</div>
       <div class="feature-title">Custo real do seu carro</div>
-      <p class="feature-desc">Pneu, óleo, correia — tudo vira custo por km. Você sabe exatamente quanto cada corrida custou pro seu veículo.</p>
+      <p class="feature-desc">Pneu, óleo, correia, tudo vira custo por km. Você sabe exatamente quanto cada corrida custou pro seu veículo.</p>
     </div>
     <div class="feature-card reveal">
-      <div class="feature-icon" style="background:rgba(79,195,161,0.12);">📊</div>
+      <div class="feature-icon" style="background:rgba(79,195,161,0.12)">📊</div>
       <div class="feature-title">DRE simplificada</div>
-      <p class="feature-desc">Ganhos, custos de trabalho, despesas pessoais e lucro real — numa leitura que parece coisa de contador, mas qualquer um entende.</p>
+      <p class="feature-desc">Ganhos, custos de trabalho, despesas pessoais e lucro real. Uma leitura que parece coisa de contador, mas qualquer um entende.</p>
     </div>
     <div class="feature-card reveal">
-      <div class="feature-icon" style="background:rgba(123,94,167,0.12);">📅</div>
+      <div class="feature-icon" style="background:rgba(123,94,167,0.12)">📅</div>
       <div class="feature-title">Histórico completo</div>
       <p class="feature-desc">Calendário mensal clicável. Veja e edite qualquer dia, compare meses, acompanhe sua evolução.</p>
     </div>
@@ -691,66 +648,33 @@
 
 <div class="section-divider"></div>
 
-<!-- DRE EXPLICAÇÃO -->
+<!-- DRE -->
 <section id="dre">
   <div class="dre-section reveal">
     <div>
       <span class="section-label">Como funciona</span>
-      <h2 class="section-title" style="font-size:clamp(24px,3vw,36px);">A leitura que contador faz,<br>agora na sua mão</h2>
-      <p style="font-size:15px; color:var(--text-sec); line-height:1.8; margin-bottom:20px;">
-        Grandes empresas usam o <strong style="color:var(--text)">DRE — Demonstrativo de Resultado</strong> para saber se estão lucrando de verdade. Drive Finance traz isso pra você, motorista, de um jeito simples e visual.
+      <h2 class="section-title" style="font-size:clamp(22px,3vw,36px)">A leitura que contador faz,<br>agora na sua mão</h2>
+      <p style="font-size:clamp(14px,1.2vw,15px);color:var(--text-sec);line-height:1.8;margin-bottom:16px">
+        Grandes empresas usam o <strong style="color:var(--text)">DRE</strong> para saber se estão lucrando de verdade. Drive Finance traz isso pra você, motorista, de um jeito simples e visual.
       </p>
-      <p style="font-size:15px; color:var(--text-sec); line-height:1.8;">
+      <p style="font-size:clamp(14px,1.2vw,15px);color:var(--text-sec);line-height:1.8">
         Chega de achar que ganhou bem no mês e no fim não sobrar nada. Aqui você vê <strong style="color:var(--teal)">exatamente</strong> o que entrou, o que saiu e o que ficou.
       </p>
     </div>
     <div class="dre-full">
       <div class="dre-header">Demonstrativo do mês</div>
       <div class="dre-body">
-        <div class="dre-line">
-          <span class="k">Uber</span>
-          <span class="v pos">+ R$ 4.920</span>
-        </div>
-        <div class="dre-line">
-          <span class="k">Corridas particulares</span>
-          <span class="v pos">+ R$ 920</span>
-        </div>
-        <div class="dre-line subtotal">
-          <span class="k">Ganho bruto</span>
-          <span class="v pos">R$ 5.840</span>
-        </div>
-        <div class="dre-line">
-          <span class="k">Combustível</span>
-          <span class="v neg">- R$ 680</span>
-        </div>
-        <div class="dre-line">
-          <span class="k">Desgaste do veículo</span>
-          <span class="v neg">- R$ 280</span>
-        </div>
-        <div class="dre-line">
-          <span class="k">Aluguel do carro</span>
-          <span class="v neg">- R$ 160</span>
-        </div>
-        <div class="dre-line subtotal">
-          <span class="k">Receita líquida do trabalho</span>
-          <span class="v pos">R$ 4.720</span>
-        </div>
-        <div class="dre-line">
-          <span class="k">Aluguel de casa</span>
-          <span class="v neg">- R$ 1.200</span>
-        </div>
-        <div class="dre-line">
-          <span class="k">Cartão Nubank (3/10)</span>
-          <span class="v neg">- R$ 380</span>
-        </div>
-        <div class="dre-line">
-          <span class="k">Outras despesas pessoais</span>
-          <span class="v neg">- R$ 2.620</span>
-        </div>
-        <div class="dre-line resultado">
-          <span class="k">✦ Lucro real do mês</span>
-          <span class="v">R$ 520</span>
-        </div>
+        <div class="dre-line"><span class="k">Uber</span><span class="v pos">+ R$ 4.920</span></div>
+        <div class="dre-line"><span class="k">Corridas particulares</span><span class="v pos">+ R$ 920</span></div>
+        <div class="dre-line subtotal"><span class="k">Ganho bruto</span><span class="v pos">R$ 5.840</span></div>
+        <div class="dre-line"><span class="k">Combustível</span><span class="v neg">- R$ 680</span></div>
+        <div class="dre-line"><span class="k">Desgaste do veículo</span><span class="v neg">- R$ 280</span></div>
+        <div class="dre-line"><span class="k">Aluguel do carro</span><span class="v neg">- R$ 160</span></div>
+        <div class="dre-line subtotal"><span class="k">Receita líquida</span><span class="v pos">R$ 4.720</span></div>
+        <div class="dre-line"><span class="k">Aluguel de casa</span><span class="v neg">- R$ 1.200</span></div>
+        <div class="dre-line"><span class="k">Cartão Nubank (3/10)</span><span class="v neg">- R$ 380</span></div>
+        <div class="dre-line"><span class="k">Outras despesas</span><span class="v neg">- R$ 2.620</span></div>
+        <div class="dre-line resultado"><span class="k">Lucro real do mês</span><span class="v">R$ 520</span></div>
       </div>
     </div>
   </div>
@@ -765,15 +689,9 @@
     <h2 class="section-title">Comece grátis.<br>Assine quando quiser.</h2>
     <p class="section-sub">30 dias grátis em qualquer plano, sem precisar de cartão. Pagamento via Pix, direto no WhatsApp.</p>
   </div>
-
-  <div class="plans-grid" id="plansGrid">
-    <!-- preenchido via JS -->
-  </div>
-
+  <div class="plans-grid" id="plansGrid"></div>
   <p class="plans-note">
-    Dúvidas? Fale direto no
-    <a href="https://wa.me/5531991184300" target="_blank">WhatsApp</a>
-    antes de assinar.
+    Dúvidas? Fale direto no <a href="https://wa.me/5531991184300" target="_blank">WhatsApp</a> antes de assinar.
   </p>
 </section>
 
@@ -784,29 +702,16 @@
   <div class="sobre-grid">
     <div class="sobre-texto reveal">
       <span class="section-label">Sobre o Drive Finance</span>
-      <h2 class="section-title" style="font-size:clamp(24px,3vw,36px); margin-bottom:24px;">Feito por quem entende de número,<br>pensado pra quem vive do volante</h2>
-
+      <h2 class="section-title" style="font-size:clamp(22px,3vw,36px);margin-bottom:24px">Feito por quem entende de número,<br>pensado pra quem vive do volante</h2>
       <p>O Drive Finance nasceu de uma necessidade real: motoristas de aplicativo faturam bem, mas raramente sabem <strong>quanto sobra de verdade</strong> depois de pagar combustível, parcelas, aluguel e manutenção do carro.</p>
-
-      <p>A ideia foi simples — pegar a mesma lógica que grandes empresas usam pra analisar resultado financeiro e transformar numa ferramenta que qualquer motorista consegue usar no celular, entre uma corrida e outra.</p>
-
-      <p>Aqui você tem <strong>meta diária automática</strong>, <strong>controle de dívidas com parcelas</strong>, <strong>custo real por km</strong> e uma leitura de resultado mensal que parece coisa de banco — mas é feita pra você.</p>
+      <p>A ideia foi simples: pegar a mesma lógica que grandes empresas usam pra analisar resultado financeiro e transformar numa ferramenta que qualquer motorista consegue usar no celular, entre uma corrida e outra.</p>
+      <p>Aqui você tem <strong>meta diária automática</strong>, <strong>controle de dívidas com parcelas</strong>, <strong>custo real por km</strong> e uma leitura de resultado mensal que parece coisa de banco, mas é feita pra você.</p>
     </div>
-
     <div class="sobre-autor reveal">
       <div class="autor-avatar">W</div>
       <div class="autor-nome">Wellerson</div>
-      <div class="autor-cargo">
-        Analista Sênior de Inteligência de Mercado · Sistema FIEMG<br>
-        Engenharia Elétrica · UniBH
-      </div>
-      <div class="autor-tags">
-        <span class="autor-tag">Análise de dados</span>
-        <span class="autor-tag">Power BI</span>
-        <span class="autor-tag">Python & SQL</span>
-        <span class="autor-tag">DRE & Performance</span>
-        <span class="autor-tag">Belo Horizonte</span>
-      </div>
+      <div class="autor-cargo">Engenheiro Eletricista | Especialista em Dados, BI e Inteligência Comercial</div>
+      <div class="autor-exp">Experiência profissional em Sistema FIEMG e Localiza&amp;Co</div>
     </div>
   </div>
 </section>
@@ -818,7 +723,7 @@
   <div class="cta-glow"></div>
   <h2 class="cta-title reveal">Pronto pra saber<br>quanto você realmente ganha?</h2>
   <p class="cta-sub reveal">30 dias grátis. Sem cartão. Cancela quando quiser.</p>
-  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
     <a href="login.html" class="btn-hero btn-primary-hero reveal">Criar minha conta grátis</a>
     <a href="https://wa.me/5531991184300" target="_blank" class="cta-whats reveal">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -827,24 +732,19 @@
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
-  <div class="footer-logo">Drive<span>Finance</span><span class="dot" style="width:5px;height:5px;background:var(--teal);border-radius:50%;display:inline-block;margin-left:2px;vertical-align:middle;margin-bottom:2px;"></span></div>
-  <p class="footer-text">Contato: (31) 9 9118-4300 · Belo Horizonte, MG</p>
+  <div class="footer-logo">Drive<span>Finance</span><span style="display:inline-block;width:5px;height:5px;background:var(--teal);border-radius:50%;margin-left:3px;vertical-align:middle"></span></div>
+  <p class="footer-text">Contato: (31) 9 9118-4300</p>
   <p class="footer-text">© 2026 Drive Finance. Todos os direitos reservados.</p>
 </footer>
 
 <script type="module">
   import { db } from "./js/firebase-config.js";
-  import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // ── Planos padrão (usados se não houver config no Firestore)
   const PLANOS_PADRAO = {
     basico: {
-      nome: "Básico",
-      mensal: 15.90,
-      anual: 99.90,
-      destaque: false,
+      nome: "Básico", mensal: 15.90, anual: 99.90, destaque: false,
       features: [
         { ok: true,  text: "Meta diária automática" },
         { ok: true,  text: "Registro de corridas (app + particular)" },
@@ -856,10 +756,7 @@
       ]
     },
     pro: {
-      nome: "Pro",
-      mensal: 25.90,
-      anual: 169.90,
-      destaque: true,
+      nome: "Pro", mensal: 25.90, anual: 169.90, destaque: true,
       features: [
         { ok: true, text: "Tudo do Básico" },
         { ok: true, text: "Dashboard financeiro completo (DRE)" },
@@ -871,31 +768,23 @@
       ]
     },
     completo: {
-      nome: "Completo",
-      mensal: 35.90,
-      anual: 229.90,
-      destaque: false,
+      nome: "Completo", mensal: 35.90, anual: 229.90, destaque: false,
       features: [
         { ok: true, text: "Tudo do Pro" },
         { ok: true, text: "Relatórios exportáveis (PDF/Excel)" },
         { ok: true, text: "Suporte prioritário WhatsApp" },
         { ok: true, text: "Histórico ilimitado" },
         { ok: true, text: "Acesso antecipado a novidades" },
-        { ok: true, text: "Sem surpresas no futuro" },
       ]
     }
   };
 
   async function carregarPlanos() {
     let planos = PLANOS_PADRAO;
-
     try {
       const snap = await getDoc(doc(db, "config_global", "planos"));
       if (snap.exists()) planos = snap.data();
-    } catch(e) {
-      // usa padrão
-    }
-
+    } catch(e) {}
     renderPlanos(planos);
   }
 
@@ -906,11 +795,9 @@
   function renderPlanos(planos) {
     const grid = document.getElementById("plansGrid");
     grid.innerHTML = "";
-
     Object.values(planos).forEach(p => {
       const card = document.createElement("div");
       card.className = "plan-card" + (p.destaque ? " destaque" : "");
-
       card.innerHTML = `
         ${p.destaque ? '<div class="plan-badge">Mais popular</div>' : ""}
         <div class="plan-name">${p.nome}</div>
@@ -918,43 +805,27 @@
           <span class="currency">R$</span>${String(p.mensal.toFixed(2)).replace(".", ",")}
           <span class="period">/mês</span>
         </div>
-        <p class="plan-anual-note">
-          Ou <strong>${formatReal(p.anual)}</strong> no anual
-          — pagamento único, sem mensalidade
-        </p>
+        <p class="plan-anual-note">Ou <strong>${formatReal(p.anual)}</strong> no anual, pagamento único sem mensalidade</p>
         <div class="plan-divider"></div>
         <ul class="plan-features">
-          ${p.features.map(f => `
-            <li>
-              <span class="${f.ok ? "check" : "x"}">${f.ok ? "✓" : "○"}</span>
-              ${f.text}
-            </li>
-          `).join("")}
+          ${p.features.map(f => `<li><span class="${f.ok ? "check" : "x"}">${f.ok ? "✓" : "○"}</span>${f.text}</li>`).join("")}
         </ul>
-        <button
-          class="btn-plan ${p.destaque ? "btn-plan-primary" : "btn-plan-outline"}"
-          onclick="window.open('https://wa.me/5531991184300?text=Olá! Tenho interesse no plano ${encodeURIComponent(p.nome)} do Drive Finance.','_blank')"
-        >
+        <button class="btn-plan ${p.destaque ? "btn-plan-primary" : "btn-plan-outline"}"
+          onclick="window.open('https://wa.me/5531991184300?text=Olá! Tenho interesse no plano ${encodeURIComponent(p.nome)} do Drive Finance.','_blank')">
           Começar grátis — 30 dias
         </button>
       `;
-
       grid.appendChild(card);
     });
   }
 
   carregarPlanos();
 
-  // ── Scroll reveal
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add("visible");
-        observer.unobserve(e.target);
-      }
+      if (e.isIntersecting) { e.target.classList.add("visible"); observer.unobserve(e.target); }
     });
-  }, { threshold: 0.1 });
-
+  }, { threshold: 0.08 });
   document.querySelectorAll(".reveal").forEach(el => observer.observe(el));
 </script>
 
