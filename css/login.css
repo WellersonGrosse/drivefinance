@@ -27,7 +27,9 @@ html, body {
   color: var(--texto);
 }
 
-/* ── LAYOUT ── */
+/* ════════════════════════════════════════
+   LAYOUT — mobile first (card centralizado)
+   ════════════════════════════════════════ */
 .page {
   min-height: 100vh;
   display: flex;
@@ -37,21 +39,19 @@ html, body {
   padding: 24px 16px 40px;
 }
 
-/* ── LOGO ── */
-.logo {
+/* Logo visível só no mobile */
+.logo-mobile {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
   text-decoration: none;
+  animation: fadeDown 400ms ease both;
 }
-.logo-text {
-  font-size: 22px;
-  line-height: 1;
-}
-.logo-text span:first-child { font-weight: 400; color: #fff; }
-.logo-text span:last-child  { font-weight: 600; color: var(--roxo); }
-.logo-dot {
+.logo-mobile .logo-text { font-size: 22px; line-height: 1; }
+.logo-mobile .logo-text span:first-child { font-weight: 400; color: #fff; }
+.logo-mobile .logo-text span:last-child  { font-weight: 600; color: var(--roxo); }
+.logo-mobile .logo-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
   background: var(--teal);
@@ -59,7 +59,7 @@ html, body {
   margin-bottom: 2px;
 }
 
-/* ── CARD ── */
+/* Card do formulário */
 .card {
   width: 100%;
   max-width: 420px;
@@ -67,21 +67,229 @@ html, body {
   border: 0.5px solid var(--borda);
   border-radius: 16px;
   padding: 32px 28px;
-  animation: fadeUp 350ms ease both;
+  animation: fadeUp 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ════════════════════════════════════════
+   LAYOUT — tablet/desktop (duas colunas)
+   Breakpoint: 768px
+   ════════════════════════════════════════ */
+@media (min-width: 768px) {
+  .page {
+    flex-direction: row;
+    align-items: stretch;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  /* Oculta logo mobile */
+  .logo-mobile { display: none; }
+
+  /* ── Coluna esquerda — branding ── */
+  .col-brand {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    flex: 1;
+    padding: 64px 56px;
+    background: linear-gradient(145deg, #0F0F1A 0%, #1A1A2E 60%, #1e1535 100%);
+    position: relative;
+    overflow: hidden;
+    animation: fadeIn 500ms ease both;
+  }
+
+  /* Orbes decorativos de fundo */
+  .col-brand::before {
+    content: '';
+    position: absolute;
+    width: 420px; height: 420px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(123,94,167,0.18) 0%, transparent 70%);
+    top: -80px; left: -80px;
+    pointer-events: none;
+  }
+  .col-brand::after {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,195,161,0.12) 0%, transparent 70%);
+    bottom: -60px; right: -60px;
+    pointer-events: none;
+  }
+
+  /* Logo dentro da coluna de branding */
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 48px;
+    text-decoration: none;
+    animation: fadeUp 500ms 100ms cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .brand-logo .logo-text { font-size: 28px; line-height: 1; }
+  .brand-logo .logo-text span:first-child { font-weight: 400; color: #fff; }
+  .brand-logo .logo-text span:last-child  { font-weight: 600; color: var(--roxo); }
+  .brand-logo .logo-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--teal);
+    flex-shrink: 0;
+    margin-bottom: 3px;
+  }
+
+  .brand-headline {
+    font-size: clamp(26px, 3vw, 36px);
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 16px;
+    max-width: 380px;
+    animation: fadeUp 500ms 180ms cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .brand-headline em {
+    font-style: normal;
+    color: var(--teal);
+  }
+
+  .brand-sub {
+    font-size: 15px;
+    color: var(--texto-sec);
+    line-height: 1.6;
+    max-width: 340px;
+    margin-bottom: 40px;
+    animation: fadeUp 500ms 240ms cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  /* Pills de features */
+  .brand-features {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: fadeUp 500ms 300ms cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .brand-feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+  }
+  .brand-feature-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: rgba(123,94,167,0.2);
+    border: 0.5px solid rgba(123,94,167,0.3);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand-feature-icon svg {
+    width: 16px; height: 16px;
+    stroke: var(--teal);
+  }
+
+  /* DRE mini — decoração visual */
+  .brand-dre {
+    margin-top: 40px;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid var(--borda);
+    border-radius: 12px;
+    padding: 16px 20px;
+    width: 100%;
+    max-width: 340px;
+    animation: fadeUp 500ms 360ms cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .brand-dre-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--texto-sec);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .brand-dre-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    padding: 4px 0;
+  }
+  .brand-dre-row.separator {
+    border-top: 0.5px solid var(--borda);
+    margin-top: 6px;
+    padding-top: 8px;
+  }
+  .brand-dre-row .val { font-weight: 500; }
+  .brand-dre-row .val.pos { color: var(--teal); }
+  .brand-dre-row .val.neg { color: var(--coral); }
+  .brand-dre-row .val.neu { color: var(--ambar); }
+  .brand-dre-row .label  { color: var(--texto-sec); }
+
+  /* ── Coluna direita — formulário ── */
+  .col-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 460px;
+    flex-shrink: 0;
+    padding: 40px 40px;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+
+  .card {
+    max-width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    animation: fadeIn 450ms 150ms ease both;
+  }
+}
+
+/* ════════════════════════════════════════
+   ANIMAÇÕES
+   ════════════════════════════════════════ */
+
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Painel: transição suave ao trocar Login ↔ Cadastro */
+.panel {
+  display: none;
+  opacity: 0;
+  transform: translateY(8px);
+}
+.panel.active {
+  display: block;
+  animation: panelIn 280ms cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── TOGGLE LOGIN / CADASTRO ── */
+/* ════════════════════════════════════════
+   TOGGLE LOGIN / CADASTRO
+   ════════════════════════════════════════ */
 .toggle-wrap {
   display: flex;
   background: var(--bg);
   border-radius: 10px;
   padding: 4px;
   margin-bottom: 28px;
+  border: 0.5px solid var(--borda);
 }
 .toggle-btn {
   flex: 1;
@@ -94,14 +302,17 @@ html, body {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 150ms, color 150ms;
+  transition: background 200ms, color 200ms, box-shadow 200ms;
 }
 .toggle-btn.active {
   background: var(--roxo);
   color: #fff;
+  box-shadow: 0 2px 12px rgba(123,94,167,0.4);
 }
 
-/* ── TÍTULOS DO FORM ── */
+/* ════════════════════════════════════════
+   TÍTULOS DO FORM
+   ════════════════════════════════════════ */
 .form-title {
   font-size: 20px;
   font-weight: 600;
@@ -113,10 +324,11 @@ html, body {
   margin-bottom: 24px;
 }
 
-/* ── CAMPOS ── */
-.field {
-  margin-bottom: 16px;
-}
+/* ════════════════════════════════════════
+   CAMPOS
+   ════════════════════════════════════════ */
+.field { margin-bottom: 16px; }
+
 .field label {
   display: block;
   font-size: 12px;
@@ -124,7 +336,10 @@ html, body {
   color: var(--texto-sec);
   margin-bottom: 6px;
   letter-spacing: 0.3px;
+  transition: color 150ms;
 }
+.field:focus-within label { color: var(--roxo); }
+
 .field input {
   width: 100%;
   height: 44px;
@@ -136,14 +351,22 @@ html, body {
   font-family: 'Poppins', sans-serif;
   font-size: 14px;
   outline: none;
-  transition: border-color 150ms;
+  transition: border-color 200ms, background 200ms, box-shadow 200ms;
   -webkit-appearance: none;
 }
 .field input::placeholder { color: var(--texto-sec); }
-.field input:focus        { border-color: var(--roxo); border-width: 1.5px; }
-.field input.error        { border-color: var(--coral); }
+.field input:focus {
+  border-color: var(--roxo);
+  border-width: 1.5px;
+  background: rgba(123,94,167,0.07);
+  box-shadow: 0 0 0 3px rgba(123,94,167,0.12);
+}
+.field input.error {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 3px rgba(224,92,92,0.1);
+}
 
-/* wrapper de senha com botão de toggle */
+/* wrapper de senha */
 .pw-wrap { position: relative; }
 .pw-wrap input { padding-right: 44px; }
 .pw-toggle {
@@ -155,22 +378,27 @@ html, body {
   cursor: pointer;
   padding: 4px;
   display: flex; align-items: center;
+  transition: color 150ms;
 }
+.pw-toggle:hover { color: var(--roxo); }
 .pw-toggle svg { width: 18px; height: 18px; }
 
-/* linha com dois campos lado a lado */
+/* dois campos lado a lado */
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-/* mensagem de erro por campo */
+/* erro por campo */
 .field-error {
   font-size: 11px;
   color: var(--coral);
   margin-top: 5px;
   display: none;
+  animation: fadeDown 200ms ease both;
 }
 .field-error.show { display: block; }
 
-/* ── ESQUECI A SENHA ── */
+/* ════════════════════════════════════════
+   ESQUECI A SENHA
+   ════════════════════════════════════════ */
 .forgot {
   display: block;
   text-align: right;
@@ -186,7 +414,9 @@ html, body {
 }
 .forgot:hover { color: var(--roxo); }
 
-/* ── BOTÃO PRIMÁRIO ── */
+/* ════════════════════════════════════════
+   BOTÃO PRIMÁRIO
+   ════════════════════════════════════════ */
 .btn-primary {
   width: 100%;
   height: 48px;
@@ -199,14 +429,22 @@ html, body {
   font-weight: 500;
   cursor: pointer;
   margin-top: 8px;
-  transition: background 150ms, transform 150ms;
+  transition: background 200ms, transform 150ms, box-shadow 200ms;
   display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(123,94,167,0.3);
 }
-.btn-primary:hover:not(:disabled)  { background: var(--roxo-hover); }
-.btn-primary:active:not(:disabled) { transform: scale(0.98); }
-.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-primary:hover:not(:disabled) {
+  background: var(--roxo-hover);
+  box-shadow: 0 6px 20px rgba(123,94,167,0.45);
+  transform: translateY(-1px);
+}
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98) translateY(0);
+  box-shadow: 0 2px 8px rgba(123,94,167,0.3);
+}
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
-/* spinner de loading */
+/* spinner */
 .spinner {
   width: 18px; height: 18px;
   border: 2px solid rgba(255,255,255,0.3);
@@ -219,7 +457,9 @@ html, body {
 .btn-primary.loading .btn-label { display: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── DIVISOR ── */
+/* ════════════════════════════════════════
+   DIVISOR
+   ════════════════════════════════════════ */
 .divider {
   display: flex; align-items: center; gap: 12px;
   margin: 20px 0;
@@ -230,7 +470,9 @@ html, body {
   height: 0.5px; background: var(--borda);
 }
 
-/* ── RODAPÉ DO CARD ── */
+/* ════════════════════════════════════════
+   RODAPÉ DO CARD
+   ════════════════════════════════════════ */
 .card-footer {
   text-align: center;
   font-size: 12px;
@@ -246,9 +488,13 @@ html, body {
   font-family: 'Poppins', sans-serif;
   cursor: pointer;
   padding: 0;
+  transition: color 150ms;
 }
+.card-footer .link-mode:hover { color: var(--teal); }
 
-/* ── FORÇA DA SENHA ── */
+/* ════════════════════════════════════════
+   FORÇA DA SENHA
+   ════════════════════════════════════════ */
 .pw-strength {
   height: 3px;
   border-radius: 2px;
@@ -260,10 +506,12 @@ html, body {
   height: 100%;
   border-radius: 2px;
   width: 0%;
-  transition: width 300ms, background 300ms;
+  transition: width 350ms cubic-bezier(0.22,1,0.36,1), background 300ms;
 }
 
-/* ── TERMOS ── */
+/* ════════════════════════════════════════
+   TERMOS
+   ════════════════════════════════════════ */
 .terms-row {
   display: flex; align-items: flex-start; gap: 10px;
   margin-top: 8px; margin-bottom: 4px;
@@ -279,10 +527,12 @@ html, body {
   font-size: 12px; color: var(--texto-sec);
   line-height: 1.5; cursor: pointer;
 }
-.terms-row label a { color: var(--roxo); text-decoration: none; }
-.terms-row label a:hover { text-decoration: underline; }
+.terms-row label a { color: var(--roxo); text-decoration: none; transition: color 150ms; }
+.terms-row label a:hover { color: var(--teal); }
 
-/* ── TOAST ── */
+/* ════════════════════════════════════════
+   TOAST
+   ════════════════════════════════════════ */
 .toast {
   position: fixed;
   bottom: 24px; left: 50%;
@@ -294,26 +544,33 @@ html, body {
   font-size: 13px;
   color: #fff;
   display: flex; align-items: center; gap: 10px;
-  transition: transform 300ms cubic-bezier(0.22,1,0.36,1);
+  transition: transform 350ms cubic-bezier(0.22,1,0.36,1), opacity 300ms;
   z-index: 999;
   max-width: 340px;
   width: calc(100% - 32px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  opacity: 0;
 }
-.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
 .toast-icon { width: 18px; height: 18px; flex-shrink: 0; }
 .toast.success .toast-icon { color: var(--teal); }
 .toast.error   .toast-icon { color: var(--coral); }
 
-/* ── MODAL ESQUECI A SENHA ── */
+/* ════════════════════════════════════════
+   MODAL ESQUECI A SENHA
+   ════════════════════════════════════════ */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.65);
   display: flex; align-items: center; justify-content: center;
   padding: 16px;
   z-index: 100;
   opacity: 0; pointer-events: none;
-  transition: opacity 200ms;
+  transition: opacity 250ms;
+  backdrop-filter: blur(3px);
 }
 .modal-overlay.show { opacity: 1; pointer-events: auto; }
 .modal {
@@ -323,10 +580,11 @@ html, body {
   padding: 28px 24px;
   width: 100%;
   max-width: 380px;
-  transform: scale(0.96);
-  transition: transform 200ms;
+  transform: scale(0.94) translateY(8px);
+  transition: transform 250ms cubic-bezier(0.22,1,0.36,1);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.5);
 }
-.modal-overlay.show .modal { transform: scale(1); }
+.modal-overlay.show .modal { transform: scale(1) translateY(0); }
 .modal h3 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
 .modal p  { font-size: 13px; color: var(--texto-sec); margin-bottom: 20px; }
 .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
@@ -346,15 +604,14 @@ html, body {
   border: none; border-radius: 8px;
   color: #fff; font-family: 'Poppins', sans-serif;
   font-size: 14px; font-weight: 500; cursor: pointer;
-  transition: background 150ms;
+  transition: background 150ms, box-shadow 150ms;
+  box-shadow: 0 2px 10px rgba(123,94,167,0.35);
 }
-.btn-sm:hover { background: var(--roxo-hover); }
+.btn-sm:hover { background: var(--roxo-hover); box-shadow: 0 4px 16px rgba(123,94,167,0.45); }
 
-/* ── PAINÉIS (login / cadastro) ── */
-.panel { display: none; }
-.panel.active { display: block; }
-
-/* ── RESPONSIVO ── */
+/* ════════════════════════════════════════
+   MOBILE — ajustes finos
+   ════════════════════════════════════════ */
 @media (max-width: 440px) {
   .card { padding: 24px 20px; }
   .field-row { grid-template-columns: 1fr; }
