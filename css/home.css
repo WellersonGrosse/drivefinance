@@ -962,6 +962,30 @@ svg {
   }
 }
 
+@media (max-width: 520px) {
+  /* Em celulares, o status da meta fica abaixo do valor para nunca sair do card. */
+  .goal-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .goal-head > div {
+    min-width: 0;
+  }
+
+  .goal-status {
+    align-self: flex-start;
+    max-width: 100%;
+    min-height: 28px;
+    padding: 6px 10px;
+    font-size: 10px;
+    line-height: 1.35;
+    white-space: normal;
+    text-align: left;
+  }
+}
+
 @media (max-width: 430px) {
   .home-topbar { height: 60px; }
   .home-main { padding-top: 77px; }
@@ -971,12 +995,6 @@ svg {
   }
 
   .plan-badge { max-width: 116px; overflow: hidden; text-overflow: ellipsis; }
-
-  .goal-head {
-    align-items: flex-start;
-  }
-
-  .goal-status { font-size: 10px; padding-inline: 8px; }
 
   .goal-progress-area {
     grid-template-columns: 1fr;
