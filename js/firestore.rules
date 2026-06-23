@@ -78,13 +78,8 @@ service cloud.firestore {
             || perfil.plano == "pro"
             || perfil.plano == "completo"
           )
-          && (
-            !("plano_expira_em" in perfil)
-            || (
-              perfil.plano_expira_em is timestamp
-              && request.time < perfil.plano_expira_em
-            )
-          )
+          && perfil.plano_expira_em is timestamp
+          && request.time < perfil.plano_expira_em
         );
     }
 

@@ -181,9 +181,9 @@ export async function verificarAcesso(uid) {
     return { permitido: false, motivo: "plano_expirado", perfil };
   }
 
-  // Plano pago sem data de expiração configurada ainda: libera
-  // (você pode tornar isso mais restritivo quando o billing estiver completo)
-  return { permitido: true, motivo: "plano_ativo", perfil };
+  // Plano pago sem data de expiração é considerado inválido.
+  // O painel admin sempre grava plano_expira_em ao ativar um plano.
+  return { permitido: false, motivo: "plano_expirado", perfil };
 }
 
 // Verifica se usuário tem acesso a um módulo específico
