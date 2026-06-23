@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DriveFinance — Entrar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/login.css" />
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Logo -->
+  <a href="landing.html" class="logo" aria-label="DriveFinance — voltar ao início">
+    <div class="logo-text">
+      <span>Drive</span><span>Finance</span>
+    </div>
+    <div class="logo-dot"></div>
+  </a>
+
+  <!-- Card principal -->
+  <div class="card">
+
+    <!-- Toggle Login / Cadastro -->
+    <div class="toggle-wrap" role="tablist" aria-label="Modo de acesso">
+      <button class="toggle-btn active" id="btn-login"    role="tab" aria-selected="true"  onclick="setMode('login')">Entrar</button>
+      <button class="toggle-btn"        id="btn-cadastro" role="tab" aria-selected="false" onclick="setMode('cadastro')">Criar conta</button>
+    </div>
+
+    <!-- PAINEL LOGIN -->
+    <div class="panel active" id="panel-login">
+      <p class="form-title">Bem-vindo de volta</p>
+      <p class="form-sub">Acesse sua conta para continuar</p>
+
+      <div class="field">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email" />
+        <span class="field-error" id="err-login-email"></span>
+      </div>
+
+      <div class="field">
+        <label for="login-senha">Senha</label>
+        <div class="pw-wrap">
+          <input type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password" />
+          <button class="pw-toggle" type="button" onclick="toggleSenha('login-senha', this)" aria-label="Mostrar senha">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <span class="field-error" id="err-login-senha"></span>
+      </div>
+
+      <button class="forgot" type="button" onclick="abrirEsqueceu()">Esqueci minha senha</button>
+
+      <button class="btn-primary" id="btn-entrar" onclick="fazerLogin()">
+        <div class="spinner"></div>
+        <span class="btn-label">Entrar</span>
+      </button>
+
+      <div class="divider">ou</div>
+
+      <p class="card-footer">
+        Ainda não tem conta?
+        <button class="link-mode" onclick="setMode('cadastro')">Crie grátis</button>
+      </p>
+    </div>
+
+    <!-- PAINEL CADASTRO -->
+    <div class="panel" id="panel-cadastro">
+      <p class="form-title">Crie sua conta</p>
+      <p class="form-sub">Comece com 15 dias gratuitos, sem cartão</p>
+
+      <div class="field">
+        <label for="cad-nome">Nome completo</label>
+        <input type="text" id="cad-nome" placeholder="Seu nome" autocomplete="name" />
+        <span class="field-error" id="err-cad-nome"></span>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="cad-telefone">Telefone</label>
+          <input type="tel" id="cad-telefone" placeholder="(31) 9 9999-9999" autocomplete="tel" inputmode="numeric" />
+          <span class="field-error" id="err-cad-tel"></span>
+        </div>
+        <div class="field">
+          <label for="cad-nascimento">Data de nascimento</label>
+          <input type="date" id="cad-nascimento" autocomplete="bday" />
+          <span class="field-error" id="err-cad-nasc"></span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="cad-email">E-mail</label>
+        <input type="email" id="cad-email" placeholder="seu@email.com" autocomplete="email" />
+        <span class="field-error" id="err-cad-email"></span>
+      </div>
+
+      <div class="field">
+        <label for="cad-senha">Senha</label>
+        <div class="pw-wrap">
+          <input type="password" id="cad-senha" placeholder="Mínimo 8 caracteres" autocomplete="new-password" oninput="avaliarSenha(this.value)" />
+          <button class="pw-toggle" type="button" onclick="toggleSenha('cad-senha', this)" aria-label="Mostrar senha">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar"></div></div>
+        <span class="field-error" id="err-cad-senha"></span>
+      </div>
+
+      <div class="terms-row">
+        <input type="checkbox" id="termos" />
+        <label for="termos">
+          Li e aceito os <a href="#" onclick="return false">Termos de uso</a>
+          e a <a href="#" onclick="return false">Política de privacidade</a>
+        </label>
+      </div>
+      <span class="field-error" id="err-termos"></span>
+
+      <button class="btn-primary" id="btn-cadastrar" onclick="fazerCadastro()">
+        <div class="spinner"></div>
+        <span class="btn-label">Criar conta</span>
+      </button>
+
+      <div class="divider">ou</div>
+
+      <p class="card-footer">
+        Já tem conta?
+        <button class="link-mode" onclick="setMode('login')">Entre aqui</button>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL ESQUECI A SENHA -->
+<div class="modal-overlay" id="modal-esqueceu" onclick="fecharEsqueceu(event)">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <h3 id="modal-titulo">Recuperar senha</h3>
+    <p>Informe seu e-mail e enviaremos um link para redefinir sua senha.</p>
+    <div class="field">
+      <label for="forgot-email">E-mail</label>
+      <input type="email" id="forgot-email" placeholder="seu@email.com" />
+      <span class="field-error" id="err-forgot"></span>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="fecharEsqueceu()">Cancelar</button>
+      <button class="btn-sm"    id="btn-recuperar" onclick="enviarRecuperacao()">Enviar link</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="alert" aria-live="polite">
+  <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="toast-icon"></svg>
+  <span id="toast-msg"></span>
+</div>
+
+<script type="module" src="js/login.js"></script>
+
+</body>
+</html>
