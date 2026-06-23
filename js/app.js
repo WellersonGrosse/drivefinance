@@ -25,16 +25,12 @@ import {
 // AUTENTICAÇÃO
 // ─────────────────────────────────────────────
 
-// Observa mudança de estado de login
-// Uso: onAuthStateChanged(auth, (user) => { ... })
 export { onAuthStateChanged, auth };
 
-// Login com e-mail e senha
 export async function loginEmail(email, senha) {
   return await signInWithEmailAndPassword(auth, email, senha);
 }
 
-// Cadastro com e-mail e senha
 export async function cadastrarEmail(email, senha, nome) {
   const cred = await createUserWithEmailAndPassword(auth, email, senha);
   await updateProfile(cred.user, { displayName: nome });
@@ -42,13 +38,11 @@ export async function cadastrarEmail(email, senha, nome) {
   return cred;
 }
 
-// Logout
 export async function logout() {
   await signOut(auth);
   window.location.href = "login.html";
 }
 
-// Retorna usuário logado ou null
 export function usuarioAtual() {
   return auth.currentUser;
 }
@@ -71,14 +65,16 @@ export function exigirLogin() {
 // PERFIL DO USUÁRIO
 // ─────────────────────────────────────────────
 
-// Cria perfil inicial no Firestore ao cadastrar
+// Cria perfil inicial no Firestore ao cadastrar.
+// Campos protegidos (role, plano, modulos_ativos, trial_inicio) são
+// definidos aqui e bloqueados para alteração pelo usuário via regras.
 async function criarPerfilUsuario(uid, nome, email) {
   await setDoc(doc(db, "users", uid), {
     nome,
     email,
-    role: "user",          // "user" ou "admin"
-    plano: "trial",        // "trial", "basico", "pro", "completo"
-    modulos_ativos: [      // módulos liberados pelo plano
+    role: "user",
+    plano: "trial",
+    modulos_ativos: [
       "home",
       "lancamentos",
       "despesas",
@@ -96,15 +92,96 @@ export async function getPerfil(uid) {
   return snap.exists() ? snap.data() : null;
 }
 
-// Atualiza perfil do usuário
+// Atualiza apenas os campos pessoais permitidos.
+// Nunca expõe role, plano, modulos_ativos ou trial_inicio ao caller.
 export async function updatePerfil(uid, dados) {
-  await updateDoc(doc(db, "users", uid), dados);
+  const CAMPOS_PERMITIDOS = ["nome", "telefone", "data_nascimento", "salario_liquido", "atualizado_em"];
+  const dadosFiltrados = Object.fromEntries(
+    Object.entries(dados).filter(([chave]) => CAMPOS_PERMITIDOS.includes(chave))
+  );
+  if (Object.keys(dadosFiltrados).length === 0) return;
+  await updateDoc(doc(db, "users", uid), {
+    ...dadosFiltrados,
+    atualizado_em: serverTimestamp()
+  });
 }
 
-// Verifica se usuário tem acesso a um módulo
+// ─────────────────────────────────────────────
+// CONTROLE DE ACESSO — função central
+// ─────────────────────────────────────────────
+
+// Converte qualquer formato de timestamp Firestore para Date
+function timestampParaDate(valor) {
+  if (!valor) return null;
+  if (typeof valor.toDate === "function") return valor.toDate();
+  if (valor.seconds) return new Date(valor.seconds * 1000);
+  const d = new Date(valor);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+// Verifica se o trial do perfil ainda está ativo
+function trialAtivo(perfil) {
+  const inicio = timestampParaDate(perfil.trial_inicio || perfil.criado_em);
+  if (!inicio) return false;
+  const fim = new Date(inicio);
+  fim.setDate(fim.getDate() + 15);
+  return new Date() < fim;
+}
+
+// Retorna quantos dias restam no trial (0 se expirado)
+export function diasRestantesTrial(perfil) {
+  const inicio = timestampParaDate(perfil?.trial_inicio || perfil?.criado_em);
+  if (!inicio) return 0;
+  const fim = new Date(inicio);
+  fim.setDate(fim.getDate() + 15);
+  return Math.max(0, Math.ceil((fim - new Date()) / 86400000));
+}
+
+// Verifica se o usuário tem acesso ativo (plano válido ou trial vigente).
+// Esta é a função que CADA PÁGINA deve chamar ao carregar.
+// Retorna: { permitido: boolean, motivo: string }
+export async function verificarAcesso(uid) {
+  let perfil;
+  try {
+    perfil = await getPerfil(uid);
+  } catch {
+    // Falha na rede: bloqueia por padrão — nunca libera por erro
+    return { permitido: false, motivo: "erro_rede", perfil: null };
+  }
+
+  if (!perfil) {
+    return { permitido: false, motivo: "sem_perfil", perfil: null };
+  }
+
+  if (perfil.role === "admin") {
+    return { permitido: true, motivo: "admin", perfil };
+  }
+
+  if (perfil.plano === "trial") {
+    if (trialAtivo(perfil)) {
+      return { permitido: true, motivo: "trial_ativo", perfil };
+    }
+    return { permitido: false, motivo: "trial_expirado", perfil };
+  }
+
+  // Plano pago: verifica se plano_expira_em ainda está no futuro
+  if (perfil.plano_expira_em) {
+    const expira = timestampParaDate(perfil.plano_expira_em);
+    if (expira && new Date() < expira) {
+      return { permitido: true, motivo: "plano_ativo", perfil };
+    }
+    return { permitido: false, motivo: "plano_expirado", perfil };
+  }
+
+  // Plano pago sem data de expiração configurada ainda: libera
+  // (você pode tornar isso mais restritivo quando o billing estiver completo)
+  return { permitido: true, motivo: "plano_ativo", perfil };
+}
+
+// Verifica se usuário tem acesso a um módulo específico
 export async function temAcesso(uid, modulo) {
-  const perfil = await getPerfil(uid);
-  if (!perfil) return false;
+  const { permitido, perfil } = await verificarAcesso(uid);
+  if (!permitido || !perfil) return false;
   if (perfil.role === "admin") return true;
   return perfil.modulos_ativos?.includes(modulo) ?? false;
 }
@@ -119,14 +196,12 @@ export async function isAdmin(uid) {
 // CONFIGURAÇÕES DO USUÁRIO
 // ─────────────────────────────────────────────
 
-// Busca configurações gerais (dias de trabalho, plataformas, toggles)
 export async function getConfig(uid) {
   const snap = await getDoc(doc(db, "users", uid, "config", "settings"));
   if (snap.exists()) return snap.data();
 
-  // Configuração padrão se ainda não existir
   const padrao = {
-    dias_trabalho: [0, 1, 2, 3, 4, 5, 6], // 0=dom, 1=seg ... 6=sab
+    dias_trabalho: [0, 1, 2, 3, 4, 5, 6],
     plataformas: ["Uber"],
     superavit: true,
     deficit: true,
@@ -136,7 +211,6 @@ export async function getConfig(uid) {
   return padrao;
 }
 
-// Salva configurações gerais
 export async function saveConfig(uid, dados) {
   await setDoc(
     doc(db, "users", uid, "config", "settings"),
@@ -195,7 +269,6 @@ export async function deleteDespesa(uid, despesaId) {
   await deleteDoc(doc(db, "users", uid, "despesas", despesaId));
 }
 
-// Retorna apenas despesas ativas do mês atual
 export async function getDespesasAtivas(uid) {
   const todas = await getDespesas(uid);
   const hoje = new Date();
@@ -205,9 +278,7 @@ export async function getDespesasAtivas(uid) {
   return todas.filter(d => {
     if (d.tipo === "fixa") return true;
     if (d.tipo === "parcelamento") {
-      // Verifica se o parcelamento ainda está ativo
       if (d.parcela_atual > d.parcela_total) return false;
-      // Verifica se já encerrou no passado
       if (d.ano_inicio && d.mes_inicio) {
         const mesEncerramento = d.mes_inicio + d.parcela_total - 1;
         const anoEncerramento = d.ano_inicio + Math.floor((d.mes_inicio + d.parcela_total - 2) / 12);
@@ -224,14 +295,12 @@ export async function getDespesasAtivas(uid) {
 // LANÇAMENTOS DIÁRIOS
 // ─────────────────────────────────────────────
 
-// Chave do mês: "2026-06"
 function chaveAnoMes(data = new Date()) {
   const ano = data.getFullYear();
   const mes = String(data.getMonth() + 1).padStart(2, "0");
   return `${ano}-${mes}`;
 }
 
-// Chave do dia: "2026-06-22"
 function chaveDia(data = new Date()) {
   const ano = data.getFullYear();
   const mes = String(data.getMonth() + 1).padStart(2, "0");
@@ -262,7 +331,7 @@ export async function getLancamentosMes(uid, data = new Date()) {
 }
 
 // ─────────────────────────────────────────────
-// CUSTO OPERACIONAL (desgaste do veículo)
+// CUSTO OPERACIONAL
 // ─────────────────────────────────────────────
 
 export async function getCustoOperacional(uid) {
@@ -289,10 +358,9 @@ export async function deleteCustoOperacional(uid, itemId) {
 // CÁLCULO DE META DIÁRIA
 // ─────────────────────────────────────────────
 
-// Retorna os dias de trabalho do mês para um uid
 export async function getDiasTrabalhoMes(uid, data = new Date()) {
   const config = await getConfig(uid);
-  const diasSemana = config.dias_trabalho; // ex: [1,2,3,4,5]
+  const diasSemana = config.dias_trabalho;
 
   const ano = data.getFullYear();
   const mes = data.getMonth();
@@ -306,7 +374,6 @@ export async function getDiasTrabalhoMes(uid, data = new Date()) {
   return dias;
 }
 
-// Calcula a meta do dia considerando déficit/superávit
 export async function calcularMetaDia(uid, data = new Date()) {
   const config = await getConfig(uid);
   const despesas = await getDespesasAtivas(uid);
@@ -314,26 +381,18 @@ export async function calcularMetaDia(uid, data = new Date()) {
   const diasTrabalho = await getDiasTrabalhoMes(uid, data);
 
   const hoje = data.getDate();
-
-  // Total mensal de despesas
   const totalMensal = despesas.reduce((acc, d) => acc + (d.valor || 0), 0);
-
-  // Dias restantes de trabalho (incluindo hoje)
   const diasRestantes = diasTrabalho.filter(d => d >= hoje);
 
   if (diasRestantes.length === 0) return 0;
 
-  // Total já ganho no mês
   const ganhoAcumulado = lancamentosMes.reduce((acc, l) => {
     const ganhoApp = (l.corridas_app || []).reduce((s, c) => s + (c.valor || 0), 0);
     const ganhoParticular = (l.corridas_particular || []).reduce((s, c) => s + (c.valor || 0), 0);
     return acc + ganhoApp + ganhoParticular;
   }, 0);
 
-  // Faltante para cobrir o mês
   const faltante = totalMensal - ganhoAcumulado;
-
-  // Meta do dia = faltante ÷ dias restantes
   const metaDia = faltante / diasRestantes.length;
 
   return Math.max(0, metaDia);
@@ -343,7 +402,6 @@ export async function calcularMetaDia(uid, data = new Date()) {
 // UTILITÁRIOS GERAIS
 // ─────────────────────────────────────────────
 
-// Formata valor em reais: 1480.5 → "R$ 1.480,50"
 export function formatReal(valor) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -351,14 +409,12 @@ export function formatReal(valor) {
   }).format(valor || 0);
 }
 
-// Formata data: "2026-06-22" → "22/06/2026"
 export function formatData(str) {
   if (!str) return "";
   const [ano, mes, dia] = str.split("-");
   return `${dia}/${mes}/${ano}`;
 }
 
-// Retorna saudação por horário
 export function saudacao() {
   const h = new Date().getHours();
   if (h < 12) return "Bom dia";
@@ -366,17 +422,14 @@ export function saudacao() {
   return "Boa noite";
 }
 
-// Retorna data de hoje no formato "2026-06-22"
 export function hoje() {
   return chaveDia(new Date());
 }
 
-// Retorna mês atual no formato "2026-06"
 export function mesAtual() {
   return chaveAnoMes(new Date());
 }
 
-// Exibe toast de notificação na tela
 export function toast(mensagem, tipo = "info") {
   const cores = {
     info:    { bg: "#1A1A2E", border: "#7B5EA7", cor: "#fff" },

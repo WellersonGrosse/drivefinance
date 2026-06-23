@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isLogado() {
+      return request.auth != null;
+    }
+
+    function isProprioUsuario(uid) {
+      return isLogado() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isLogado()
+        && exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        )
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == "admin";
+    }
+
+    match /users/{uid} {
+
+      allow read: if isProprioUsuario(uid) || isAdmin();
+
+      // Usuário comum só pode criar o próprio documento com os campos
+      // iniciais obrigatórios. trial_inicio NÃO pode ser enviado pelo
+      // frontend — é gravado exclusivamente via serverTimestamp() no app.js
+      // e não pode ter seu valor alterado pelo usuário jamais.
+      allow create: if isAdmin()
+        || (
+          isProprioUsuario(uid)
+          && request.resource.data.role == "user"
+          && request.resource.data.plano == "trial"
+          && request.resource.data.modulos_ativos == [
+            "home",
+            "lancamentos",
+            "despesas",
+            "historico"
+          ]
+          // Bloqueia qualquer tentativa de manipular a data do trial
+          && !("plano_expira_em" in request.resource.data)
+        );
+
+      // Usuário comum só pode alterar campos pessoais.
+      // Campos protegidos (role, plano, modulos_ativos, trial_inicio,
+      // plano_expira_em) são somente-admin.
+      allow update: if isAdmin()
+        || (
+          isProprioUsuario(uid)
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              "nome",
+              "telefone",
+              "data_nascimento",
+              "salario_liquido",
+              "atualizado_em"
+            ])
+        );
+
+      allow delete: if isAdmin();
+
+      match /{subcollection}/{document=**} {
+        allow read, write: if isProprioUsuario(uid) || isAdmin();
+      }
+    }
+  }
+}

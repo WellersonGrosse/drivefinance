@@ -5,7 +5,8 @@
 
 import {
   exigirLogin,
-  getPerfil,
+  verificarAcesso,
+  diasRestantesTrial,
   calcularMetaDia,
   getLancamentoDia,
   getLancamentosMes,
@@ -78,18 +79,9 @@ function nomeMes(data = new Date()) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-function timestampToDate(value) {
-  if (!value) return null;
-  if (typeof value.toDate === 'function') return value.toDate();
-  if (value.seconds) return new Date(value.seconds * 1000);
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
 function infoPlano(perfil = {}) {
   const role = String(perfil.role || 'user').toLowerCase();
 
-  // Administradores não ficam sujeitos a plano, trial ou prazo de expiração.
   if (role === 'admin') {
     return {
       label: 'Administrador',
@@ -102,14 +94,8 @@ function infoPlano(perfil = {}) {
   const plano = String(perfil.plano || 'trial').toLowerCase();
 
   if (plano === 'trial') {
-    const inicio = timestampToDate(perfil.trial_inicio || perfil.criado_em);
-    if (!inicio) return { label: 'Plano Trial', sidebar: 'Trial • 15 dias', expired: false, admin: false };
-
-    const fim = new Date(inicio);
-    fim.setDate(fim.getDate() + 15);
-    const hoje = new Date();
-    const dias = Math.max(0, Math.ceil((fim - hoje) / 86400000));
-    const expired = hoje >= fim;
+    const dias = diasRestantesTrial(perfil);
+    const expired = dias === 0;
 
     return {
       label: expired ? 'Trial expirado' : `Trial • ${dias} ${dias === 1 ? 'dia' : 'dias'}`,
@@ -282,6 +268,17 @@ function renderResumo({
   atualizarChecklist({ perfil, veiculos, despesas, lancamentosMes });
 }
 
+// Redireciona para a tela de acesso bloqueado conforme o motivo
+function redirecionarAcessoBloqueado(motivo) {
+  const destinos = {
+    trial_expirado: 'planos.html',
+    plano_expirado: 'planos.html',
+    sem_perfil:     'login.html',
+    erro_rede:      'login.html'
+  };
+  window.location.href = destinos[motivo] || 'login.html';
+}
+
 function mostrarErro(error) {
   console.error('[DriveFinance/Home]', error);
   $('home-error').hidden = false;
@@ -312,18 +309,21 @@ async function carregarHome({ silencioso = false } = {}) {
   refresh?.setAttribute('disabled', '');
 
   try {
+    // 1. Garante que há um usuário autenticado no Firebase Auth
     state.user = state.user || await exigirLogin();
 
-    const perfil = await getPerfil(state.user.uid);
-    state.perfil = perfil || {
-      nome: state.user.displayName || '',
-      email: state.user.email || '',
-      role: 'user',
-      plano: 'trial',
-      modulos_ativos: ['home', 'lancamentos', 'despesas', 'historico'],
-      salario_liquido: 0
-    };
+    // 2. Verifica acesso consultando o Firestore — nunca usa fallback local.
+    //    Se falhar na rede, bloqueia. Se trial expirou, bloqueia. Sem exceções.
+    const { permitido, motivo, perfil } = await verificarAcesso(state.user.uid);
 
+    if (!permitido) {
+      redirecionarAcessoBloqueado(motivo);
+      return; // interrompe — o redirect vai acontecer
+    }
+
+    state.perfil = perfil;
+
+    // 3. Carrega todos os dados do dashboard em paralelo
     const hoje = new Date();
     const [
       metaDia,
