@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Acesse ou crie sua conta no DriveFinance, a gestão financeira feita para motoristas de aplicativo." />
+  <meta name="theme-color" content="#0F0F1A" />
+  <meta name="color-scheme" content="dark" />
   <title>DriveFinance — Entrar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,7 +23,8 @@
   </a>
 
   <!-- ══ COLUNA ESQUERDA — branding (tablet+) ══ -->
-  <aside class="col-brand" aria-hidden="true">
+  <aside class="col-brand">
+    <div class="brand-content">
 
     <a href="landing.html" class="brand-logo">
       <div class="logo-text"><span>Drive</span><span>Finance</span></div>
@@ -71,11 +75,12 @@
         <span class="val neg">R$ 4.500</span>
       </div>
       <div class="brand-dre-row separator">
-        <span class="label" style="font-weight:500;color:#fff">Lucro real</span>
-        <span class="val pos" style="font-size:14px;font-weight:600">R$ 300</span>
+        <span class="label brand-dre-total-label">Lucro real</span>
+        <span class="val pos brand-dre-total-value">R$ 300</span>
       </div>
     </div>
 
+    </div><!-- /brand-content -->
   </aside>
 
   <!-- ══ COLUNA DIREITA — formulário ══ -->
@@ -84,12 +89,12 @@
 
       <!-- Toggle Login / Cadastro -->
       <div class="toggle-wrap" role="tablist" aria-label="Modo de acesso">
-        <button class="toggle-btn active" id="btn-login"    role="tab" aria-selected="true"  onclick="setMode('login')">Entrar</button>
-        <button class="toggle-btn"        id="btn-cadastro" role="tab" aria-selected="false" onclick="setMode('cadastro')">Criar conta</button>
+        <button class="toggle-btn active" id="btn-login" role="tab" aria-selected="true" aria-controls="panel-login" type="button" onclick="setMode('login')">Entrar</button>
+        <button class="toggle-btn" id="btn-cadastro" role="tab" aria-selected="false" aria-controls="panel-cadastro" type="button" onclick="setMode('cadastro')">Criar conta</button>
       </div>
 
       <!-- PAINEL LOGIN -->
-      <div class="panel active" id="panel-login">
+      <div class="panel active" id="panel-login" role="tabpanel" aria-labelledby="btn-login">
         <p class="form-title">Bem-vindo de volta</p>
         <p class="form-sub">Acesse sua conta para continuar</p>
 
@@ -123,12 +128,12 @@
 
         <p class="card-footer">
           Ainda não tem conta?
-          <button class="link-mode" onclick="setMode('cadastro')">Crie grátis</button>
+          <button class="link-mode" type="button" onclick="setMode('cadastro')">Crie grátis</button>
         </p>
       </div>
 
       <!-- PAINEL CADASTRO -->
-      <div class="panel" id="panel-cadastro">
+      <div class="panel" id="panel-cadastro" role="tabpanel" aria-labelledby="btn-cadastro">
         <p class="form-title">Crie sua conta</p>
         <p class="form-sub">Comece com 15 dias gratuitos, sem cartão</p>
 
@@ -189,7 +194,7 @@
 
         <p class="card-footer">
           Já tem conta?
-          <button class="link-mode" onclick="setMode('login')">Entre aqui</button>
+          <button class="link-mode" type="button" onclick="setMode('login')">Entre aqui</button>
         </p>
       </div>
 
