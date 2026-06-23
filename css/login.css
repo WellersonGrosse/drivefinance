@@ -109,11 +109,6 @@ input:focus-visible {
   background: radial-gradient(circle, rgba(79,195,161,0.12), transparent 70%);
 }
 
-/* A apresentação completa fica oculta no celular. */
-.col-brand {
-  display: none;
-}
-
 .col-form {
   width: 100%;
   max-width: 460px;
@@ -137,18 +132,20 @@ input:focus-visible {
   line-height: 1;
 }
 
-.logo-mobile .logo-text span:first-child {
+.logo-mobile .logo-text span:first-child,
+.showcase-logo .logo-text span:first-child {
   color: #fff;
   font-weight: 400;
 }
 
-.logo-mobile .logo-text span:last-child {
+.logo-mobile .logo-text span:last-child,
+.showcase-logo .logo-text span:last-child {
   color: var(--roxo);
   font-weight: 600;
 }
 
 .logo-mobile .logo-dot,
-.brand-logo .logo-dot {
+.showcase-logo .logo-dot {
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--teal);
@@ -170,31 +167,104 @@ input:focus-visible {
   overflow: hidden;
   border: 0.5px solid var(--borda);
   border-radius: 16px;
-  background:
-    linear-gradient(145deg, rgba(34,34,58,0.94), rgba(26,26,46,0.96));
+  background: linear-gradient(145deg, rgba(34,34,58,0.94), rgba(26,26,46,0.96));
   animation: fadeUp 450ms cubic-bezier(0.22,1,0.36,1) both;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
 
+.auth-showcase {
+  display: none;
+}
+
+.auth-content {
+  width: 100%;
+  min-width: 0;
+}
+
+.signup-grid,
+.signup-column {
+  min-width: 0;
+}
+
+.signup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
 /* ════════════════════════════════════════
-   TABLET — apresentação compacta + formulário
+   TABLET — formulário amplo, sem coluna lateral
    ════════════════════════════════════════ */
 @media (min-width: 768px) {
+  .page {
+    justify-content: center;
+    padding: 32px clamp(24px, 5vw, 48px);
+  }
+
+  .page::before {
+    width: 430px;
+    height: 430px;
+    top: -220px;
+    right: -160px;
+  }
+
+  .page::after {
+    width: 360px;
+    height: 360px;
+    bottom: -200px;
+    left: -160px;
+  }
+
+  .logo-mobile {
+    margin-bottom: 28px;
+  }
+
+  .logo-mobile .logo-text {
+    font-size: 26px;
+  }
+
+  .logo-mobile .logo-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .col-form {
+    max-width: 760px;
+  }
+
+  .card {
+    max-width: 760px;
+    padding: 34px clamp(32px, 5vw, 46px);
+    border-radius: 18px;
+  }
+
+  .signup-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .signup-column {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* ════════════════════════════════════════
+   DESKTOP — painel temático + formulário dividido
+   ════════════════════════════════════════ */
+@media (min-width: 1024px) {
   body {
-    background: var(--bg);
+    background:
+      radial-gradient(circle at 10% 10%, rgba(123,94,167,0.13), transparent 34rem),
+      radial-gradient(circle at 92% 90%, rgba(79,195,161,0.08), transparent 30rem),
+      var(--bg);
   }
 
   .page {
-    height: 100vh;
-    height: 100svh;
-    height: 100dvh;
-    min-height: 520px;
-    display: grid;
-    grid-template-columns: minmax(280px, 38%) minmax(0, 62%);
-    align-items: stretch;
-    padding: 0;
-    overflow: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: clamp(20px, 3vw, 36px);
   }
 
   .page::before,
@@ -203,332 +273,374 @@ input:focus-visible {
     display: none;
   }
 
-  .col-brand {
-    position: relative;
-    display: flex;
-    min-width: 0;
-    min-height: 0;
-    padding: clamp(32px, 4vw, 48px);
-    overflow-x: hidden;
-    overflow-y: auto;
-    background:
-      linear-gradient(145deg, #0F0F1A 0%, #1A1A2E 58%, #1E1535 100%);
-    animation: fadeIn 500ms ease both;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(123,94,167,0.45) transparent;
+  .col-form {
+    max-width: 1180px;
   }
 
-  .col-brand::before,
-  .col-brand::after {
+  .card {
+    display: grid;
+    grid-template-columns: minmax(320px, 38%) minmax(0, 62%);
+    width: 100%;
+    max-width: 1180px;
+    min-height: clamp(540px, calc(100dvh - 56px), 660px);
+    padding: 0;
+    border-radius: 20px;
+    background: rgba(20,20,35,0.88);
+    box-shadow: 0 28px 80px rgba(0,0,0,0.28);
+  }
+
+  .auth-showcase {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    padding: clamp(30px, 3vw, 42px);
+    background:
+      linear-gradient(145deg, rgba(123,94,167,0.22), rgba(26,26,46,0.88) 48%, rgba(15,15,26,0.98)),
+      var(--surface);
+  }
+
+  .auth-showcase::before,
+  .auth-showcase::after {
     content: '';
     position: absolute;
-    border-radius: 50%;
+    z-index: -1;
     pointer-events: none;
   }
 
-  .col-brand::before {
-    width: 420px;
-    height: 420px;
-    top: -150px;
-    left: -170px;
-    background: radial-gradient(circle, rgba(123,94,167,0.22), transparent 70%);
-  }
-
-  .col-brand::after {
-    width: 320px;
-    height: 320px;
+  .auth-showcase::before {
+    width: 340px;
+    height: 340px;
+    top: -170px;
     right: -160px;
-    bottom: -130px;
-    background: radial-gradient(circle, rgba(79,195,161,0.13), transparent 70%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,195,161,0.18), transparent 70%);
   }
 
-  .brand-content {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 520px;
-    min-width: 0;
-    margin-block: auto;
+  .auth-showcase::after {
+    width: 160%;
+    height: 120px;
+    right: -34%;
+    bottom: 8%;
+    transform: rotate(-13deg);
+    border-top: 1px dashed rgba(255,255,255,0.08);
+    border-bottom: 1px dashed rgba(255,255,255,0.04);
   }
 
-  .brand-logo {
+  .showcase-logo {
     display: flex;
     align-items: center;
     gap: 8px;
     width: max-content;
-    max-width: 100%;
-    margin-bottom: clamp(30px, 4.5vh, 44px);
+    color: #fff;
     text-decoration: none;
-    animation: fadeUp 500ms 80ms cubic-bezier(0.22,1,0.36,1) both;
   }
 
-  .brand-logo .logo-text {
-    font-size: clamp(24px, 3vw, 28px);
+  .showcase-logo .logo-text {
+    font-size: 27px;
     line-height: 1;
   }
 
-  .brand-logo .logo-text span:first-child {
-    color: #fff;
-    font-weight: 400;
-  }
-
-  .brand-logo .logo-text span:last-child {
-    color: var(--roxo);
-    font-weight: 600;
-  }
-
-  .brand-logo .logo-dot {
+  .showcase-logo .logo-dot {
     width: 9px;
     height: 9px;
     margin-bottom: 3px;
   }
 
-  .brand-headline {
-    max-width: 440px;
-    margin-bottom: 16px;
-    font-size: clamp(25px, 3.2vw, 38px);
-    font-weight: 600;
-    line-height: 1.24;
-    letter-spacing: -0.5px;
-    text-wrap: balance;
-    animation: fadeUp 500ms 150ms cubic-bezier(0.22,1,0.36,1) both;
+  .showcase-copy {
+    margin-top: clamp(34px, 5vh, 54px);
   }
 
-  .brand-headline em {
-    color: var(--teal);
-    font-style: normal;
-  }
-
-  .brand-sub {
-    max-width: 430px;
-    margin-bottom: clamp(24px, 4vh, 36px);
-    color: var(--texto-sec);
-    font-size: clamp(13px, 1.5vw, 15px);
-    line-height: 1.65;
-    animation: fadeUp 500ms 220ms cubic-bezier(0.22,1,0.36,1) both;
-  }
-
-  .brand-features {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    animation: fadeUp 500ms 290ms cubic-bezier(0.22,1,0.36,1) both;
-  }
-
-  .brand-feature {
-    display: flex;
+  .showcase-kicker {
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    min-width: 0;
-    color: rgba(255,255,255,0.78);
-    font-size: clamp(12px, 1.35vw, 13px);
-    line-height: 1.45;
-  }
-
-  .brand-feature-icon {
-    width: 32px;
-    height: 32px;
-    flex: 0 0 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0.5px solid rgba(123,94,167,0.3);
-    border-radius: 8px;
-    background: rgba(123,94,167,0.2);
-    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
-  }
-
-  .brand-feature-icon svg {
-    width: 16px;
-    height: 16px;
-    stroke: var(--teal);
-  }
-
-  .brand-dre {
-    display: none;
-    width: 100%;
-    max-width: 390px;
-    margin-top: 32px;
-    padding: 16px 20px;
-    border: 0.5px solid var(--borda);
-    border-radius: 12px;
-    background: rgba(255,255,255,0.04);
-    animation: fadeUp 500ms 360ms cubic-bezier(0.22,1,0.36,1) both;
-  }
-
-  .brand-dre-label {
-    margin-bottom: 10px;
-    color: var(--texto-sec);
+    gap: 8px;
+    margin-bottom: 14px;
+    color: #B8A5D3;
     font-size: 10px;
     font-weight: 500;
-    letter-spacing: 1px;
+    letter-spacing: 0.7px;
     text-transform: uppercase;
   }
 
-  .brand-dre-row {
+  .showcase-kicker > span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 12px rgba(79,195,161,0.55);
+  }
+
+  .showcase-copy h1 {
+    max-width: 390px;
+    color: #fff;
+    font-size: clamp(28px, 2.6vw, 38px);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+  }
+
+  .showcase-copy p {
+    max-width: 380px;
+    margin-top: 14px;
+    color: rgba(255,255,255,0.58);
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .goal-preview {
+    position: relative;
+    z-index: 1;
+    margin-top: clamp(24px, 4vh, 34px);
+    padding: 18px;
+    border: 0.5px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    background: rgba(15,15,26,0.46);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .goal-preview-head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    padding: 4px 0;
-    font-size: 12px;
   }
 
-  .brand-dre-row.separator {
-    margin-top: 6px;
-    padding-top: 8px;
-    border-top: 0.5px solid var(--borda);
+  .goal-preview-head > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
-  .brand-dre-row .label {
-    min-width: 0;
+  .goal-label {
     color: var(--texto-sec);
+    font-size: 11px;
   }
 
-  .brand-dre-row .val {
-    flex-shrink: 0;
-    font-weight: 500;
-  }
-
-  .brand-dre-row .val.pos { color: var(--teal); }
-  .brand-dre-row .val.neg { color: var(--coral); }
-  .brand-dre-row .val.neu { color: var(--ambar); }
-
-  .brand-dre-row .brand-dre-total-label {
+  .goal-preview-head strong {
     color: #fff;
-    font-weight: 500;
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(25px, 2.1vw, 32px);
+    font-weight: 700;
+    line-height: 1.1;
   }
 
-  .brand-dre-row .brand-dre-total-value {
-    font-size: 14px;
+  .goal-badge {
+    padding: 5px 8px;
+    border: 0.5px solid rgba(79,195,161,0.24);
+    border-radius: 999px;
+    background: rgba(79,195,161,0.12);
+    color: var(--teal);
+    font-size: 11px;
     font-weight: 600;
   }
 
-  .col-form {
-    position: relative;
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    min-height: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding:
-      max(28px, env(safe-area-inset-top))
-      clamp(24px, 4vw, 48px)
-      max(28px, env(safe-area-inset-bottom));
-    overflow-x: hidden;
-    overflow-y: auto;
-    background:
-      radial-gradient(circle at 50% 10%, rgba(123,94,167,0.08), transparent 22rem),
-      var(--bg);
-    scrollbar-width: thin;
-    scrollbar-color: rgba(123,94,167,0.45) transparent;
+  .goal-progress {
+    height: 7px;
+    margin-top: 18px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
   }
 
-  .card {
-    width: 100%;
-    max-width: 480px;
-    margin-block: auto;
-    padding: clamp(28px, 3vw, 36px);
-    overflow: visible;
-    border: 0.5px solid var(--borda);
-    border-radius: 16px;
-    background: rgba(26,26,46,0.74);
-    animation: fadeIn 450ms 120ms ease both;
-  }
-
-  .field-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-}
-
-/* ════════════════════════════════════════
-   DESKTOP — proporção equilibrada e DRE
-   ════════════════════════════════════════ */
-@media (min-width: 1024px) {
-  .page {
-    grid-template-columns: minmax(0, 1fr) clamp(500px, 42vw, 680px);
-  }
-
-  .col-brand {
-    padding: clamp(44px, 5vw, 72px);
-  }
-
-  .brand-content {
-    max-width: 560px;
-  }
-
-  .brand-headline {
-    font-size: clamp(32px, 3.25vw, 44px);
-  }
-
-  .brand-sub {
-    font-size: 15px;
-  }
-
-  .brand-feature {
-    font-size: 13px;
-  }
-
-  .col-form {
-    padding-inline: clamp(40px, 5vw, 72px);
-  }
-}
-
-@media (min-width: 1024px) and (min-height: 720px) {
-  .brand-dre {
+  .goal-progress span {
     display: block;
+    width: 68%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--roxo), var(--teal));
+    transform-origin: left;
+    animation: progressIn 1.1s 300ms cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  .goal-values {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .goal-values span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .goal-values small {
+    color: var(--texto-sec);
+    font-size: 9px;
+  }
+
+  .goal-values b {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .goal-values span:first-child b {
+    color: var(--teal);
+  }
+
+  .showcase-stats {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .showcase-stat {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    column-gap: 8px;
+    row-gap: 2px;
+    padding: 12px;
+    border: 0.5px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.035);
+  }
+
+  .showcase-stat svg {
+    grid-row: 1 / 3;
+    align-self: center;
+    width: 18px;
+    height: 18px;
+    color: var(--teal);
+  }
+
+  .showcase-stat span {
+    overflow: hidden;
+    color: var(--texto-sec);
+    font-size: 9px;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .showcase-stat strong {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .showcase-note {
+    position: relative;
+    z-index: 1;
+    margin-top: auto;
+    padding-top: 18px;
+    color: rgba(255,255,255,0.42);
+    font-size: 10px;
+    letter-spacing: 0.4px;
+  }
+
+  .auth-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(30px, 4vw, 48px);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(123,94,167,0.08), transparent 20rem),
+      rgba(15,15,26,0.76);
+  }
+
+  .toggle-wrap {
+    margin-bottom: 24px;
+  }
+
+  .signup-grid {
+    gap: clamp(18px, 2vw, 28px);
+  }
+
+  #panel-login {
+    width: 100%;
+    max-width: 520px;
+    margin-inline: auto;
+  }
+
+  #panel-cadastro {
+    width: 100%;
+  }
+
+  #panel-cadastro .btn-primary {
+    max-width: 320px;
+    margin-inline: auto;
+  }
+}
+
+@media (min-width: 1280px) {
+  .card {
+    grid-template-columns: minmax(380px, 40%) minmax(0, 60%);
   }
 }
 
 @media (min-width: 1440px) {
-  .brand-headline {
-    font-size: 46px;
-  }
-
+  .col-form,
   .card {
-    max-width: 500px;
+    max-width: 1240px;
   }
 }
 
-/* Alturas reduzidas: tudo continua acessível por rolagem. */
-@media (min-width: 768px) and (max-height: 720px) {
-  .col-brand {
-    padding-block: 28px;
+/* Reduz elementos decorativos em telas largas, mas baixas. */
+@media (min-width: 1024px) and (max-height: 650px) {
+  .page {
+    padding-block: 12px;
   }
 
-  .brand-content,
   .card {
-    margin-block: 0;
+    min-height: 520px;
   }
 
-  .brand-logo {
-    margin-bottom: 24px;
+  .auth-showcase,
+  .auth-content {
+    padding-block: 18px;
   }
 
-  .brand-headline {
+  .toggle-wrap {
     margin-bottom: 12px;
-    font-size: clamp(24px, 3vw, 34px);
   }
 
-  .brand-sub {
-    margin-bottom: 20px;
-    line-height: 1.5;
+  .showcase-copy {
+    margin-top: 24px;
   }
 
-  .brand-features {
-    gap: 8px;
+  .showcase-copy p {
+    margin-top: 10px;
   }
 
-  .brand-dre {
+  .goal-preview {
+    margin-top: 20px;
+    padding: 15px;
+  }
+
+  .showcase-note {
     display: none;
   }
 
-  .col-form {
-    align-items: flex-start;
-    padding-block: 24px;
+  .field {
+    margin-bottom: 12px;
   }
+
+  .form-sub {
+    margin-bottom: 18px;
+  }
+
+  .divider {
+    margin-block: 14px;
+  }
+
+  .card-footer {
+    margin-top: 12px;
+  }
+}
+
+@keyframes progressIn {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }
 
 /* ════════════════════════════════════════
