@@ -891,20 +891,59 @@ svg {
     padding: 82px 16px calc(30px + env(safe-area-inset-bottom));
   }
 
+  /* Cabeçalho mobile */
   .home-header {
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "eyebrow status"
+      "title title"
+      "subtitle subtitle";
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 6px;
     margin-bottom: 18px;
   }
 
-  .home-header h1 { font-size: 25px; }
-  .home-subtitle {
-    width: 100%;
-    max-width: none;
+  /* Permite posicionar separadamente os textos internos */
+  .home-header > div:first-child {
+    display: contents;
   }
 
-  .header-status { align-items: flex-end; }
-  .refresh-btn span { display: none; }
-  .refresh-btn { width: 40px; padding: 0; justify-content: center; }
+  .home-header .eyebrow {
+    grid-area: eyebrow;
+    min-width: 0;
+  }
+
+  .home-header h1 {
+    grid-area: title;
+    min-width: 0;
+    font-size: 25px;
+  }
+
+  .home-subtitle {
+    grid-area: subtitle;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .header-status {
+    grid-area: status;
+    justify-self: end;
+    align-items: center;
+  }
+
+  .refresh-btn span {
+    display: none;
+  }
+
+  .refresh-btn {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
 
   .goal-card {
     min-height: auto;
@@ -926,13 +965,32 @@ svg {
     height: 96px;
   }
 
-  .progress-ring::before { inset: 7px; }
-  .progress-ring-inner strong { font-size: 21px; }
-  .goal-progress-copy { align-items: flex-start; flex-direction: column; gap: 3px; }
-  .goal-progress-copy strong { font-size: 16px; }
-  .goal-foot { flex-direction: column; gap: 3px; }
+  .progress-ring::before {
+    inset: 7px;
+  }
 
-  .quick-actions { grid-template-columns: minmax(0, 1fr); }
+  .progress-ring-inner strong {
+    font-size: 21px;
+  }
+
+  .goal-progress-copy {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .goal-progress-copy strong {
+    font-size: 16px;
+  }
+
+  .goal-foot {
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .quick-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -952,12 +1010,26 @@ svg {
     border-radius: 9px;
   }
 
-  .summary-card p { white-space: normal; }
-  .summary-card strong { font-size: 15px; }
+  .summary-card p {
+    white-space: normal;
+  }
 
-  .content-grid { grid-template-columns: minmax(0, 1fr); }
-  .month-card, .setup-card { min-height: auto; }
-  .card-lg { padding: 19px; }
+  .summary-card strong {
+    font-size: 15px;
+  }
+
+  .content-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .month-card,
+  .setup-card {
+    min-height: auto;
+  }
+
+  .card-lg {
+    padding: 19px;
+  }
 
   .home-error {
     align-items: stretch;
