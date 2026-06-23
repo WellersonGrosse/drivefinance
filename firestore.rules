@@ -1,32 +1,191 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Funções auxiliares
     function isLogado() {
       return request.auth != null;
     }
 
     function isProprioUsuario(uid) {
-      return request.auth.uid == uid;
+      return isLogado() && request.auth.uid == uid;
+    }
+
+    function caminhoUsuario(uid) {
+      return /databases/$(database)/documents/users/$(uid);
     }
 
     function isAdmin() {
-      return isLogado() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+      return isLogado()
+        && exists(caminhoUsuario(request.auth.uid))
+        && get(caminhoUsuario(request.auth.uid)).data.role == "admin";
     }
 
-    // Perfis de usuário
+    function novoUsuarioValido() {
+      let obrigatorios = [
+        "nome",
+        "email",
+        "role",
+        "plano",
+        "modulos_ativos",
+        "salario_liquido",
+        "trial_inicio",
+        "criado_em"
+      ];
+
+      let opcionais = [
+        "telefone",
+        "data_nascimento"
+      ];
+
+      return request.resource.data.keys().hasAll(obrigatorios)
+        && request.resource.data.keys().hasOnly(
+          obrigatorios.concat(opcionais)
+        )
+        && request.resource.data.nome is string
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == "user"
+        && request.resource.data.plano == "trial"
+        && request.resource.data.modulos_ativos == [
+          "home",
+          "lancamentos",
+          "despesas",
+          "historico"
+        ]
+        && request.resource.data.salario_liquido is number
+        && request.resource.data.salario_liquido == 0
+
+        // Exige timestamp real do servidor — impede falsificação de trial_inicio
+        && request.resource.data.trial_inicio == request.time
+        && request.resource.data.criado_em == request.time;
+    }
+
+    function acessoAtivo(uid) {
+      let perfil = get(caminhoUsuario(uid)).data;
+
+      return perfil.role == "admin"
+
+        || (
+          perfil.plano == "trial"
+          && perfil.trial_inicio is timestamp
+          && request.time
+            < perfil.trial_inicio + duration.value(15, "d")
+        )
+
+        || (
+          (
+            perfil.plano == "basico"
+            || perfil.plano == "pro"
+            || perfil.plano == "completo"
+          )
+          && perfil.plano_expira_em is timestamp
+          && request.time < perfil.plano_expira_em
+        );
+    }
+
+    function temModulo(uid, modulo) {
+      let perfil = get(caminhoUsuario(uid)).data;
+
+      return perfil.role == "admin"
+        || modulo in perfil.modulos_ativos;
+    }
+
+    // ── Coleção users ──
+    // Admin pode listar todos os documentos (getDocs na coleção inteira)
     match /users/{uid} {
-      allow read: if isProprioUsuario(uid) || isAdmin();
-      allow create: if isProprioUsuario(uid);
-      allow update: if isProprioUsuario(uid) || isAdmin();
+
+      allow get:    if isProprioUsuario(uid) || isAdmin();
+      allow list:   if isAdmin();
+      allow create: if isAdmin()
+        || (
+          isProprioUsuario(uid)
+          && novoUsuarioValido()
+        );
+
+      allow update: if isAdmin()
+        || (
+          isProprioUsuario(uid)
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              "nome",
+              "telefone",
+              "data_nascimento",
+              "salario_liquido",
+              "atualizado_em"
+            ])
+          && request.resource.data.atualizado_em == request.time
+        );
+
       allow delete: if isAdmin();
 
-      // Subcoleções do usuário (config, veículos, despesas, etc.)
-      match /{subcollection}/{document=**} {
-        allow read, write: if isProprioUsuario(uid) || isAdmin();
+      // Configurações e veículos: conta ativa, sem restrição de módulo
+      match /config/{document=**} {
+        allow read, write: if isAdmin()
+          || (
+            isProprioUsuario(uid)
+            && acessoAtivo(uid)
+          );
       }
+
+      match /veiculos/{document=**} {
+        allow read, write: if isAdmin()
+          || (
+            isProprioUsuario(uid)
+            && acessoAtivo(uid)
+          );
+      }
+
+      // Módulos trial/básico
+      match /despesas/{document=**} {
+        allow read, write: if isAdmin()
+          || (
+            isProprioUsuario(uid)
+            && acessoAtivo(uid)
+            && temModulo(uid, "despesas")
+          );
+      }
+
+      match /lancamentos/{document=**} {
+        allow read, write: if isAdmin()
+          || (
+            isProprioUsuario(uid)
+            && acessoAtivo(uid)
+            && temModulo(uid, "lancamentos")
+          );
+      }
+
+      match /historico/{document=**} {
+        allow read, write: if isAdmin()
+          || (
+            isProprioUsuario(uid)
+            && acessoAtivo(uid)
+            && temModulo(uid, "historico")
+          );
+      }
+
+      // Módulo Pro+
+      match /custo_operacional/{document=**} {
+        allow read, write: if isAdmin()
+          || (
+            isProprioUsuario(uid)
+            && acessoAtivo(uid)
+            && temModulo(uid, "custo_operacional")
+          );
+      }
+
+      // Log de alterações administrativas — somente admin escreve e lê
+      match /historico_admin/{document=**} {
+        allow read, write: if isAdmin();
+      }
+    }
+
+    // ── Configuração global (planos da landing) ──
+    // Qualquer usuário autenticado lê. Somente admin escreve.
+    match /config_global/{document=**} {
+      allow read:  if isLogado();
+      allow write: if isAdmin();
     }
   }
 }
