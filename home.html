@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F0F1A" />
+  <title>DriveFinance — Início</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/home.css" />
+</head>
+<body>
+
+  <div class="loading-screen" id="loading-screen" aria-live="polite" aria-label="Carregando sua área financeira">
+    <div class="loading-brand">
+      <div class="loading-logo"><span>Drive</span><strong>Finance</strong><i></i></div>
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Organizando seus números...</p>
+    </div>
+  </div>
+
+  <div class="app-layout home-app" id="home-app" hidden>
+
+    <aside class="sidebar home-sidebar" id="sidebar" aria-label="Navegação principal">
+      <a class="sidebar-logo home-logo" href="home.html" aria-label="DriveFinance — Início">
+        <span class="logo-drive">Drive</span><span>Finance</span><i class="dot" aria-hidden="true"></i>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item ativo" href="home.html" aria-current="page">
+          <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg>
+          <span>Início</span>
+        </a>
+
+        <button class="nav-item module-link" type="button" data-module="dashboard" data-page="dashboard.html">
+          <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4Zm10 7h6V11h-6ZM4 20h6v-3H4Zm10-13h6V4h-6Z"/></svg>
+          <span>Dashboard</span>
+          <span class="nav-lock" aria-hidden="true"></span>
+        </button>
+
+        <button class="nav-item module-link" type="button" data-module="lancamentos" data-page="lancamentos.html">
+          <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 12h8M12 8v8"/></svg>
+          <span>Lançamentos</span>
+          <span class="nav-lock" aria-hidden="true"></span>
+        </button>
+
+        <button class="nav-item module-link" type="button" data-module="despesas" data-page="despesas.html">
+          <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM7 7V4h10v3M8 12h8"/></svg>
+          <span>Despesas</span>
+          <span class="nav-lock" aria-hidden="true"></span>
+        </button>
+
+        <button class="nav-item module-link" type="button" data-module="custo-operacional" data-page="custo-operacional.html">
+          <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m14.7 6.3 3-3a6 6 0 0 1-7.2 7.2l-6.9 6.9a2.1 2.1 0 1 0 3 3l6.9-6.9a6 6 0 0 1 7.2-7.2l-3 3Z"/></svg>
+          <span>Custo operacional</span>
+          <span class="nav-lock" aria-hidden="true"></span>
+        </button>
+
+        <button class="nav-item module-link" type="button" data-module="historico" data-page="historico.html">
+          <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/></svg>
+          <span>Histórico</span>
+          <span class="nav-lock" aria-hidden="true"></span>
+        </button>
+
+        <div class="nav-separator"></div>
+
+        <button class="nav-item module-link" type="button" data-module="configuracoes" data-page="configuracoes.html" data-public-module="true">
+          <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1H21v4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+          <span>Configurações</span>
+          <span class="nav-lock" aria-hidden="true"></span>
+        </button>
+
+        <button class="nav-item module-link admin-link" id="admin-link" type="button" data-module="admin" data-page="admin.html" hidden>
+          <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v5c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6Z"/><path d="M9 12l2 2 4-4"/></svg>
+          <span>Administração</span>
+          <span class="nav-lock" aria-hidden="true"></span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer home-sidebar-footer">
+        <div class="sidebar-plan" id="sidebar-plan">Carregando plano...</div>
+        <div class="sidebar-user">
+          <div class="user-avatar" id="sidebar-avatar">DF</div>
+          <div class="user-copy">
+            <strong id="sidebar-name">Usuário</strong>
+            <span id="sidebar-email">—</span>
+          </div>
+          <button class="logout-btn" id="btn-logout" type="button" aria-label="Sair da conta" title="Sair da conta">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
+
+    <header class="topbar home-topbar">
+      <button class="topbar-menu" id="btn-menu" type="button" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <a class="topbar-logo" href="home.html"><span class="logo-drive">Drive</span><span>Finance</span><i></i></a>
+      <button class="topbar-avatar" id="topbar-avatar" type="button" aria-label="Abrir menu do usuário">DF</button>
+    </header>
+
+    <main class="main-content home-main">
+      <div class="home-shell">
+
+        <header class="home-header fade-up">
+          <div>
+            <p class="eyebrow" id="today-label">Hoje</p>
+            <h1><span id="greeting">Olá</span>, <span id="first-name">motorista</span></h1>
+            <p class="home-subtitle">Seu dia financeiro, organizado em uma visão simples.</p>
+          </div>
+          <div class="header-status">
+            <span class="plan-badge" id="plan-badge">Plano</span>
+            <button class="refresh-btn" id="btn-refresh" type="button" aria-label="Atualizar dados">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+              <span>Atualizar</span>
+            </button>
+          </div>
+        </header>
+
+        <section class="hero-grid" aria-label="Resumo da meta diária">
+          <article class="goal-card fade-up-delay-1">
+            <div class="goal-orb goal-orb-one"></div>
+            <div class="goal-orb goal-orb-two"></div>
+
+            <div class="goal-head">
+              <div>
+                <p class="card-kicker">Meta de hoje</p>
+                <p class="goal-value" id="goal-value">R$ 0,00</p>
+              </div>
+              <span class="goal-status badge badge-aviso" id="goal-status">Calculando</span>
+            </div>
+
+            <div class="goal-progress-area">
+              <div class="progress-ring" id="progress-ring" aria-label="0% da meta concluída">
+                <div class="progress-ring-inner">
+                  <strong id="progress-percent">0%</strong>
+                  <span>concluído</span>
+                </div>
+              </div>
+
+              <div class="goal-details">
+                <div class="goal-progress-copy">
+                  <span>Realizado hoje</span>
+                  <strong id="earned-today">R$ 0,00</strong>
+                </div>
+                <div class="progress-wrap goal-bar" aria-hidden="true">
+                  <div class="progress-fill" id="goal-progress-fill"></div>
+                </div>
+                <div class="goal-foot">
+                  <span>Faltam <strong id="remaining-today">R$ 0,00</strong></span>
+                  <span id="remaining-workdays">0 dias de trabalho restantes</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="quick-card card-lg fade-up-delay-2">
+            <div class="section-heading compact">
+              <div>
+                <p class="card-kicker">Ações rápidas</p>
+                <h2>O que deseja registrar?</h2>
+              </div>
+            </div>
+
+            <div class="quick-actions">
+              <button class="quick-action quick-action-primary module-link" type="button" data-module="lancamentos" data-page="lancamentos.html">
+                <span class="quick-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14l-1.5-6h-11ZM7 11l1.5-4h7L17 11M8 17v2M16 17v2M8 14h.01M16 14h.01"/></svg>
+                </span>
+                <span><strong>Registrar corrida</strong><small>Ganhos, KM e combustível</small></span>
+                <svg class="quick-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+
+              <button class="quick-action module-link" type="button" data-module="despesas" data-page="despesas.html">
+                <span class="quick-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM7 7V4h10v3M8 12h8"/></svg>
+                </span>
+                <span><strong>Registrar despesa</strong><small>Pessoal ou de trabalho</small></span>
+                <svg class="quick-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </article>
+        </section>
+
+        <section class="summary-grid" aria-label="Resumo financeiro do mês">
+          <article class="summary-card fade-up-delay-1">
+            <span class="summary-icon teal-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg></span>
+            <div><p>Ganhos no mês</p><strong class="teal-text" id="month-earned">R$ 0,00</strong></div>
+          </article>
+          <article class="summary-card fade-up-delay-2">
+            <span class="summary-icon coral-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM8 11h8M8 15h5"/></svg></span>
+            <div><p>Despesas ativas</p><strong id="month-expenses">R$ 0,00</strong></div>
+          </article>
+          <article class="summary-card fade-up-delay-3">
+            <span class="summary-icon purple-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <div><p>Falta cobrir</p><strong id="month-remaining">R$ 0,00</strong></div>
+          </article>
+          <article class="summary-card fade-up-delay-4">
+            <span class="summary-icon amber-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"/></svg></span>
+            <div><p>Dias restantes</p><strong id="workdays-count">0</strong></div>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <article class="month-card card-lg fade-up-delay-2">
+            <div class="section-heading">
+              <div>
+                <p class="card-kicker">Visão do mês</p>
+                <h2>Quanto já foi coberto</h2>
+              </div>
+              <span class="month-chip" id="month-chip">Mês atual</span>
+            </div>
+
+            <div class="coverage-block">
+              <div class="coverage-copy">
+                <strong id="coverage-percent">0%</strong>
+                <span>das despesas do mês já cobertas</span>
+              </div>
+              <div class="progress-wrap coverage-progress" aria-hidden="true">
+                <div class="progress-fill" id="coverage-fill"></div>
+              </div>
+            </div>
+
+            <div class="finance-list">
+              <div class="finance-row">
+                <span><i class="finance-dot teal-dot"></i>Ganhos acumulados</span>
+                <strong class="teal-text" id="list-earned">R$ 0,00</strong>
+              </div>
+              <div class="finance-row">
+                <span><i class="finance-dot coral-dot"></i>Despesas previstas</span>
+                <strong id="list-expenses">R$ 0,00</strong>
+              </div>
+              <div class="finance-row finance-result">
+                <span>Saldo frente às despesas</span>
+                <strong id="month-balance">R$ 0,00</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="setup-card card-lg fade-up-delay-3">
+            <div class="section-heading">
+              <div>
+                <p class="card-kicker">Primeiros passos</p>
+                <h2>Deixe sua conta pronta</h2>
+              </div>
+              <span class="setup-count" id="setup-count">0/4</span>
+            </div>
+
+            <div class="setup-progress progress-wrap" aria-hidden="true">
+              <div class="progress-fill" id="setup-fill"></div>
+            </div>
+
+            <div class="setup-list">
+              <button class="setup-item module-link" type="button" data-step="profile" data-module="configuracoes" data-page="configuracoes.html">
+                <span class="setup-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12 4 4 8-8"/></svg></span>
+                <span><strong>Complete seu perfil</strong><small>Informe salário e preferências</small></span>
+                <svg class="setup-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+
+              <button class="setup-item module-link" type="button" data-step="vehicle" data-module="configuracoes" data-page="configuracoes.html">
+                <span class="setup-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12 4 4 8-8"/></svg></span>
+                <span><strong>Cadastre seu veículo</strong><small>Consumo, modelo e combustível</small></span>
+                <svg class="setup-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+
+              <button class="setup-item module-link" type="button" data-step="expenses" data-module="despesas" data-page="despesas.html">
+                <span class="setup-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12 4 4 8-8"/></svg></span>
+                <span><strong>Adicione suas despesas</strong><small>Base para calcular sua meta</small></span>
+                <svg class="setup-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+
+              <button class="setup-item module-link" type="button" data-step="launch" data-module="lancamentos" data-page="lancamentos.html">
+                <span class="setup-check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12 4 4 8-8"/></svg></span>
+                <span><strong>Faça o primeiro lançamento</strong><small>Comece a acompanhar o mês</small></span>
+                <svg class="setup-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </article>
+        </section>
+
+        <section class="home-error" id="home-error" hidden role="alert">
+          <div>
+            <strong>Não foi possível carregar todos os dados.</strong>
+            <p id="home-error-message">Verifique sua conexão e tente novamente.</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-retry" type="button">Tentar novamente</button>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/home.js"></script>
+</body>
+</html>
