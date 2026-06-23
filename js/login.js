@@ -8,6 +8,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  deleteUser,
   sendPasswordResetEmail,
   onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -17,9 +18,23 @@ import {
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-// ── Redireciona se já estiver logado ──────
-onAuthStateChanged(auth, (user) => {
-  if (user) window.location.href = 'home.html';
+// ── Verifica apenas o estado inicial da sessão ──────
+// Depois dessa primeira verificação, login e cadastro controlam o próprio
+// redirecionamento. Assim, no cadastro, a página só muda depois de o perfil
+// ter sido gravado com sucesso no Firestore.
+let fluxoAuthEmAndamento = false;
+let estadoInicialProcessado = false;
+let pararObserverAuth = null;
+
+pararObserverAuth = onAuthStateChanged(auth, (user) => {
+  if (estadoInicialProcessado) return;
+
+  estadoInicialProcessado = true;
+  if (pararObserverAuth) pararObserverAuth();
+
+  if (user && !fluxoAuthEmAndamento) {
+    window.location.replace('home.html');
+  }
 });
 
 // ─────────────────────────────────────────
@@ -199,15 +214,22 @@ export async function fazerLogin() {
   if (!senha) { showError('err-login-senha', 'login-senha', 'Informe a senha.');  ok = false; }
   if (!ok) return;
 
+  fluxoAuthEmAndamento = true;
   setLoading('btn-entrar', true);
+
+  let loginConcluido = false;
+
   try {
     await signInWithEmailAndPassword(auth, email, senha);
+    loginConcluido = true;
     showToast('Bem-vindo de volta!');
-    setTimeout(() => window.location.href = 'home.html', 800);
+    setTimeout(() => window.location.replace('home.html'), 800);
   } catch (err) {
+    fluxoAuthEmAndamento = false;
     showToast(firebaseErro(err.code), 'error');
   } finally {
-    setLoading('btn-entrar', false);
+    // Em caso de sucesso, mantém o botão carregando até a troca de página.
+    if (!loginConcluido) setLoading('btn-entrar', false);
   }
 }
 
@@ -235,13 +257,20 @@ export async function fazerCadastro() {
   if (!termos)      { showError('err-termos',    null,             'Aceite os termos para continuar.'); ok = false; }
   if (!ok) return;
 
+  fluxoAuthEmAndamento = true;
   setLoading('btn-cadastrar', true);
+
+  let usuarioCriado = null;
+  let cadastroConcluido = false;
+
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, senha);
-    await updateProfile(cred.user, { displayName: nome });
+    usuarioCriado = cred.user;
 
-    // Cria perfil completo no Firestore
-    await setDoc(doc(db, 'users', cred.user.uid), {
+    await updateProfile(usuarioCriado, { displayName: nome });
+
+    // Aguarda a gravação completa do perfil antes de redirecionar.
+    await setDoc(doc(db, 'users', usuarioCriado.uid), {
       nome,
       email,
       telefone,
@@ -254,12 +283,26 @@ export async function fazerCadastro() {
       criado_em:       serverTimestamp()
     });
 
+    cadastroConcluido = true;
     showToast('Conta criada! Bem-vindo ao DriveFinance 🎉');
-    setTimeout(() => window.location.href = 'home.html', 1000);
+    setTimeout(() => window.location.replace('home.html'), 1000);
   } catch (err) {
+    fluxoAuthEmAndamento = false;
+
+    // Evita deixar uma conta no Authentication sem o perfil correspondente
+    // no Firestore caso alguma etapa do cadastro falhe.
+    if (usuarioCriado) {
+      try {
+        await deleteUser(usuarioCriado);
+      } catch (rollbackErr) {
+        console.error('Não foi possível desfazer o usuário incompleto:', rollbackErr);
+      }
+    }
+
     showToast(firebaseErro(err.code), 'error');
   } finally {
-    setLoading('btn-cadastrar', false);
+    // Em caso de sucesso, mantém o botão carregando até a troca de página.
+    if (!cadastroConcluido) setLoading('btn-cadastrar', false);
   }
 }
 
