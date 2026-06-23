@@ -897,7 +897,10 @@ svg {
   }
 
   .home-header h1 { font-size: 25px; }
-  .home-subtitle { max-width: 260px; }
+  .home-subtitle {
+    width: 100%;
+    max-width: none;
+  }
 
   .header-status { align-items: flex-end; }
   .refresh-btn span { display: none; }
