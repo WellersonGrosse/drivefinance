@@ -19,7 +19,7 @@ import {
   toast
 } from './app.js';
 
-const PAGINAS_PRONTAS = new Set(['home.html']);
+const PAGINAS_PRONTAS = new Set(['home.html', 'admin.html']);
 
 const state = {
   user: null,
