@@ -3,20 +3,14 @@
 //  Lógica da tela de login / cadastro
 // ─────────────────────────────────────────
 
-import { auth, db } from './firebase-config.js';
+import { auth } from './firebase-config.js';
 import {
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
   deleteUser,
   sendPasswordResetEmail,
   onAuthStateChanged
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import {
-  doc,
-  setDoc,
-  serverTimestamp
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { cadastrarEmail } from './app.js';
 
 // ── Verifica apenas o estado inicial da sessão ──────
 // Depois dessa primeira verificação, login e cadastro controlam o próprio
@@ -260,28 +254,13 @@ export async function fazerCadastro() {
   fluxoAuthEmAndamento = true;
   setLoading('btn-cadastrar', true);
 
-  let usuarioCriado = null;
   let cadastroConcluido = false;
 
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email, senha);
-    usuarioCriado = cred.user;
-
-    await updateProfile(usuarioCriado, { displayName: nome });
-
-    // Aguarda a gravação completa do perfil antes de redirecionar.
-    await setDoc(doc(db, 'users', usuarioCriado.uid), {
-      nome,
-      email,
-      telefone,
-      data_nascimento: nasc,
-      role:            'user',
-      plano:           'trial',
-      trial_inicio:    serverTimestamp(),
-      modulos_ativos:  ['home', 'lancamentos', 'despesas', 'historico'],
-      salario_liquido: 0,
-      criado_em:       serverTimestamp()
-    });
+    // Delega toda a criação para app.js — única fonte de verdade do cadastro.
+    // criarPerfilUsuario é chamado internamente com os campos corretos e
+    // protegidos. Nenhum campo sensível é gravado diretamente aqui.
+    await cadastrarEmail(email, senha, nome, { telefone, data_nascimento: nasc });
 
     cadastroConcluido = true;
     showToast('Conta criada! Bem-vindo ao DriveFinance 🎉');
@@ -289,11 +268,12 @@ export async function fazerCadastro() {
   } catch (err) {
     fluxoAuthEmAndamento = false;
 
-    // Evita deixar uma conta no Authentication sem o perfil correspondente
-    // no Firestore caso alguma etapa do cadastro falhe.
-    if (usuarioCriado) {
+    // Se a conta Firebase Auth foi criada mas o perfil Firestore falhou,
+    // o erro é propagado por cadastrarEmail. Tenta desfazer via currentUser.
+    const usuarioParcial = auth.currentUser;
+    if (usuarioParcial) {
       try {
-        await deleteUser(usuarioCriado);
+        await deleteUser(usuarioParcial);
       } catch (rollbackErr) {
         console.error('Não foi possível desfazer o usuário incompleto:', rollbackErr);
       }
@@ -301,7 +281,6 @@ export async function fazerCadastro() {
 
     showToast(firebaseErro(err.code), 'error');
   } finally {
-    // Em caso de sucesso, mantém o botão carregando até a troca de página.
     if (!cadastroConcluido) setLoading('btn-cadastrar', false);
   }
 }

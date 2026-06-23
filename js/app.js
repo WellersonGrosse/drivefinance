@@ -31,10 +31,10 @@ export async function loginEmail(email, senha) {
   return await signInWithEmailAndPassword(auth, email, senha);
 }
 
-export async function cadastrarEmail(email, senha, nome) {
+export async function cadastrarEmail(email, senha, nome, { telefone, data_nascimento } = {}) {
   const cred = await createUserWithEmailAndPassword(auth, email, senha);
   await updateProfile(cred.user, { displayName: nome });
-  await criarPerfilUsuario(cred.user.uid, nome, email);
+  await criarPerfilUsuario(cred.user.uid, nome, email, { telefone, data_nascimento });
   return cred;
 }
 
@@ -68,8 +68,9 @@ export function exigirLogin() {
 // Cria perfil inicial no Firestore ao cadastrar.
 // Campos protegidos (role, plano, modulos_ativos, trial_inicio) são
 // definidos aqui e bloqueados para alteração pelo usuário via regras.
-async function criarPerfilUsuario(uid, nome, email) {
-  await setDoc(doc(db, "users", uid), {
+// telefone e data_nascimento são opcionais — enviados apenas se presentes.
+async function criarPerfilUsuario(uid, nome, email, { telefone, data_nascimento } = {}) {
+  const perfil = {
     nome,
     email,
     role: "user",
@@ -83,7 +84,14 @@ async function criarPerfilUsuario(uid, nome, email) {
     salario_liquido: 0,
     trial_inicio: serverTimestamp(),
     criado_em: serverTimestamp()
-  });
+  };
+
+  // Inclui campos opcionais apenas se fornecidos — mantém compatibilidade
+  // com a regra novoUsuarioValido() que usa keys().hasOnly()
+  if (telefone)       perfil.telefone       = telefone;
+  if (data_nascimento) perfil.data_nascimento = data_nascimento;
+
+  await setDoc(doc(db, "users", uid), perfil);
 }
 
 // Busca perfil do usuário no Firestore
