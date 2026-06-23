@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0F0F1A" />
+  <meta name="color-scheme" content="dark" />
+  <title>DriveFinance — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loading-screen">
+  <div class="spinner"></div>
+</div>
+
+<!-- App -->
+<div class="app-layout" id="admin-app" hidden>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span>Drive</span>Finance<span class="dot"></span>
+      <div class="admin-badge-sidebar">Admin</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item ativo" data-section="visao-geral" onclick="navegarSecao('visao-geral')">
+        <span class="nav-icon">📊</span> Visão geral
+      </button>
+      <button class="nav-item" data-section="usuarios" onclick="navegarSecao('usuarios')">
+        <span class="nav-icon">👥</span> Usuários
+      </button>
+      <button class="nav-item" data-section="planos" onclick="navegarSecao('planos')">
+        <span class="nav-icon">📦</span> Planos
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="nav-item" onclick="irParaHome()">
+        <span class="nav-icon">🏠</span> Voltar ao app
+      </button>
+      <button class="nav-item nav-item-logout" id="btn-logout">
+        <span class="nav-icon">🚪</span> Sair
+      </button>
+    </div>
+  </aside>
+
+  <!-- Overlay mobile -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Topbar mobile -->
+  <header class="topbar">
+    <button class="btn btn-icon btn-secondary" id="btn-menu" aria-label="Abrir menu" aria-expanded="false">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topbar-logo"><span>Drive</span>Finance — Admin</div>
+  </header>
+
+  <!-- Conteúdo principal -->
+  <main class="main-content">
+
+    <!-- ── SEÇÃO: Visão geral ── -->
+    <section id="section-visao-geral" class="admin-section">
+      <h1 class="page-title">Visão geral</h1>
+
+      <div class="metrics-grid fade-up">
+        <div class="card metric-card">
+          <div class="metric-label">Total de usuários</div>
+          <div class="metric-value" id="metric-total">—</div>
+        </div>
+        <div class="card metric-card">
+          <div class="metric-label">Trials ativos</div>
+          <div class="metric-value teal" id="metric-trials">—</div>
+        </div>
+        <div class="card metric-card">
+          <div class="metric-label">Planos ativos</div>
+          <div class="metric-value roxo" id="metric-planos">—</div>
+        </div>
+        <div class="card metric-card">
+          <div class="metric-label">Acessos expirados</div>
+          <div class="metric-value coral" id="metric-expirados">—</div>
+        </div>
+        <div class="card metric-card">
+          <div class="metric-label">Cadastros (7 dias)</div>
+          <div class="metric-value" id="metric-recentes">—</div>
+        </div>
+      </div>
+
+      <div class="card-lg fade-up-delay-1" style="margin-top: var(--gap-xl)">
+        <div class="section-header">
+          <h2 class="section-title">Cadastros recentes</h2>
+        </div>
+        <div id="lista-recentes">
+          <div class="empty-state"><div class="empty-state-icon">👤</div><p>Carregando...</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SEÇÃO: Usuários ── -->
+    <section id="section-usuarios" class="admin-section" hidden>
+      <h1 class="page-title">Usuários</h1>
+
+      <div class="search-bar fade-up">
+        <div class="search-input-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" class="input search-input" id="busca-usuario" placeholder="Buscar por nome ou e-mail..." />
+        </div>
+        <select class="select filter-select" id="filtro-plano">
+          <option value="">Todos os planos</option>
+          <option value="trial">Trial</option>
+          <option value="basico">Básico</option>
+          <option value="pro">Pro</option>
+          <option value="completo">Completo</option>
+        </select>
+        <select class="select filter-select" id="filtro-situacao">
+          <option value="">Todas as situações</option>
+          <option value="ativo">Ativo</option>
+          <option value="expirado">Expirado</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      <div class="card-lg fade-up-delay-1" style="margin-top: var(--gap-lg)">
+        <div id="lista-usuarios">
+          <div class="empty-state"><div class="empty-state-icon">👥</div><p>Carregando usuários...</p></div>
+        </div>
+        <div id="paginacao" class="paginacao" hidden></div>
+      </div>
+    </section>
+
+    <!-- ── SEÇÃO: Planos ── -->
+    <section id="section-planos" class="admin-section" hidden>
+      <h1 class="page-title">Planos</h1>
+      <p class="page-subtitle">Edite nome, preços e módulos de cada plano. As alterações refletem imediatamente na landing page.</p>
+
+      <div id="lista-planos" class="planos-grid fade-up">
+        <div class="empty-state"><div class="empty-state-icon">📦</div><p>Carregando planos...</p></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── MODAL: Perfil do usuário ── -->
+<div class="modal-overlay" id="modal-usuario" hidden>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="modal-usuario-titulo">
+
+    <div class="modal-header">
+      <div>
+        <div class="modal-avatar" id="modal-avatar">DF</div>
+      </div>
+      <div class="modal-header-info">
+        <h2 class="modal-title" id="modal-usuario-titulo">—</h2>
+        <div class="modal-meta" id="modal-meta">—</div>
+      </div>
+      <button class="modal-close" onclick="fecharModalUsuario()" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Dados pessoais -->
+      <div class="modal-section">
+        <h3 class="modal-section-title">Dados pessoais</h3>
+        <div class="modal-grid">
+          <div class="form-group">
+            <label class="form-label">Nome</label>
+            <input type="text" class="input" id="edit-nome" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">E-mail</label>
+            <input type="email" class="input" id="edit-email" disabled />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telefone</label>
+            <input type="tel" class="input" id="edit-telefone" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data de nascimento</label>
+            <input type="date" class="input" id="edit-nascimento" />
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="margin-top: var(--gap-md)" onclick="salvarDadosPessoais()">
+          Salvar dados pessoais
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Acesso e plano -->
+      <div class="modal-section">
+        <h3 class="modal-section-title">Acesso e plano</h3>
+        <div class="modal-grid">
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select class="select" id="edit-role">
+              <option value="user">Usuário</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Plano</label>
+            <select class="select" id="edit-plano">
+              <option value="trial">Trial</option>
+              <option value="basico">Básico</option>
+              <option value="pro">Pro</option>
+              <option value="completo">Completo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="acesso-info card" id="acesso-info" style="margin-top: var(--gap-md)">
+          <div class="acesso-info-row">
+            <span class="form-label">Situação atual</span>
+            <span id="acesso-situacao">—</span>
+          </div>
+          <div class="acesso-info-row">
+            <span class="form-label">Expira em</span>
+            <span id="acesso-expira">—</span>
+          </div>
+        </div>
+
+        <div class="dias-wrap" style="margin-top: var(--gap-md)">
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Adicionar dias de acesso</label>
+            <input type="number" class="input" id="edit-dias" min="1" max="365" placeholder="Ex: 30" />
+          </div>
+          <button class="btn btn-teal" style="margin-top: 22px" onclick="adicionarDias()">
+            Confirmar
+          </button>
+        </div>
+        <p class="dias-hint">Se o acesso estiver ativo, os dias são somados à expiração atual. Se vencido, contam da data de hoje.</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Módulos -->
+      <div class="modal-section">
+        <h3 class="modal-section-title">Módulos ativos</h3>
+        <p class="modal-section-sub">Módulos marcados estão liberados para este usuário, independente do plano.</p>
+        <div class="modulos-grid" id="edit-modulos">
+          <!-- gerado pelo JS -->
+        </div>
+        <button class="btn btn-secondary" style="margin-top: var(--gap-md)" onclick="salvarModulos()">
+          Salvar módulos
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Log de alterações -->
+      <div class="modal-section">
+        <h3 class="modal-section-title">Histórico de alterações</h3>
+        <div id="log-alteracoes">
+          <div class="empty-state" style="padding: var(--gap-lg)">
+            <p>Nenhuma alteração registrada.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalUsuario()">Fechar</button>
+      <button class="btn btn-primary" onclick="salvarAcessoPlano()">Salvar acesso e plano</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Editar plano ── -->
+<div class="modal-overlay" id="modal-plano" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-plano-titulo">
+
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-plano-titulo">Editar plano</h2>
+      <button class="modal-close" onclick="fecharModalPlano()" aria-label="Fechar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="plano-edit-id" />
+
+      <div class="modal-grid">
+        <div class="form-group">
+          <label class="form-label">Nome de exibição</label>
+          <input type="text" class="input" id="plano-edit-nome" placeholder="Ex: Pro" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preço mensal (R$)</label>
+          <input type="number" class="input" id="plano-edit-mensal" min="0" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preço anual (R$)</label>
+          <input type="number" class="input" id="plano-edit-anual" min="0" step="0.01" />
+        </div>
+      </div>
+
+      <div style="margin-top: var(--gap-lg)">
+        <label class="form-label" style="display:block; margin-bottom: var(--gap-sm)">Módulos incluídos neste plano</label>
+        <div class="modulos-grid" id="plano-edit-modulos">
+          <!-- gerado pelo JS -->
+        </div>
+      </div>
+
+      <div style="margin-top: var(--gap-md)">
+        <label class="form-label" style="display:block; margin-bottom: var(--gap-sm)">Funcionalidades exibidas na landing (texto livre)</label>
+        <div id="plano-edit-features" class="features-list">
+          <!-- gerado pelo JS -->
+        </div>
+        <button class="btn btn-secondary" style="margin-top: var(--gap-sm); font-size: 13px" onclick="adicionarFeature()">
+          + Adicionar item
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalPlano()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarPlano()">Salvar plano</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="admin-toast" class="admin-toast" role="alert" aria-live="polite"></div>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>
