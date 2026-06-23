@@ -45,7 +45,7 @@ export async function cadastrarEmail(email, senha, nome) {
 // Logout
 export async function logout() {
   await signOut(auth);
-  window.location.href = "/login.html";
+  window.location.href = "login.html";
 }
 
 // Retorna usuário logado ou null
@@ -59,7 +59,7 @@ export function exigirLogin() {
     const unsub = onAuthStateChanged(auth, (user) => {
       unsub();
       if (!user) {
-        window.location.href = "/login.html";
+        window.location.href = "login.html";
       } else {
         resolve(user);
       }
@@ -77,7 +77,7 @@ async function criarPerfilUsuario(uid, nome, email) {
     nome,
     email,
     role: "user",          // "user" ou "admin"
-    plano: "basico",       // "basico", "pro", "completo"
+    plano: "trial",        // "trial", "basico", "pro", "completo"
     modulos_ativos: [      // módulos liberados pelo plano
       "home",
       "lancamentos",
@@ -85,6 +85,7 @@ async function criarPerfilUsuario(uid, nome, email) {
       "historico"
     ],
     salario_liquido: 0,
+    trial_inicio: serverTimestamp(),
     criado_em: serverTimestamp()
   });
 }
