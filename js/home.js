@@ -87,11 +87,23 @@ function timestampToDate(value) {
 }
 
 function infoPlano(perfil = {}) {
+  const role = String(perfil.role || 'user').toLowerCase();
+
+  // Administradores não ficam sujeitos a plano, trial ou prazo de expiração.
+  if (role === 'admin') {
+    return {
+      label: 'Administrador',
+      sidebar: 'Administrador • acesso total',
+      expired: false,
+      admin: true
+    };
+  }
+
   const plano = String(perfil.plano || 'trial').toLowerCase();
 
   if (plano === 'trial') {
     const inicio = timestampToDate(perfil.trial_inicio || perfil.criado_em);
-    if (!inicio) return { label: 'Plano Trial', sidebar: 'Trial • 15 dias', expired: false };
+    if (!inicio) return { label: 'Plano Trial', sidebar: 'Trial • 15 dias', expired: false, admin: false };
 
     const fim = new Date(inicio);
     fim.setDate(fim.getDate() + 15);
@@ -102,7 +114,8 @@ function infoPlano(perfil = {}) {
     return {
       label: expired ? 'Trial expirado' : `Trial • ${dias} ${dias === 1 ? 'dia' : 'dias'}`,
       sidebar: expired ? 'Trial expirado' : `Trial • ${dias} dias restantes`,
-      expired
+      expired,
+      admin: false
     };
   }
 
@@ -115,7 +128,8 @@ function infoPlano(perfil = {}) {
   return {
     label: nomes[plano] || `Plano ${plano}`,
     sidebar: nomes[plano] || `Plano ${plano}`,
-    expired: false
+    expired: false,
+    admin: false
   };
 }
 
@@ -161,7 +175,7 @@ function setStatusMeta(percent, meta, totalDespesas) {
 
 function atualizarAcessos(perfil) {
   const modulos = new Set(perfil?.modulos_ativos || []);
-  const admin = perfil?.role === 'admin';
+  const admin = String(perfil?.role || '').toLowerCase() === 'admin';
 
   document.querySelectorAll('.module-link').forEach((button) => {
     const modulo = button.dataset.module;
@@ -238,6 +252,8 @@ function renderResumo({
   setText('sidebar-plan', plano.sidebar);
 
   $('plan-badge').classList.toggle('is-expired', plano.expired);
+  $('plan-badge').classList.toggle('is-admin', plano.admin);
+  $('sidebar-plan').classList.toggle('is-admin', plano.admin);
 
   setText('goal-value', formatReal(metaDia));
   setText('earned-today', formatReal(ganhoHoje));
