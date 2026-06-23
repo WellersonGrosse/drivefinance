@@ -1,0 +1,361 @@
+/* ─────────────────────────────────────────
+   DriveFinance — login.css
+   Estilos exclusivos da tela de login/cadastro
+───────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --roxo:        #7B5EA7;
+  --roxo-hover:  #6A4E94;
+  --teal:        #4FC3A1;
+  --coral:       #E05C5C;
+  --ambar:       #F0A830;
+  --bg:          #0F0F1A;
+  --surface:     #1A1A2E;
+  --surface2:    #22223A;
+  --texto:       #FFFFFF;
+  --texto-sec:   #7C6FA0;
+  --borda:       rgba(255,255,255,0.08);
+  --borda-input: rgba(255,255,255,0.12);
+}
+
+html, body {
+  min-height: 100%;
+  background: var(--bg);
+  font-family: 'Poppins', sans-serif;
+  color: var(--texto);
+}
+
+/* ── LAYOUT ── */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px 40px;
+}
+
+/* ── LOGO ── */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 32px;
+  text-decoration: none;
+}
+.logo-text {
+  font-size: 22px;
+  line-height: 1;
+}
+.logo-text span:first-child { font-weight: 400; color: #fff; }
+.logo-text span:last-child  { font-weight: 600; color: var(--roxo); }
+.logo-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+/* ── CARD ── */
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 0.5px solid var(--borda);
+  border-radius: 16px;
+  padding: 32px 28px;
+  animation: fadeUp 350ms ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── TOGGLE LOGIN / CADASTRO ── */
+.toggle-wrap {
+  display: flex;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 28px;
+}
+.toggle-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--texto-sec);
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+.toggle-btn.active {
+  background: var(--roxo);
+  color: #fff;
+}
+
+/* ── TÍTULOS DO FORM ── */
+.form-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.form-sub {
+  font-size: 13px;
+  color: var(--texto-sec);
+  margin-bottom: 24px;
+}
+
+/* ── CAMPOS ── */
+.field {
+  margin-bottom: 16px;
+}
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--texto-sec);
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+.field input {
+  width: 100%;
+  height: 44px;
+  background: rgba(255,255,255,0.05);
+  border: 0.5px solid var(--borda-input);
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 150ms;
+  -webkit-appearance: none;
+}
+.field input::placeholder { color: var(--texto-sec); }
+.field input:focus        { border-color: var(--roxo); border-width: 1.5px; }
+.field input.error        { border-color: var(--coral); }
+
+/* wrapper de senha com botão de toggle */
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 44px; }
+.pw-toggle {
+  position: absolute;
+  right: 12px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--texto-sec);
+  cursor: pointer;
+  padding: 4px;
+  display: flex; align-items: center;
+}
+.pw-toggle svg { width: 18px; height: 18px; }
+
+/* linha com dois campos lado a lado */
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* mensagem de erro por campo */
+.field-error {
+  font-size: 11px;
+  color: var(--coral);
+  margin-top: 5px;
+  display: none;
+}
+.field-error.show { display: block; }
+
+/* ── ESQUECI A SENHA ── */
+.forgot {
+  display: block;
+  text-align: right;
+  font-size: 12px;
+  color: var(--texto-sec);
+  margin-top: -8px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  transition: color 150ms;
+}
+.forgot:hover { color: var(--roxo); }
+
+/* ── BOTÃO PRIMÁRIO ── */
+.btn-primary {
+  width: 100%;
+  height: 48px;
+  background: var(--roxo);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 150ms, transform 150ms;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary:hover:not(:disabled)  { background: var(--roxo-hover); }
+.btn-primary:active:not(:disabled) { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* spinner de loading */
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+.btn-primary.loading .spinner   { display: block; }
+.btn-primary.loading .btn-label { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── DIVISOR ── */
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 20px 0;
+  font-size: 12px; color: var(--texto-sec);
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1;
+  height: 0.5px; background: var(--borda);
+}
+
+/* ── RODAPÉ DO CARD ── */
+.card-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--texto-sec);
+  margin-top: 20px;
+}
+.card-footer .link-mode {
+  display: inline;
+  font-size: 12px;
+  color: var(--roxo);
+  background: none;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ── FORÇA DA SENHA ── */
+.pw-strength {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--borda);
+  margin-top: 6px;
+  overflow: hidden;
+}
+.pw-strength-bar {
+  height: 100%;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 300ms, background 300ms;
+}
+
+/* ── TERMOS ── */
+.terms-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-top: 8px; margin-bottom: 4px;
+}
+.terms-row input[type=checkbox] {
+  width: 18px; height: 18px;
+  accent-color: var(--roxo);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.terms-row label {
+  font-size: 12px; color: var(--texto-sec);
+  line-height: 1.5; cursor: pointer;
+}
+.terms-row label a { color: var(--roxo); text-decoration: none; }
+.terms-row label a:hover { text-decoration: underline; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--surface2);
+  border: 0.5px solid var(--borda);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 13px;
+  color: #fff;
+  display: flex; align-items: center; gap: 10px;
+  transition: transform 300ms cubic-bezier(0.22,1,0.36,1);
+  z-index: 999;
+  max-width: 340px;
+  width: calc(100% - 32px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.toast.success .toast-icon { color: var(--teal); }
+.toast.error   .toast-icon { color: var(--coral); }
+
+/* ── MODAL ESQUECI A SENHA ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  z-index: 100;
+  opacity: 0; pointer-events: none;
+  transition: opacity 200ms;
+}
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--surface);
+  border: 0.5px solid var(--borda);
+  border-radius: 16px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 380px;
+  transform: scale(0.96);
+  transition: transform 200ms;
+}
+.modal-overlay.show .modal { transform: scale(1); }
+.modal h3 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+.modal p  { font-size: 13px; color: var(--texto-sec); margin-bottom: 20px; }
+.modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+.btn-ghost {
+  flex: 1; height: 42px;
+  background: transparent;
+  border: 0.5px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: #fff; font-family: 'Poppins', sans-serif;
+  font-size: 14px; cursor: pointer;
+  transition: background 150ms;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.06); }
+.btn-sm {
+  flex: 1; height: 42px;
+  background: var(--roxo);
+  border: none; border-radius: 8px;
+  color: #fff; font-family: 'Poppins', sans-serif;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: background 150ms;
+}
+.btn-sm:hover { background: var(--roxo-hover); }
+
+/* ── PAINÉIS (login / cadastro) ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── RESPONSIVO ── */
+@media (max-width: 440px) {
+  .card { padding: 24px 20px; }
+  .field-row { grid-template-columns: 1fr; }
+}
