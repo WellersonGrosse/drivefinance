@@ -389,10 +389,32 @@ export function toast(mensagem, tipo = "info") {
   const el = document.createElement("div");
   el.textContent = mensagem;
   el.style.cssText = `
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: ${c.bg}; color: ${c.cor}; border: 1px solid ${c.border};
-    padding: 12px 24px; border-radius: 10px; font-size: 14px; font-family: 'Poppins', sans-serif;
-    z-index: 9999; opacity: 0; transition: all 0.3s ease; white-space: nowrap;
+    position: fixed;
+    bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+
+    width: calc(100% - 32px);
+    max-width: 420px;
+
+    background: ${c.bg};
+    color: ${c.cor};
+    border: 1px solid ${c.border};
+
+    padding: 12px 16px;
+    border-radius: 10px;
+
+    font-size: 14px;
+    line-height: 1.45;
+    font-family: 'Poppins', sans-serif;
+    text-align: center;
+
+    white-space: normal;
+    overflow-wrap: anywhere;
+
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
     box-shadow: 0 4px 24px rgba(0,0,0,0.4);
   `;
   document.body.appendChild(el);
