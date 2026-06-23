@@ -963,24 +963,44 @@ svg {
 }
 
 @media (max-width: 520px) {
-  /* Em celulares, o status da meta fica abaixo do valor para nunca sair do card. */
   .goal-head {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-areas:
+      "label status"
+      "value value";
+    align-items: center;
+    justify-content: start;
+    column-gap: 10px;
+    row-gap: 8px;
   }
 
+  /* Permite posicionar separadamente o título e o valor */
   .goal-head > div {
+    display: contents;
+  }
+
+  .goal-head .card-kicker {
+    grid-area: label;
+    margin: 0;
+  }
+
+  .goal-value {
+    grid-area: value;
     min-width: 0;
   }
 
   .goal-status {
-    align-self: flex-start;
+    grid-area: status;
+    justify-self: start;
+    align-self: center;
+
     max-width: 100%;
-    min-height: 28px;
-    padding: 6px 10px;
+    min-height: 26px;
+    padding: 5px 9px;
+
     font-size: 10px;
-    line-height: 1.35;
+    line-height: 1.25;
     white-space: normal;
     text-align: left;
   }
