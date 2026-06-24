@@ -606,3 +606,208 @@
   .metrics-grid { grid-template-columns: repeat(2, 1fr); }
   .planos-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Tabela de planos ── */
+.planos-tabela-wrap {
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.planos-tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Cabeçalho com nomes dos planos */
+.planos-tabela thead tr th {
+  padding: var(--gap-lg) var(--gap-xl);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: left;
+  border-bottom: 0.5px solid var(--dark-border);
+  background: rgba(255,255,255,0.02);
+}
+
+.planos-tabela thead tr th:first-child {
+  width: 200px;
+  color: var(--text-muted);
+}
+
+.planos-tabela thead tr th.col-plano {
+  text-align: center;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Linhas */
+.planos-tabela td {
+  padding: 10px var(--gap-xl);
+  border-bottom: 0.5px solid var(--dark-border);
+  vertical-align: middle;
+}
+
+.planos-tabela tr:last-child td { border-bottom: none; }
+
+.planos-tabela td:first-child {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.planos-tabela td.col-valor {
+  text-align: center;
+}
+
+/* Separadores de grupo */
+.planos-tabela tr.grupo-header td {
+  background: rgba(123,94,167,0.08);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--roxo);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 8px var(--gap-xl);
+  border-bottom: 0.5px solid rgba(123,94,167,0.2);
+}
+
+/* Input inline na tabela */
+.input-tabela {
+  width: 100%;
+  height: 36px;
+  background: rgba(255,255,255,0.05);
+  border: 0.5px solid var(--dark-border-md);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 0 10px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.input-tabela:focus {
+  border-color: var(--roxo);
+  border-width: 1.5px;
+}
+
+/* Toggle de célula (check/uncheck) */
+.cell-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-toggle-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--dark-border-md);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.cell-toggle-btn.ativo {
+  background: rgba(79,195,161,0.15);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.cell-toggle-btn.inativo {
+  background: transparent;
+  border-color: var(--dark-border-md);
+  color: var(--text-muted);
+}
+
+/* Toggle destaque */
+.cell-toggle-btn.destaque-ativo {
+  background: rgba(240,168,48,0.15);
+  border-color: var(--ambar);
+  color: var(--ambar);
+}
+
+/* Linha de feature (label editável + remover) */
+.feature-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.feature-label-wrap .input-tabela {
+  flex: 1;
+}
+
+.btn-remove-row {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.btn-remove-row:hover { color: var(--coral); }
+
+/* Linha de adicionar feature */
+.planos-tabela tr.row-add-feature td {
+  padding: var(--gap-sm) var(--gap-xl);
+}
+
+.btn-add-feature {
+  font-size: 12px;
+  color: var(--roxo);
+  background: transparent;
+  border: 0.5px dashed rgba(123,94,167,0.4);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all var(--transition);
+}
+
+.btn-add-feature:hover {
+  background: var(--roxo-dim);
+  border-color: var(--roxo);
+}
+
+/* Footer com botão salvar */
+.planos-tabela-footer {
+  padding: var(--gap-lg) var(--gap-xl);
+  border-top: 0.5px solid var(--dark-border);
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(255,255,255,0.01);
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .planos-tabela thead tr th,
+  .planos-tabela td {
+    padding: 8px var(--gap-md);
+  }
+  .planos-tabela td:first-child {
+    font-size: 12px;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .input-tabela { font-size: 12px; }
+}
