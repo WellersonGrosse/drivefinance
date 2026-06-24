@@ -736,15 +736,23 @@
   color: var(--ambar);
 }
 
-/* Linha de feature (label editável + remover) */
-.feature-label-wrap {
+/* Linha editável unificada (features e módulos) */
+.linha-editavel {
   display: flex;
   align-items: center;
-  gap: var(--gap-sm);
+  gap: 6px;
+  padding: 2px 0;
 }
 
-.feature-label-wrap .input-tabela {
+.linha-editavel .input-tabela {
   flex: 1;
+  height: 32px;
+}
+
+.linha-editavel .cell-toggle-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
 }
 
 .btn-remove-row {
