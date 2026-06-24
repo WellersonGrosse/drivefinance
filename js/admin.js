@@ -919,8 +919,18 @@ async function salvarFeatures() {
   const features = tabelaState.features.filter(f => f.text.trim());
 
   try {
+    // Salva novo formato
     await setDoc(doc(db, 'config_global', 'planos'), { features_global: features }, { merge: true });
+    // Zera features legadas de cada plano para impedir que a migração reversa ocorra ao recarregar
+    await updateDoc(doc(db, 'config_global', 'planos'), {
+      'basico.features':    [],
+      'pro.features':       [],
+      'completo.features':  []
+    });
     state.planos.features_global = features;
+    if (state.planos.basico)   state.planos.basico.features   = [];
+    if (state.planos.pro)      state.planos.pro.features      = [];
+    if (state.planos.completo) state.planos.completo.features = [];
     tabelaState.features = features.map(f => ({ ...f }));
     toast('Funcionalidades salvas.', 'sucesso');
     renderFeaturesTabela();
