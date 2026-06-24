@@ -127,21 +127,39 @@ function timestampParaDate(valor) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-// Verifica se o trial do perfil ainda está ativo
-function trialAtivo(perfil) {
+// Retorna quantos dias de trial o plano deste perfil oferece
+// Lê de config_global/planos se disponível; caso contrário, usa 15
+async function getTrialDias() {
+  try {
+    const snap = await getDoc(doc(db, 'config_global', 'planos'));
+    if (snap.exists()) {
+      // Usa trial_dias do plano básico como referência (ou o primeiro disponível)
+      const dados = snap.data();
+      return dados.basico?.trial_dias ?? dados.pro?.trial_dias ?? 15;
+    }
+  } catch { /* silencioso */ }
+  return 15;
+}
+
+// Versão síncrona para uso interno com valor já resolvido
+function calcularFimTrial(perfil, trialDias = 15) {
   const inicio = timestampParaDate(perfil.trial_inicio || perfil.criado_em);
-  if (!inicio) return false;
+  if (!inicio) return null;
   const fim = new Date(inicio);
-  fim.setDate(fim.getDate() + 15);
-  return new Date() < fim;
+  fim.setDate(fim.getDate() + trialDias);
+  return fim;
+}
+
+// Verifica se o trial do perfil ainda está ativo
+function trialAtivo(perfil, trialDias = 15) {
+  const fim = calcularFimTrial(perfil, trialDias);
+  return fim ? new Date() < fim : false;
 }
 
 // Retorna quantos dias restam no trial (0 se expirado)
-export function diasRestantesTrial(perfil) {
-  const inicio = timestampParaDate(perfil?.trial_inicio || perfil?.criado_em);
-  if (!inicio) return 0;
-  const fim = new Date(inicio);
-  fim.setDate(fim.getDate() + 15);
+export function diasRestantesTrial(perfil, trialDias = 15) {
+  const fim = calcularFimTrial(perfil, trialDias);
+  if (!fim) return 0;
   return Math.max(0, Math.ceil((fim - new Date()) / 86400000));
 }
 
@@ -166,7 +184,8 @@ export async function verificarAcesso(uid) {
   }
 
   if (perfil.plano === "trial") {
-    if (trialAtivo(perfil)) {
+    const trialDias = await getTrialDias();
+    if (trialAtivo(perfil, trialDias)) {
       return { permitido: true, motivo: "trial_ativo", perfil };
     }
     return { permitido: false, motivo: "trial_expirado", perfil };

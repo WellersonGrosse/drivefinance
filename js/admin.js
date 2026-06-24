@@ -44,33 +44,23 @@ const MODULOS_LABELS = {
   relatorios:        'Relatórios'
 };
 
-const FEATURES_PADRAO = {
-  basico: [
-    { ok: true,  text: 'Meta diária automática' },
-    { ok: true,  text: 'Registro de corridas (app + particular)' },
-    { ok: true,  text: 'Controle de despesas e parcelas' },
-    { ok: true,  text: 'Histórico com calendário' },
-    { ok: false, text: 'Dashboard financeiro (DRE)' },
-    { ok: false, text: 'Custo operacional do veículo' },
-    { ok: false, text: 'Relatórios exportáveis' }
-  ],
-  pro: [
-    { ok: true,  text: 'Tudo do Básico' },
-    { ok: true,  text: 'Dashboard financeiro completo (DRE)' },
-    { ok: true,  text: 'Custo operacional por km' },
-    { ok: true,  text: 'KM ocioso com custo separado' },
-    { ok: true,  text: 'Múltiplos veículos' },
-    { ok: false, text: 'Relatórios exportáveis' },
-    { ok: false, text: 'Suporte prioritário WhatsApp' }
-  ],
-  completo: [
-    { ok: true,  text: 'Tudo do Pro' },
-    { ok: true,  text: 'Relatórios exportáveis (PDF/Excel)' },
-    { ok: true,  text: 'Suporte prioritário WhatsApp' },
-    { ok: true,  text: 'Histórico ilimitado' },
-    { ok: true,  text: 'Acesso antecipado a novidades' }
-  ]
-};
+// Features padrão no formato novo: lista global com flags por plano
+const FEATURES_PADRAO = [
+  { text: 'Meta diária automática',             basico: true,  pro: true,  completo: true  },
+  { text: 'Registro de corridas (app + particular)', basico: true, pro: true, completo: true },
+  { text: 'Controle de despesas e parcelas',    basico: true,  pro: true,  completo: true  },
+  { text: 'Histórico com calendário',           basico: true,  pro: true,  completo: true  },
+  { text: 'Dashboard financeiro (DRE)',         basico: false, pro: true,  completo: true  },
+  { text: 'Custo operacional do veículo',       basico: false, pro: true,  completo: true  },
+  { text: 'KM ocioso com custo separado',       basico: false, pro: true,  completo: true  },
+  { text: 'Múltiplos veículos',                 basico: false, pro: true,  completo: true  },
+  { text: 'Relatórios exportáveis (PDF/Excel)', basico: false, pro: false, completo: true  },
+  { text: 'Suporte prioritário WhatsApp',       basico: false, pro: false, completo: true  },
+  { text: 'Histórico ilimitado',                basico: false, pro: false, completo: true  },
+  { text: 'Acesso antecipado a novidades',      basico: false, pro: false, completo: true  }
+];
+
+const IDS_PLANOS = ['basico', 'pro', 'completo'];
 
 const POR_PAGINA = 15;
 
@@ -79,13 +69,13 @@ const POR_PAGINA = 15;
 // ─────────────────────────────────────────────
 
 const state = {
-  adminUid:       null,
-  usuarios:       [],       // lista completa carregada
-  usuariosFiltrados: [],    // após busca/filtro
-  paginaAtual:    1,
-  usuarioAberto:  null,     // perfil no modal
-  planos:         {},       // config_global/planos
-  nomesPorId:     {}        // { basico: 'Básico', pro: 'Pro', ... }
+  adminUid:          null,
+  usuarios:          [],
+  usuariosFiltrados: [],
+  paginaAtual:       1,
+  usuarioAberto:     null,
+  planos:            {},
+  nomesPorId:        {}
 };
 
 // ─────────────────────────────────────────────
@@ -130,8 +120,9 @@ function situacaoUsuario(u) {
   if (u.plano === 'trial') {
     const inicio = toDate(u.trial_inicio || u.criado_em);
     if (!inicio) return { label: 'Trial', classe: 'badge-trial' };
+    const trialDias = state.planos[u.plano]?.trial_dias ?? 15;
     const fim = new Date(inicio);
-    fim.setDate(fim.getDate() + 15);
+    fim.setDate(fim.getDate() + trialDias);
     if (new Date() < fim) {
       const dias = Math.ceil((fim - new Date()) / 86400000);
       return { label: `Trial (${dias}d)`, classe: 'badge-trial' };
@@ -214,23 +205,50 @@ async function carregarPlanos() {
   try {
     const snap = await getDoc(doc(db, 'config_global', 'planos'));
     if (snap.exists()) {
-      state.planos = snap.data();
+      const dados = snap.data();
+
+      // Migração: se features ainda estão no formato antigo por plano,
+      // converte para o novo formato global
+      const precisaMigrar = dados.basico?.features && Array.isArray(dados.basico.features) &&
+        dados.basico.features.length > 0 &&
+        dados.basico.features[0] !== undefined &&
+        !('basico' in dados.basico.features[0]);
+
+      if (precisaMigrar) {
+        dados.features_global = migrarFeaturesAntigo(dados);
+      }
+
+      state.planos = dados;
     } else {
-      // Planos padrão se ainda não existirem no Firestore
       state.planos = {
-        basico:   { id: 'basico',   nome: 'Básico',   mensal: 15.90, anual: 99.90,  modulos: ['home','lancamentos','despesas','historico'], features: [] },
-        pro:      { id: 'pro',      nome: 'Pro',       mensal: 25.90, anual: 169.90, modulos: ['home','lancamentos','despesas','historico','dashboard','custo_operacional'], features: [] },
-        completo: { id: 'completo', nome: 'Completo',  mensal: 35.90, anual: 229.90, modulos: ['home','lancamentos','despesas','historico','dashboard','custo_operacional','relatorios'], features: [] }
+        basico:   { id: 'basico',   nome: 'Básico',   mensal: 15.90, anual: 99.90,  trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico'] },
+        pro:      { id: 'pro',      nome: 'Pro',       mensal: 25.90, anual: 169.90, trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico','dashboard','custo_operacional'] },
+        completo: { id: 'completo', nome: 'Completo',  mensal: 35.90, anual: 229.90, trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico','dashboard','custo_operacional','relatorios'] },
+        features_global: FEATURES_PADRAO
       };
       await setDoc(doc(db, 'config_global', 'planos'), state.planos);
     }
-    // Monta mapa de nomes para uso rápido
-    Object.values(state.planos).forEach(p => {
-      state.nomesPorId[p.id] = p.nome;
+    IDS_PLANOS.forEach(id => {
+      state.nomesPorId[id] = state.planos[id]?.nome || id;
     });
   } catch (e) {
     console.error('[Admin] Erro ao carregar planos:', e);
   }
+}
+
+// Converte formato antigo {basico:[{ok,text}], pro:[...]} → novo [{text, basico, pro, completo}]
+function migrarFeaturesAntigo(dados) {
+  const map = {};
+
+  IDS_PLANOS.forEach(id => {
+    (dados[id]?.features || []).forEach(f => {
+      if (!f.text?.trim()) return;
+      if (!map[f.text]) map[f.text] = { text: f.text, basico: false, pro: false, completo: false };
+      map[f.text][id] = f.ok;
+    });
+  });
+
+  return Object.values(map).length ? Object.values(map) : FEATURES_PADRAO;
 }
 
 async function carregarUsuarios() {
@@ -271,7 +289,6 @@ function renderVisaoGeral() {
   $('metric-expirados').textContent = expirados;
   $('metric-recentes').textContent  = recentes;
 
-  // Cadastros recentes
   const ultimos = [...state.usuarios].slice(0, 8);
   const lista = $('lista-recentes');
 
@@ -302,8 +319,8 @@ function renderVisaoGeral() {
 // ─────────────────────────────────────────────
 
 function aplicarFiltros() {
-  const busca   = $('busca-usuario').value.toLowerCase().trim();
-  const plano   = $('filtro-plano').value;
+  const busca    = $('busca-usuario').value.toLowerCase().trim();
+  const plano    = $('filtro-plano').value;
   const situacao = $('filtro-situacao').value;
 
   state.usuariosFiltrados = state.usuarios.filter(u => {
@@ -374,7 +391,6 @@ function renderUsuarios() {
     </table>
   `;
 
-  // Paginação
   if (totalPaginas <= 1) {
     paginacao.hidden = true;
     return;
@@ -403,27 +419,22 @@ async function abrirModalUsuario(uid) {
   if (!u) return;
   state.usuarioAberto = u;
 
-  // Cabeçalho
   $('modal-avatar').textContent = iniciais(u.nome, u.email);
   $('modal-usuario-titulo').textContent = u.nome || '—';
   $('modal-meta').textContent = `${u.email || '—'} · cadastrado em ${formatData(u.criado_em)}`;
 
-  // Dados pessoais
   $('edit-nome').value       = u.nome || '';
   $('edit-email').value      = u.email || '';
   $('edit-telefone').value   = u.telefone || '';
   $('edit-nascimento').value = u.data_nascimento || '';
 
-  // Acesso
   $('edit-role').value  = u.role || 'user';
   $('edit-plano').value = u.plano || 'trial';
   $('edit-dias').value  = '';
   atualizarInfoAcesso(u);
 
-  // Módulos
   renderModulosModal(u.modulos_ativos || []);
 
-  // Log
   await carregarLog(uid);
 
   $('modal-usuario').hidden = false;
@@ -444,8 +455,9 @@ function atualizarInfoAcesso(u) {
   if (u.plano === 'trial') {
     const inicio = toDate(u.trial_inicio || u.criado_em);
     if (inicio) {
+      const trialDias = state.planos.basico?.trial_dias ?? 15;
       const fim = new Date(inicio);
-      fim.setDate(fim.getDate() + 15);
+      fim.setDate(fim.getDate() + trialDias);
       $('acesso-expira').textContent = formatData({ seconds: fim.getTime() / 1000 });
     } else {
       $('acesso-expira').textContent = '—';
@@ -492,10 +504,10 @@ async function salvarDadosPessoais() {
   if (!u) return;
 
   const dados = {
-    nome:             $('edit-nome').value.trim(),
-    telefone:         $('edit-telefone').value.trim(),
-    data_nascimento:  $('edit-nascimento').value,
-    atualizado_em:    serverTimestamp()
+    nome:            $('edit-nome').value.trim(),
+    telefone:        $('edit-telefone').value.trim(),
+    data_nascimento: $('edit-nascimento').value,
+    atualizado_em:   serverTimestamp()
   };
 
   try {
@@ -523,17 +535,15 @@ async function salvarAcessoPlano() {
   const novoPlano = $('edit-plano').value;
 
   const dados = {
-    role:  novoRole,
-    plano: novoPlano,
+    role:          novoRole,
+    plano:         novoPlano,
     atualizado_em: serverTimestamp()
   };
 
-  // Se mudou para trial, limpa plano_expira_em
   if (novoPlano === 'trial') {
     dados.plano_expira_em = null;
   }
 
-  // Atualiza modulos_ativos com base no plano escolhido
   if (novoRole !== 'admin' && novoPlano !== 'trial') {
     dados.modulos_ativos = state.planos[novoPlano]?.modulos || u.modulos_ativos;
   }
@@ -567,7 +577,7 @@ async function salvarModulos() {
   try {
     await updateDoc(doc(db, 'users', u.uid), {
       modulos_ativos: modulos,
-      atualizado_em: serverTimestamp()
+      atualizado_em:  serverTimestamp()
     });
     u.modulos_ativos = modulos;
     await gravarLog(u.uid, `Módulos atualizados: [${modulos.join(', ')}]`);
@@ -593,7 +603,6 @@ async function adicionarDias() {
   const plano = $('edit-plano').value;
   if (plano === 'trial') { toast('Selecione um plano pago antes de adicionar dias.', 'aviso'); return; }
 
-  // Soma inteligente: se ainda ativo, soma à expiração. Se vencido, soma de hoje.
   const expiraAtual = toDate(u.plano_expira_em);
   const base = expiraAtual && expiraAtual > new Date() ? expiraAtual : new Date();
   base.setDate(base.getDate() + dias);
@@ -608,7 +617,7 @@ async function adicionarDias() {
       atualizado_em:   serverTimestamp()
     });
 
-    u.plano          = plano;
+    u.plano           = plano;
     u.plano_expira_em = novaExpiracao;
     u.modulos_ativos  = state.planos[plano]?.modulos || u.modulos_ativos;
 
@@ -670,262 +679,318 @@ async function carregarLog(uid) {
 }
 
 // ─────────────────────────────────────────────
-// PLANOS — TABELA
+// PLANOS — NOVA ESTRUTURA
 // ─────────────────────────────────────────────
 
 // Estado local da tabela (editável antes de salvar)
-let tabelaState = {};
+let tabelaState = {
+  configuracoes: {},  // { basico: {nome, mensal, anual, destaque, trial_dias}, ... }
+  features: [],       // [{ text, basico, pro, completo }, ...]
+  modulos: {}         // { basico: ['home', ...], pro: [...], completo: [...] }
+};
 
 function renderPlanos() {
-  const ids = ['basico', 'pro', 'completo'];
-
-  // Clona estado atual para edição local
-  tabelaState = {};
-  ids.forEach(id => {
+  // Clona estado atual do Firestore para edição local
+  IDS_PLANOS.forEach(id => {
     const p = state.planos[id] || {};
-    tabelaState[id] = {
-      id,
-      nome:     p.nome    || '',
-      mensal:   p.mensal  || 0,
-      anual:    p.anual   || 0,
-      destaque: p.destaque || false,
-      features: (p.features?.length ? p.features : (FEATURES_PADRAO[id] || [])).map(f => ({ ...f })),
-      modulos:  [...(p.modulos || [])]
+    tabelaState.configuracoes[id] = {
+      nome:       p.nome      || '',
+      mensal:     p.mensal    || 0,
+      anual:      p.anual     || 0,
+      destaque:   p.destaque  || false,
+      trial_dias: p.trial_dias ?? 15
     };
+    tabelaState.modulos[id] = [...(p.modulos || [])];
   });
 
-  renderTabelaHTML(ids);
+  // Features: usa o novo formato global ou migra do antigo
+  const fg = state.planos.features_global;
+  if (fg && Array.isArray(fg) && fg.length > 0) {
+    tabelaState.features = fg.map(f => ({ ...f }));
+  } else {
+    tabelaState.features = migrarFeaturesAntigo(state.planos);
+  }
+
+  renderConfiguracoes();
+  renderFeaturesTabela();
+  renderModulosTabela();
 }
 
-function renderTabelaHTML(ids) {
-  const container = $('planos-tabela-container');
+// ── Bloco 1: Configurações ──────────────────
 
-  const nomesHeader = ids.map(id => {
-    const p = tabelaState[id];
-    return `<th class="col-plano">${p.nome || id}</th>`;
-  }).join('');
+function renderConfiguracoes() {
+  const c = $('planos-config-container');
+  if (!c) return;
 
-  const rowNome = ids.map(id =>
-    `<td class="col-valor"><input class="input-tabela" data-field="nome" data-id="${id}"
-      value="${tabelaState[id].nome}" placeholder="Nome do plano"
-      oninput="tabelaUpdate('${id}','nome',this.value)" /></td>`
+  const nomesHeader = IDS_PLANOS.map(id =>
+    `<th class="col-plano">${tabelaState.configuracoes[id].nome || id}</th>`
   ).join('');
 
-  const rowMensal = ids.map(id =>
-    `<td class="col-valor"><input class="input-tabela" type="number" data-field="mensal" data-id="${id}"
-      value="${tabelaState[id].mensal}" min="0" step="0.01"
-      oninput="tabelaUpdate('${id}','mensal',parseFloat(this.value)||0)" /></td>`
+  const rowNome = IDS_PLANOS.map(id =>
+    `<td class="col-valor"><input class="input-tabela" value="${tabelaState.configuracoes[id].nome}"
+      placeholder="Nome do plano"
+      oninput="cfgUpdate('${id}','nome',this.value)" /></td>`
   ).join('');
 
-  const rowAnual = ids.map(id =>
-    `<td class="col-valor"><input class="input-tabela" type="number" data-field="anual" data-id="${id}"
-      value="${tabelaState[id].anual}" min="0" step="0.01"
-      oninput="tabelaUpdate('${id}','anual',parseFloat(this.value)||0)" /></td>`
+  const rowMensal = IDS_PLANOS.map(id =>
+    `<td class="col-valor"><input class="input-tabela" type="number" value="${tabelaState.configuracoes[id].mensal}"
+      min="0" step="0.01"
+      oninput="cfgUpdate('${id}','mensal',parseFloat(this.value)||0)" /></td>`
   ).join('');
 
-  const rowDestaque = ids.map(id => {
-    const ativo = tabelaState[id].destaque;
+  const rowAnual = IDS_PLANOS.map(id =>
+    `<td class="col-valor"><input class="input-tabela" type="number" value="${tabelaState.configuracoes[id].anual}"
+      min="0" step="0.01"
+      oninput="cfgUpdate('${id}','anual',parseFloat(this.value)||0)" /></td>`
+  ).join('');
+
+  const rowTrial = IDS_PLANOS.map(id =>
+    `<td class="col-valor"><input class="input-tabela" type="number" value="${tabelaState.configuracoes[id].trial_dias}"
+      min="1" max="365" step="1"
+      oninput="cfgUpdate('${id}','trial_dias',parseInt(this.value)||15)" /></td>`
+  ).join('');
+
+  const rowDestaque = IDS_PLANOS.map(id => {
+    const ativo = tabelaState.configuracoes[id].destaque;
     return `<td class="col-valor"><div class="cell-toggle">
       <button class="cell-toggle-btn ${ativo ? 'destaque-ativo' : 'inativo'}"
-        onclick="tabelaToggleDestaque('${id}')" title="Destaque na landing">
+        onclick="cfgToggleDestaque('${id}')" title="Destaque na landing">
         ${ativo ? '★' : '☆'}
       </button></div></td>`;
   }).join('');
 
-  // ── Helper: célula editável (toggle + input + remover) ──
-  function celulaEditavel(ativo, texto, onToggle, onInput, onRemove) {
-    return `<td>
-      <div class="linha-editavel">
-        <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}" onclick="${onToggle}">${ativo ? '✓' : '○'}</button>
-        <input class="input-tabela" value="${texto}" placeholder="Descrição" oninput="${onInput}" />
-        <button class="btn-remove-row" onclick="${onRemove}" title="Remover">×</button>
-      </div>
-    </td>`;
-  }
-
-  function celulaVazia() {
-    return `<td><div class="linha-editavel">
-      <button class="cell-toggle-btn inativo" style="opacity:0.25" disabled>—</button>
-    </div></td>`;
-  }
-
-  // Máximo de features entre os planos
-  const maxFeatures = Math.max(...ids.map(id => tabelaState[id].features.length), 0);
-
-  let rowsFeatures = '';
-  for (let fi = 0; fi < maxFeatures; fi++) {
-    const cols = ids.map(id => {
-      const f = tabelaState[id].features[fi];
-      if (!f) return celulaVazia();
-      return celulaEditavel(
-        f.ok,
-        f.text || '',
-        `tabelaToggleFeature('${id}',${fi})`,
-        `tabelaUpdateFeature('${id}',${fi},this.value)`,
-        `tabelaRemoveFeature('${id}',${fi})`
-      );
-    }).join('');
-    rowsFeatures += `<tr><td></td>${cols}</tr>`;
-  }
-
-  const rowAddFeature = ids.map(id =>
-    `<td><button class="btn-add-feature" onclick="tabelaAddFeature('${id}')">+ Adicionar</button></td>`
-  ).join('');
-
-  // Módulos também com campo editável + toggle + remover
-  const maxModulos = Math.max(...ids.map(id => tabelaState[id].modulos_extra?.length || 0), TODOS_MODULOS.length);
-
-  const rowsModulos = TODOS_MODULOS.map(m => {
-    const cols = ids.map(id => {
-      const ativo = tabelaState[id].modulos.includes(m);
-      return celulaEditavel(
-        ativo,
-        MODULOS_LABELS[m],
-        `tabelaToggleModulo('${id}','${m}')`,
-        `tabelaUpdateModuloLabel('${id}','${m}',this.value)`,
-        `tabelaRemoveModulo('${id}','${m}')`
-      );
-    }).join('');
-    return `<tr><td></td>${cols}</tr>`;
-  }).join('');
-
-  const rowAddModulo = ids.map(id =>
-    `<td><button class="btn-add-feature" onclick="tabelaAddModulo('${id}')">+ Adicionar</button></td>`
-  ).join('');
-
-  container.innerHTML = `
+  c.innerHTML = `
     <table class="planos-tabela">
       <thead>
         <tr>
-          <th></th>
+          <th style="width:200px"></th>
           ${nomesHeader}
         </tr>
       </thead>
       <tbody>
-        <tr class="grupo-header"><td colspan="4">Configurações do plano</td></tr>
         <tr><td>Nome de exibição</td>${rowNome}</tr>
         <tr><td>Preço mensal (R$)</td>${rowMensal}</tr>
         <tr><td>Preço anual (R$)</td>${rowAnual}</tr>
-        <tr><td>Destaque na landing</td>${rowDestaque}</tr>
-
-        <tr class="grupo-header"><td colspan="4">Funcionalidades exibidas na landing</td></tr>
-        ${rowsFeatures}
-        <tr class="row-add-feature"><td></td>${rowAddFeature}</tr>
-
-        <tr class="grupo-header"><td colspan="4">Módulos de acesso</td></tr>
-        ${rowsModulos}
-        <tr class="row-add-feature"><td></td>${rowAddModulo}</tr>
+        <tr><td>Dias de teste grátis</td>${rowTrial}</tr>
+        <tr class="last-row"><td>Destaque na landing</td>${rowDestaque}</tr>
       </tbody>
     </table>
   `;
 }
 
-// ── Interações da tabela ──
-
-function tabelaUpdate(id, field, value) {
-  tabelaState[id][field] = value;
-  if (field === 'nome') renderTabelaHTML(['basico','pro','completo']);
+function cfgUpdate(id, field, value) {
+  tabelaState.configuracoes[id][field] = value;
+  if (field === 'nome') renderConfiguracoes();
 }
-window.tabelaUpdate = tabelaUpdate;
+window.cfgUpdate = cfgUpdate;
 
-function tabelaToggleDestaque(id) {
-  tabelaState[id].destaque = !tabelaState[id].destaque;
-  renderTabelaHTML(['basico','pro','completo']);
+function cfgToggleDestaque(id) {
+  tabelaState.configuracoes[id].destaque = !tabelaState.configuracoes[id].destaque;
+  renderConfiguracoes();
 }
-window.tabelaToggleDestaque = tabelaToggleDestaque;
+window.cfgToggleDestaque = cfgToggleDestaque;
 
-function tabelaToggleFeature(id, fi) {
-  tabelaState[id].features[fi].ok = !tabelaState[id].features[fi].ok;
-  renderTabelaHTML(['basico','pro','completo']);
-}
-window.tabelaToggleFeature = tabelaToggleFeature;
-
-function tabelaUpdateFeature(id, fi, value) {
-  tabelaState[id].features[fi].text = value;
-}
-window.tabelaUpdateFeature = tabelaUpdateFeature;
-
-function tabelaRemoveFeature(id, fi) {
-  tabelaState[id].features.splice(fi, 1);
-  renderTabelaHTML(['basico','pro','completo']);
-}
-window.tabelaRemoveFeature = tabelaRemoveFeature;
-
-function tabelaAddFeature(id) {
-  tabelaState[id].features.push({ ok: true, text: '' });
-  renderTabelaHTML(['basico','pro','completo']);
-}
-window.tabelaAddFeature = tabelaAddFeature;
-
-function tabelaToggleModulo(id, modulo) {
-  const idx = tabelaState[id].modulos.indexOf(modulo);
-  if (idx === -1) tabelaState[id].modulos.push(modulo);
-  else tabelaState[id].modulos.splice(idx, 1);
-  renderTabelaHTML(['basico','pro','completo']);
-}
-window.tabelaToggleModulo = tabelaToggleModulo;
-
-function tabelaUpdateModuloLabel(id, modulo, value) {
-  // Atualiza o label exibido localmente — salvo como modulos_labels no Firestore
-  if (!tabelaState[id].modulos_labels) tabelaState[id].modulos_labels = {};
-  tabelaState[id].modulos_labels[modulo] = value;
-}
-window.tabelaUpdateModuloLabel = tabelaUpdateModuloLabel;
-
-function tabelaRemoveModulo(id, modulo) {
-  tabelaState[id].modulos = tabelaState[id].modulos.filter(m => m !== modulo);
-  // Remove de TODOS_MODULOS temporariamente para essa sessão
-  renderTabelaHTML(['basico','pro','completo']);
-}
-window.tabelaRemoveModulo = tabelaRemoveModulo;
-
-function tabelaAddModulo(id) {
-  // Adiciona módulo extra com ID gerado e label editável
-  const novoId = 'modulo_' + Date.now();
-  tabelaState[id].modulos.push(novoId);
-  if (!tabelaState[id].modulos_labels) tabelaState[id].modulos_labels = {};
-  tabelaState[id].modulos_labels[novoId] = '';
-  renderTabelaHTML(['basico','pro','completo']);
-}
-window.tabelaAddModulo = tabelaAddModulo;
-
-async function salvarTodosPlanos() {
-  const ids = ['basico', 'pro', 'completo'];
-
-  for (const id of ids) {
-    if (!tabelaState[id].nome.trim()) {
+async function salvarConfiguracoes() {
+  for (const id of IDS_PLANOS) {
+    if (!tabelaState.configuracoes[id].nome.trim()) {
       toast(`Informe o nome do plano "${id}".`, 'aviso');
       return;
     }
   }
 
-  const planosAtualizados = {};
-  ids.forEach(id => {
-    const p = tabelaState[id];
-    planosAtualizados[id] = {
+  const atualizacao = {};
+  IDS_PLANOS.forEach(id => {
+    const c = tabelaState.configuracoes[id];
+    atualizacao[id] = {
+      ...(state.planos[id] || {}),
       id,
-      nome:          p.nome.trim(),
-      mensal:        p.mensal,
-      anual:         p.anual,
-      destaque:      p.destaque,
-      features:      p.features.filter(f => f.text.trim()),
-      modulos:       p.modulos,
-      modulos_labels: p.modulos_labels || {}
+      nome:       c.nome.trim(),
+      mensal:     c.mensal,
+      anual:      c.anual,
+      destaque:   c.destaque,
+      trial_dias: c.trial_dias
+    };
+    state.nomesPorId[id] = c.nome.trim();
+  });
+
+  try {
+    await setDoc(doc(db, 'config_global', 'planos'), { ...state.planos, ...atualizacao }, { merge: true });
+    Object.assign(state.planos, atualizacao);
+    toast('Configurações salvas.', 'sucesso');
+    renderConfiguracoes();
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao salvar configurações.', 'erro');
+  }
+}
+window.salvarConfiguracoes = salvarConfiguracoes;
+
+// ── Bloco 2: Funcionalidades ────────────────
+
+function renderFeaturesTabela() {
+  const c = $('planos-features-container');
+  if (!c) return;
+
+  const nomesHeader = IDS_PLANOS.map(id =>
+    `<th class="col-plano-mini">${tabelaState.configuracoes[id].nome || id}</th>`
+  ).join('');
+
+  const rowsFeatures = tabelaState.features.map((f, fi) => {
+    const toggles = IDS_PLANOS.map(id => {
+      const ativo = f[id] === true;
+      return `<td class="col-toggle-centro">
+        <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}"
+          onclick="featToggle(${fi},'${id}')">${ativo ? '✓' : '○'}</button>
+      </td>`;
+    }).join('');
+
+    return `<tr>
+      <td class="col-feature-texto">
+        <div class="feature-linha">
+          <input class="input-tabela" value="${escHtml(f.text)}" placeholder="Descrição da funcionalidade"
+            oninput="featUpdateText(${fi},this.value)" />
+          <button class="btn-remove-row" onclick="featRemove(${fi})" title="Remover">×</button>
+        </div>
+      </td>
+      ${toggles}
+    </tr>`;
+  }).join('');
+
+  c.innerHTML = `
+    <table class="planos-tabela planos-tabela-features">
+      <thead>
+        <tr>
+          <th style="width:auto">Funcionalidade</th>
+          ${nomesHeader}
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsFeatures}
+        <tr class="row-add-feature">
+          <td colspan="${1 + IDS_PLANOS.length}">
+            <button class="btn-add-feature" onclick="featAdd()">+ Adicionar funcionalidade</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function featToggle(fi, id) {
+  tabelaState.features[fi][id] = !tabelaState.features[fi][id];
+  renderFeaturesTabela();
+}
+window.featToggle = featToggle;
+
+function featUpdateText(fi, value) {
+  tabelaState.features[fi].text = value;
+}
+window.featUpdateText = featUpdateText;
+
+function featRemove(fi) {
+  tabelaState.features.splice(fi, 1);
+  renderFeaturesTabela();
+}
+window.featRemove = featRemove;
+
+function featAdd() {
+  tabelaState.features.push({ text: '', basico: false, pro: false, completo: false });
+  renderFeaturesTabela();
+  // Foca no último input adicionado
+  setTimeout(() => {
+    const inputs = $('planos-features-container').querySelectorAll('.input-tabela');
+    inputs[inputs.length - 1]?.focus();
+  }, 50);
+}
+window.featAdd = featAdd;
+
+async function salvarFeatures() {
+  const features = tabelaState.features.filter(f => f.text.trim());
+
+  try {
+    await setDoc(doc(db, 'config_global', 'planos'), { features_global: features }, { merge: true });
+    state.planos.features_global = features;
+    tabelaState.features = features.map(f => ({ ...f }));
+    toast('Funcionalidades salvas.', 'sucesso');
+    renderFeaturesTabela();
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao salvar funcionalidades.', 'erro');
+  }
+}
+window.salvarFeatures = salvarFeatures;
+
+// ── Bloco 3: Módulos ────────────────────────
+
+function renderModulosTabela() {
+  const c = $('planos-modulos-container');
+  if (!c) return;
+
+  const nomesHeader = IDS_PLANOS.map(id =>
+    `<th class="col-plano-mini">${tabelaState.configuracoes[id].nome || id}</th>`
+  ).join('');
+
+  const rowsModulos = TODOS_MODULOS.map(m => {
+    const toggles = IDS_PLANOS.map(id => {
+      const ativo = tabelaState.modulos[id].includes(m);
+      return `<td class="col-toggle-centro">
+        <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}"
+          onclick="moduloToggle('${id}','${m}')">${ativo ? '✓' : '○'}</button>
+      </td>`;
+    }).join('');
+
+    return `<tr>
+      <td class="col-modulo-label">${MODULOS_LABELS[m] || m}</td>
+      ${toggles}
+    </tr>`;
+  }).join('');
+
+  c.innerHTML = `
+    <table class="planos-tabela planos-tabela-modulos">
+      <thead>
+        <tr>
+          <th style="width:auto">Módulo</th>
+          ${nomesHeader}
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsModulos}
+      </tbody>
+    </table>
+  `;
+}
+
+function moduloToggle(id, modulo) {
+  const idx = tabelaState.modulos[id].indexOf(modulo);
+  if (idx === -1) tabelaState.modulos[id].push(modulo);
+  else tabelaState.modulos[id].splice(idx, 1);
+  renderModulosTabela();
+}
+window.moduloToggle = moduloToggle;
+
+async function salvarModulosPlanos() {
+  const atualizacao = {};
+  IDS_PLANOS.forEach(id => {
+    atualizacao[id] = {
+      ...(state.planos[id] || {}),
+      modulos: tabelaState.modulos[id]
     };
   });
 
   try {
-    await setDoc(doc(db, 'config_global', 'planos'), planosAtualizados);
-    Object.assign(state.planos, planosAtualizados);
-    ids.forEach(id => { state.nomesPorId[id] = planosAtualizados[id].nome; });
-    toast('Planos salvos com sucesso.', 'sucesso');
-    renderTabelaHTML(ids);
+    await setDoc(doc(db, 'config_global', 'planos'), { ...state.planos, ...atualizacao }, { merge: true });
+    IDS_PLANOS.forEach(id => { state.planos[id].modulos = tabelaState.modulos[id]; });
+    toast('Módulos salvos.', 'sucesso');
   } catch (e) {
     console.error(e);
-    toast('Erro ao salvar planos.', 'erro');
+    toast('Erro ao salvar módulos.', 'erro');
   }
 }
-window.salvarTodosPlanos = salvarTodosPlanos;
+window.salvarModulosPlanos = salvarModulosPlanos;
 
 // ─────────────────────────────────────────────
 // UTILITÁRIO — atualiza usuário na lista local
@@ -972,7 +1037,6 @@ function bindEvents() {
   $('filtro-plano').addEventListener('change', aplicarFiltros);
   $('filtro-situacao').addEventListener('change', aplicarFiltros);
 
-  // Fechar modais com Escape
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       fecharModalUsuario();
@@ -980,7 +1044,6 @@ function bindEvents() {
     }
   });
 
-  // Fechar modal clicando no overlay
   $('modal-usuario').addEventListener('click', e => {
     if (e.target === $('modal-usuario')) fecharModalUsuario();
   });
