@@ -344,6 +344,14 @@
   font-size: 13px;
   color: var(--text-secondary);
   font-weight: 500;
+  width: 100%;
+}
+
+.planos-tabela-modulos td.col-toggle-centro,
+.planos-tabela-modulos th.col-plano-mini {
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
 }
 
 .feature-linha {
