@@ -24,6 +24,10 @@ import {
 // CONSTANTES
 // ─────────────────────────────────────────────
 
+// Módulos do sistema — fonte da verdade é este array no código.
+// Para adicionar um módulo novo: inclua o ID aqui + em MODULOS_LABELS,
+// crie as páginas correspondentes e publique. Ele aparecerá automaticamente
+// no admin para você definir em quais planos fica disponível.
 const TODOS_MODULOS = [
   'home',
   'lancamentos',
@@ -33,9 +37,6 @@ const TODOS_MODULOS = [
   'custo_operacional',
   'relatorios'
 ];
-
-// Módulos que fazem parte do core do sistema — não podem ser removidos pelo admin
-const MODULOS_FIXOS = [...TODOS_MODULOS];
 
 const MODULOS_LABELS = {
   home:              'Home',
@@ -222,18 +223,6 @@ async function carregarPlanos() {
       }
 
       state.planos = dados;
-
-      // Sincroniza lista master de módulos: une fixos + extras do Firestore
-      const extrasSalvos = Array.isArray(dados.modulos_sistema)
-        ? dados.modulos_sistema.filter(m => !TODOS_MODULOS.includes(m.id))
-        : [];
-      extrasSalvos.forEach(m => {
-        if (!TODOS_MODULOS.includes(m.id)) {
-          TODOS_MODULOS.push(m.id);
-          MODULOS_LABELS[m.id] = m.label;
-        }
-      });
-
     } else {
       state.planos = {
         basico:   { id: 'basico',   nome: 'Básico',   mensal: 15.90, anual: 99.90,  trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico'] },
@@ -951,7 +940,6 @@ function renderModulosTabela() {
   ).join('');
 
   const rowsModulos = TODOS_MODULOS.map(m => {
-    const isFixo = MODULOS_FIXOS.includes(m);
     const toggles = IDS_PLANOS.map(id => {
       const ativo = tabelaState.modulos[id].includes(m);
       return `<td class="col-toggle-centro">
@@ -960,15 +948,10 @@ function renderModulosTabela() {
       </td>`;
     }).join('');
 
-    const btnRemover = isFixo
-      ? `<td class="col-modulo-acoes"><span class="modulo-fixo-tag" title="Módulo fixo do sistema">fixo</span></td>`
-      : `<td class="col-modulo-acoes"><button class="btn-remove-row" onclick="moduloRemover('${m}')" title="Remover módulo">×</button></td>`;
-
     return `<tr data-modulo="${m}">
       <td class="col-modulo-label">${MODULOS_LABELS[m] || m}</td>
       <td class="col-modulo-id"><code class="modulo-id-code">${m}</code></td>
       ${toggles}
-      ${btnRemover}
     </tr>`;
   }).join('');
 
@@ -979,29 +962,14 @@ function renderModulosTabela() {
           <th style="width:auto">Módulo</th>
           <th class="col-modulo-id-th">ID no sistema</th>
           ${nomesHeader}
-          <th style="width:40px"></th>
         </tr>
       </thead>
       <tbody>
         ${rowsModulos}
       </tbody>
     </table>
-    <div class="modulo-add-form" id="modulo-add-form">
-      <div class="modulo-add-titulo">Adicionar módulo</div>
-      <div class="modulo-add-campos">
-        <div class="modulo-add-campo">
-          <label class="modulo-add-label">Nome de exibição</label>
-          <input class="input-tabela" id="novo-modulo-label" placeholder="Ex: Relatórios Avançados" />
-        </div>
-        <div class="modulo-add-campo">
-          <label class="modulo-add-label">ID do sistema <span class="modulo-add-hint">(usado no código e banco)</span></label>
-          <input class="input-tabela modulo-id-input" id="novo-modulo-id"
-            placeholder="Ex: relatorios_avancados"
-            oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')" />
-        </div>
-        <button class="btn btn-teal btn-sm" onclick="moduloAdicionar()">Adicionar</button>
-      </div>
-      <p class="modulo-add-aviso">⚠️ O ID é permanente e deve corresponder ao nome do módulo no código (<code>temAcesso(uid, 'id_aqui')</code>) e à página HTML correspondente.</p>
+    <div class="modulo-add-aviso-info">
+      💡 Para adicionar um novo módulo, registre o ID em <code>TODOS_MODULOS</code> no código e ele aparecerá aqui automaticamente.
     </div>
   `;
 }
@@ -1014,43 +982,6 @@ function moduloToggle(id, modulo) {
 }
 window.moduloToggle = moduloToggle;
 
-function moduloAdicionar() {
-  const labelEl = $('novo-modulo-label');
-  const idEl    = $('novo-modulo-id');
-  const label   = labelEl.value.trim();
-  const id      = idEl.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-
-  if (!label) { toast('Informe o nome de exibição do módulo.', 'aviso'); labelEl.focus(); return; }
-  if (!id)    { toast('Informe o ID do módulo.', 'aviso'); idEl.focus(); return; }
-  if (TODOS_MODULOS.includes(id)) { toast(`ID "${id}" já existe.`, 'aviso'); idEl.focus(); return; }
-
-  TODOS_MODULOS.push(id);
-  MODULOS_LABELS[id] = label;
-  // Por padrão, nenhum plano recebe o módulo novo (admin decide depois)
-  IDS_PLANOS.forEach(planId => { /* tabelaState.modulos já tem o array, não adiciona */ });
-
-  labelEl.value = '';
-  idEl.value    = '';
-  renderModulosTabela();
-  toast(`Módulo "${label}" adicionado. Ative nos planos desejados e salve.`, 'sucesso');
-}
-window.moduloAdicionar = moduloAdicionar;
-
-function moduloRemover(id) {
-  if (MODULOS_FIXOS.includes(id)) { toast('Módulos fixos não podem ser removidos.', 'aviso'); return; }
-  if (!confirm(`Remover o módulo "${MODULOS_LABELS[id] || id}"? Esta ação remove das configurações de todos os planos.`)) return;
-
-  const idx = TODOS_MODULOS.indexOf(id);
-  if (idx !== -1) TODOS_MODULOS.splice(idx, 1);
-  delete MODULOS_LABELS[id];
-  IDS_PLANOS.forEach(planId => {
-    tabelaState.modulos[planId] = tabelaState.modulos[planId].filter(m => m !== id);
-  });
-  renderModulosTabela();
-  toast(`Módulo removido. Salve para aplicar.`, 'aviso');
-}
-window.moduloRemover = moduloRemover;
-
 async function salvarModulosPlanos() {
   const atualizacao = {};
   IDS_PLANOS.forEach(id => {
@@ -1060,7 +991,7 @@ async function salvarModulosPlanos() {
     };
   });
 
-  // Salva também a lista master de módulos (fixos + extras)
+  // Persiste lista master para que módulos extras sobrevivam entre sessões
   const modulosSistema = TODOS_MODULOS.map(id => ({ id, label: MODULOS_LABELS[id] || id }));
 
   try {
