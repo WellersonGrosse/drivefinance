@@ -140,13 +140,50 @@
       <h1 class="page-title">Planos</h1>
       <p class="page-subtitle">Edite nome, preços, funcionalidades e módulos de acesso de cada plano. As alterações refletem imediatamente na landing page.</p>
 
-      <div class="planos-tabela-wrap fade-up">
-        <div id="planos-tabela-container">
-          <div class="empty-state"><div class="empty-state-icon">📦</div><p>Carregando planos...</p></div>
+      <div class="planos-blocos fade-up">
+
+        <!-- Bloco 1: Configurações -->
+        <div class="plano-bloco">
+          <div class="plano-bloco-header">
+            <div>
+              <h2 class="plano-bloco-titulo">Configurações do plano</h2>
+              <p class="plano-bloco-sub">Nome, preços, destaque e dias de teste.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvarConfiguracoes()">Salvar configurações</button>
+          </div>
+          <div class="plano-bloco-body" id="planos-config-container">
+            <div class="empty-state"><div class="empty-state-icon">📦</div><p>Carregando...</p></div>
+          </div>
         </div>
-        <div class="planos-tabela-footer">
-          <button class="btn btn-primary" onclick="salvarTodosPlanos()">Salvar tudo</button>
+
+        <!-- Bloco 2: Funcionalidades -->
+        <div class="plano-bloco">
+          <div class="plano-bloco-header">
+            <div>
+              <h2 class="plano-bloco-titulo">Funcionalidades exibidas na landing</h2>
+              <p class="plano-bloco-sub">Gerencie os itens e marque quais aparecem em cada plano.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvarFeatures()">Salvar funcionalidades</button>
+          </div>
+          <div class="plano-bloco-body" id="planos-features-container">
+            <div class="empty-state"><div class="empty-state-icon">📋</div><p>Carregando...</p></div>
+          </div>
         </div>
+
+        <!-- Bloco 3: Módulos -->
+        <div class="plano-bloco">
+          <div class="plano-bloco-header">
+            <div>
+              <h2 class="plano-bloco-titulo">Módulos de acesso</h2>
+              <p class="plano-bloco-sub">Defina quais módulos cada plano libera para o usuário.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvarModulosPlanos()">Salvar módulos</button>
+          </div>
+          <div class="plano-bloco-body" id="planos-modulos-container">
+            <div class="empty-state"><div class="empty-state-icon">🔧</div><p>Carregando...</p></div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -279,7 +316,6 @@
     </div>
   </div>
 </div>
-
 
 <!-- Toast -->
 <div id="admin-toast" class="admin-toast" role="alert" aria-live="polite"></div>
