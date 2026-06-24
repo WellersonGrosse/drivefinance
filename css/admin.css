@@ -228,7 +228,24 @@
 .recente-email { font-size: 12px; color: var(--text-muted); }
 .recente-data { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 
-/* ── Módulos dinâmicos ── */
+/* ── Módulos — aviso informativo ── */
+.modulo-add-aviso-info {
+  padding: var(--gap-md) var(--gap-xl);
+  border-top: 0.5px solid var(--dark-border);
+  font-size: 12px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.01);
+}
+
+.modulo-add-aviso-info code {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-secondary);
+}
+
 .col-modulo-id-th {
   font-size: 11px;
   color: var(--text-muted);
@@ -250,89 +267,8 @@
   padding: 2px 6px;
 }
 
-.col-modulo-acoes {
-  width: 40px;
-  text-align: center;
-  padding: 8px var(--gap-sm) !important;
-}
-
-.modulo-fixo-tag {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: rgba(255,255,255,0.05);
-  border: 0.5px solid var(--dark-border);
-  border-radius: var(--radius-pill);
-  padding: 2px 6px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-}
-
-.modulo-add-form {
-  padding: var(--gap-lg) var(--gap-xl);
-  border-top: 0.5px solid var(--dark-border);
-  background: rgba(255,255,255,0.01);
-}
-
-.modulo-add-titulo {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: var(--gap-md);
-}
-
-.modulo-add-campos {
-  display: flex;
-  gap: var(--gap-md);
-  align-items: flex-end;
-  flex-wrap: wrap;
-}
-
-.modulo-add-campo {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 180px;
-}
-
-.modulo-add-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.modulo-add-hint {
-  font-weight: 400;
-  color: var(--text-muted);
-  opacity: 0.7;
-}
-
-.modulo-id-input {
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  letter-spacing: 0.3px;
-}
-
-.modulo-add-aviso {
-  font-size: 11px;
-  color: var(--ambar);
-  margin-top: var(--gap-md);
-  line-height: 1.5;
-  opacity: 0.85;
-}
-
-.modulo-add-aviso code {
-  font-family: 'Courier New', monospace;
-  background: rgba(240,168,48,0.1);
-  border-radius: 3px;
-  padding: 1px 4px;
-}
-
 @media (max-width: 768px) {
   .col-modulo-id, .col-modulo-id-th { display: none; }
-  .modulo-add-campos { flex-direction: column; }
-  .modulo-add-campo { min-width: unset; }
 }
 
 /* ── Blocos de planos (novo layout) ── */
