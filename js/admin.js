@@ -952,7 +952,6 @@ function renderModulosTabela() {
 
     return `<tr data-modulo="${m}">
       <td class="col-modulo-label">${MODULOS_LABELS[m] || m}</td>
-      <td class="col-modulo-id"><code class="modulo-id-code">${m}</code></td>
       ${toggles}
     </tr>`;
   }).join('');
@@ -962,7 +961,6 @@ function renderModulosTabela() {
       <thead>
         <tr>
           <th style="width:auto">Módulo</th>
-          <th class="col-modulo-id-th">ID no sistema</th>
           ${nomesHeader}
         </tr>
       </thead>
