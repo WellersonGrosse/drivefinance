@@ -22,6 +22,13 @@ let _veiculos = [];
 let _carrosselIdx = 0;
 let _editandoVeiculoId = null;
 let _fotoAtualUrl = null;
+let _fotoBuscaTimer = null;
+let _fotoBuscaChave = '';
+let _fotoResultados = [];
+let _fotoResultadoIdx = -1;
+let _fotoAbortController = null;
+let _fotoBuscaSequencia = 0;
+let _fotoUrlsFalharam = new Set();
 
 const DIAS_NOMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -342,11 +349,26 @@ function configurarVeiculos() {
   document.getElementById('btn-modal-salvar').addEventListener('click', salvarVeiculo);
   document.getElementById('btn-rebuscar-foto').addEventListener('click', () => buscarFotoVeiculo(true));
 
-  ['v-modelo', 'v-cor'].forEach(id => {
-    document.getElementById(id).addEventListener('blur', () => {
-      if (document.getElementById('v-modelo').value.trim()) buscarFotoVeiculo(false);
+  const inputModelo = document.getElementById('v-modelo');
+  const inputCor = document.getElementById('v-cor');
+
+  inputModelo.addEventListener('input', () => {
+    invalidarFotoSeBuscaMudou();
+    agendarBuscaFoto(700);
+  });
+
+  inputCor.addEventListener('input', () => {
+    invalidarFotoSeBuscaMudou();
+    agendarBuscaFoto(550);
+  });
+
+  [inputModelo, inputCor].forEach(input => {
+    input.addEventListener('blur', () => {
+      if (inputModelo.value.trim()) buscarFotoVeiculo(false);
     });
   });
+
+  document.getElementById('foto-img').addEventListener('error', tentarProximaFotoDisponivel);
 
   // Swipe touch
   const track = document.getElementById('carrossel-track');
@@ -446,8 +468,8 @@ function moverCarrossel(dir) {
 
 // ─── Modal veículo ────────────────────────────────────────────────────────────
 function abrirModalVeiculo(v) {
+  cancelarBuscaFotoAtiva();
   _editandoVeiculoId = v ? v.id : null;
-  _fotoAtualUrl = v?.foto_url || null;
   document.getElementById('modal-veiculo-titulo').textContent = v ? 'Editar veículo' : 'Novo veículo';
   document.getElementById('v-modelo').value = v?.modelo || '';
   document.getElementById('v-placa').value = v?.placa || '';
@@ -455,14 +477,23 @@ function abrirModalVeiculo(v) {
   document.getElementById('v-combustivel').value = v?.combustivel || '';
   document.getElementById('v-consumo').value = v?.consumo_medio || '';
   document.getElementById('v-padrao').checked = !!v?.default;
-  if (v?.foto_url) mostrarFoto(v.foto_url);
-  else resetarFoto();
+
+  resetarFoto();
+  if (v?.foto_url) {
+    _fotoBuscaChave = obterChaveBuscaFoto();
+    _fotoResultados = [{ url: v.foto_url, titulo: v.modelo || 'Veículo', pontuacao: 0 }];
+    _fotoResultadoIdx = 0;
+    mostrarFoto(v.foto_url);
+  }
+
   document.getElementById('modal-veiculo').hidden = false;
 }
 
 function fecharModalVeiculo() {
+  cancelarBuscaFotoAtiva();
   document.getElementById('modal-veiculo').hidden = true;
-  _editandoVeiculoId = null; _fotoAtualUrl = null;
+  _editandoVeiculoId = null;
+  resetarFoto();
 }
 
 async function salvarVeiculo() {
@@ -517,81 +548,646 @@ async function confirmarRemocao() {
   }
 }
 
-// ─── Foto via Wikipedia API (sem chave, sem CORS) ─────────────────────────────
+// ─── Foto automática via Wikipedia/Wikimedia Commons (sem chave) ─────────────
+const CORES_BUSCA = {
+  'branco': 'white',
+  'branca': 'white',
+  'preto': 'black',
+  'preta': 'black',
+  'prata': 'silver',
+  'prateado': 'silver',
+  'prateada': 'silver',
+  'cinza': 'gray',
+  'cinza chumbo': 'dark gray',
+  'chumbo': 'dark gray',
+  'vermelho': 'red',
+  'vermelha': 'red',
+  'azul': 'blue',
+  'azul marinho': 'navy blue',
+  'verde': 'green',
+  'amarelo': 'yellow',
+  'amarela': 'yellow',
+  'marrom': 'brown',
+  'bege': 'beige',
+  'dourado': 'gold',
+  'dourada': 'gold',
+  'laranja': 'orange',
+  'roxo': 'purple',
+  'roxa': 'purple',
+  'vinho': 'burgundy'
+};
+
+/*
+ * Alguns nomes de veículos são ambíguos para mecanismos de busca.
+ * Exemplo: "T-Cross" pode ser interpretado como "Model T" + "cross".
+ * Este catálogo pequeno resolve os modelos mais comuns no Brasil sem limitar
+ * a busca de veículos que não estejam na lista.
+ */
+const MODELOS_CONHECIDOS = [
+  {
+    detectar: compacto => compacto.includes('tcross'),
+    canonico: 'Volkswagen T-Cross',
+    aliases: ['Volkswagen T-Cross', 'VW T-Cross', 'T-Cross'],
+    identidades: ['tcross'],
+    marcas: ['volkswagen', 'vw']
+  },
+  {
+    detectar: compacto => compacto.includes('hb20s'),
+    canonico: 'Hyundai HB20S',
+    aliases: ['Hyundai HB20S', 'HB20S'],
+    identidades: ['hb20s'],
+    marcas: ['hyundai']
+  },
+  {
+    detectar: compacto => compacto.includes('hb20'),
+    canonico: 'Hyundai HB20',
+    aliases: ['Hyundai HB20', 'HB20'],
+    identidades: ['hb20'],
+    marcas: ['hyundai']
+  },
+  {
+    detectar: compacto => compacto.includes('onix'),
+    canonico: 'Chevrolet Onix',
+    aliases: ['Chevrolet Onix', 'Onix'],
+    identidades: ['onix'],
+    marcas: ['chevrolet']
+  },
+  {
+    detectar: compacto => compacto.includes('creta'),
+    canonico: 'Hyundai Creta',
+    aliases: ['Hyundai Creta', 'Creta'],
+    identidades: ['creta'],
+    marcas: ['hyundai']
+  },
+  {
+    detectar: compacto => compacto.includes('tracker'),
+    canonico: 'Chevrolet Tracker',
+    aliases: ['Chevrolet Tracker', 'Tracker'],
+    identidades: ['tracker'],
+    marcas: ['chevrolet']
+  },
+  {
+    detectar: compacto => compacto.includes('renegade'),
+    canonico: 'Jeep Renegade',
+    aliases: ['Jeep Renegade', 'Renegade'],
+    identidades: ['renegade'],
+    marcas: ['jeep']
+  },
+  {
+    detectar: compacto => compacto.includes('compass'),
+    canonico: 'Jeep Compass',
+    aliases: ['Jeep Compass', 'Compass'],
+    identidades: ['compass'],
+    marcas: ['jeep']
+  },
+  {
+    detectar: compacto => compacto.includes('kicks'),
+    canonico: 'Nissan Kicks',
+    aliases: ['Nissan Kicks', 'Kicks'],
+    identidades: ['kicks'],
+    marcas: ['nissan']
+  },
+  {
+    detectar: compacto => compacto.includes('corolla'),
+    canonico: 'Toyota Corolla',
+    aliases: ['Toyota Corolla', 'Corolla'],
+    identidades: ['corolla'],
+    marcas: ['toyota']
+  },
+  {
+    detectar: compacto => compacto.includes('nivus'),
+    canonico: 'Volkswagen Nivus',
+    aliases: ['Volkswagen Nivus', 'VW Nivus', 'Nivus'],
+    identidades: ['nivus'],
+    marcas: ['volkswagen', 'vw']
+  },
+  {
+    detectar: compacto => compacto.includes('virtus'),
+    canonico: 'Volkswagen Virtus',
+    aliases: ['Volkswagen Virtus', 'VW Virtus', 'Virtus'],
+    identidades: ['virtus'],
+    marcas: ['volkswagen', 'vw']
+  },
+  {
+    detectar: compacto => compacto.includes('fastback'),
+    canonico: 'Fiat Fastback',
+    aliases: ['Fiat Fastback', 'Fastback'],
+    identidades: ['fastback'],
+    marcas: ['fiat']
+  },
+  {
+    detectar: compacto => compacto.includes('pulse'),
+    canonico: 'Fiat Pulse',
+    aliases: ['Fiat Pulse', 'Pulse'],
+    identidades: ['pulse'],
+    marcas: ['fiat']
+  },
+  {
+    detectar: compacto => compacto.includes('kwid'),
+    canonico: 'Renault Kwid',
+    aliases: ['Renault Kwid', 'Kwid'],
+    identidades: ['kwid'],
+    marcas: ['renault']
+  }
+];
+
+const MARCAS_CONHECIDAS = [
+  'volkswagen', 'vw', 'hyundai', 'chevrolet', 'fiat', 'jeep', 'toyota',
+  'nissan', 'honda', 'renault', 'ford', 'peugeot', 'citroen', 'mitsubishi',
+  'kia', 'bmw', 'mercedes', 'audi', 'volvo', 'chery', 'caoa', 'byd', 'gm'
+];
+
+const TERMOS_GENERICOS_MODELO = new Set([
+  'carro', 'car', 'automobile', 'vehicle', 'veiculo', 'modelo', 'versao',
+  'flex', 'gasolina', 'etanol', 'diesel', 'hibrido', 'eletrico',
+  'automatico', 'automatica', 'manual', 'turbo'
+]);
+
+function agendarBuscaFoto(atraso = 650) {
+  clearTimeout(_fotoBuscaTimer);
+
+  const modelo = document.getElementById('v-modelo').value.trim();
+  if (!modelo) {
+    cancelarBuscaFotoAtiva();
+    resetarFoto();
+    return;
+  }
+
+  _fotoBuscaTimer = setTimeout(() => {
+    buscarFotoVeiculo(false);
+  }, atraso);
+}
+
+function invalidarFotoSeBuscaMudou() {
+  const modelo = document.getElementById('v-modelo').value.trim();
+  const novaChave = obterChaveBuscaFoto();
+
+  if (!modelo) {
+    cancelarBuscaFotoAtiva();
+    resetarFoto();
+    return;
+  }
+
+  if (novaChave === _fotoBuscaChave) return;
+
+  if (_fotoAbortController) {
+    _fotoAbortController.abort();
+    _fotoAbortController = null;
+  }
+
+  _fotoBuscaSequencia++;
+  _fotoAtualUrl = null;
+  _fotoResultados = [];
+  _fotoResultadoIdx = -1;
+  _fotoUrlsFalharam = new Set();
+  mostrarLoading(false);
+}
+
+function cancelarBuscaFotoAtiva() {
+  clearTimeout(_fotoBuscaTimer);
+  _fotoBuscaTimer = null;
+
+  if (_fotoAbortController) {
+    _fotoAbortController.abort();
+    _fotoAbortController = null;
+  }
+
+  _fotoBuscaSequencia++;
+  mostrarLoading(false);
+}
+
 async function buscarFotoVeiculo(forcar = false) {
+  clearTimeout(_fotoBuscaTimer);
+  _fotoBuscaTimer = null;
+
   const modelo = document.getElementById('v-modelo').value.trim();
   const cor = document.getElementById('v-cor').value.trim();
-  if (!modelo) return;
-  if (!forcar && _fotoAtualUrl) return;
+  if (!modelo) {
+    resetarFoto();
+    return;
+  }
+
+  const chave = obterChaveBuscaFoto(modelo, cor);
+
+  // No botão “Buscar outra foto”, percorre os resultados já encontrados primeiro.
+  if (forcar && chave === _fotoBuscaChave && _fotoResultados.length > 1) {
+    const proximoIdx = encontrarProximoIndiceFoto(_fotoResultadoIdx);
+    if (proximoIdx !== -1) {
+      _fotoResultadoIdx = proximoIdx;
+      mostrarFoto(_fotoResultados[_fotoResultadoIdx].url);
+      return;
+    }
+  }
+
+  // Evita repetir a mesma busca ao sair do campo sem alterar modelo ou cor.
+  if (!forcar && chave === _fotoBuscaChave && _fotoAtualUrl) return;
+
+  if (_fotoAbortController) _fotoAbortController.abort();
+  _fotoAbortController = new AbortController();
+  const signal = _fotoAbortController.signal;
+  const sequencia = ++_fotoBuscaSequencia;
 
   mostrarLoading(true);
 
-  // Termos de busca: tenta com cor, fallback sem cor
-  const termos = cor
-    ? [`${modelo} ${cor}`, modelo]
-    : [modelo];
+  try {
+    const resultados = await coletarFotosVeiculo(modelo, cor, signal);
+    if (sequencia !== _fotoBuscaSequencia) return;
 
-  for (const termo of termos) {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(termo)}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      const pages = data?.query?.pages || {};
-      const page = Object.values(pages)[0];
-      if (page?.thumbnail?.source) {
-        _fotoAtualUrl = page.thumbnail.source;
-        mostrarFoto(_fotoAtualUrl);
-        return;
-      }
-    } catch (e) { /* continua */ }
+    _fotoBuscaChave = chave;
+    _fotoResultados = removerFotosDuplicadas(resultados);
+    _fotoResultadoIdx = -1;
+    _fotoUrlsFalharam = new Set();
+
+    if (_fotoResultados.length === 0) {
+      _fotoAtualUrl = null;
+      mostrarPlaceholderFoto('Nenhuma foto confiável encontrada. Tente informar marca e modelo.');
+      return;
+    }
+
+    _fotoResultadoIdx = 0;
+    mostrarFoto(_fotoResultados[0].url);
+  } catch (erro) {
+    if (erro?.name === 'AbortError' || sequencia !== _fotoBuscaSequencia) return;
+    console.warn('Não foi possível buscar a foto do veículo:', erro);
+    _fotoBuscaChave = chave;
+    _fotoAtualUrl = null;
+    _fotoResultados = [];
+    _fotoResultadoIdx = -1;
+    mostrarPlaceholderFoto('Não foi possível buscar a foto agora.');
+  } finally {
+    if (sequencia === _fotoBuscaSequencia) {
+      _fotoAbortController = null;
+      mostrarLoading(false);
+    }
+  }
+}
+
+async function coletarFotosVeiculo(modelo, cor, signal) {
+  const infoModelo = resolverModeloBusca(modelo);
+  const corNormalizada = normalizarTexto(cor);
+  const corTraduzida = CORES_BUSCA[corNormalizada] || cor;
+  const resultados = [];
+
+  // Com cor informada, prioriza fotos do Commons cujo título também indique a cor.
+  if (cor) {
+    const consultasComCor = montarConsultasCommons(infoModelo, corTraduzida, true);
+    for (const consulta of consultasComCor) {
+      const encontrados = await buscarFotosCommons(consulta, infoModelo, cor, signal);
+      resultados.push(...encontrados);
+      if (removerFotosDuplicadas(resultados).length >= 12) break;
+    }
   }
 
-  // Segunda tentativa: busca por imagem na Wikipedia com search
-  try {
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(modelo + ' car automobile')}&srlimit=3&format=json&origin=*`;
-    const res = await fetch(searchUrl);
-    const data = await res.json();
-    const results = data?.query?.search || [];
+  // Busca exata do modelo no Commons. O filtro posterior exige que o título
+  // realmente contenha a identidade do modelo, evitando resultados como Model T.
+  const consultasModelo = montarConsultasCommons(infoModelo, '', false);
+  for (const consulta of consultasModelo) {
+    const encontrados = await buscarFotosCommons(consulta, infoModelo, cor, signal);
+    resultados.push(...encontrados);
+    if (removerFotosDuplicadas(resultados).length >= 16) break;
+  }
 
-    for (const result of results) {
-      const imgUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(result.title)}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
-      const imgRes = await fetch(imgUrl);
-      const imgData = await imgRes.json();
-      const pages = imgData?.query?.pages || {};
-      const page = Object.values(pages)[0];
-      if (page?.thumbnail?.source) {
-        _fotoAtualUrl = page.thumbnail.source;
-        mostrarFoto(_fotoAtualUrl);
-        return;
-      }
-    }
-  } catch (e) { /* silencioso */ }
+  // A imagem principal do artigo da Wikipedia funciona como fallback confiável
+  // para o modelo, mesmo quando o Commons não possui uma foto com a cor desejada.
+  const wikipedia = await buscarFotosWikipedia(infoModelo, cor, signal);
+  resultados.push(...wikipedia);
 
-  mostrarLoading(false);
-  // não encontrou — sem mensagem de erro, fica no placeholder
+  return removerFotosDuplicadas(resultados)
+    .filter(item => fotoCorrespondeAoModelo(item.titulo, infoModelo))
+    .sort((a, b) => b.pontuacao - a.pontuacao);
+}
+
+function montarConsultasCommons(infoModelo, corTraduzida = '', incluirCor = false) {
+  const consultas = [];
+  const cor = incluirCor && corTraduzida ? ` ${corTraduzida}` : '';
+
+  infoModelo.aliases.forEach(alias => {
+    consultas.push(`"${alias}"${cor}`);
+  });
+
+  // Categorias do Commons costumam usar o nome canônico do veículo.
+  consultas.push(`incategory:"${infoModelo.canonico}"${cor}`);
+
+  return [...new Set(consultas)];
+}
+
+async function buscarFotosCommons(termo, infoModelo, cor, signal) {
+  const params = new URLSearchParams({
+    action: 'query',
+    generator: 'search',
+    gsrsearch: termo,
+    gsrnamespace: '6',
+    gsrlimit: '24',
+    prop: 'imageinfo',
+    iiprop: 'url|mime|size',
+    iiurlwidth: '900',
+    format: 'json',
+    formatversion: '2',
+    origin: '*'
+  });
+
+  const resposta = await fetch(`https://commons.wikimedia.org/w/api.php?${params.toString()}`, { signal });
+  if (!resposta.ok) throw new Error(`Wikimedia respondeu com status ${resposta.status}`);
+
+  const dados = await resposta.json();
+  const paginas = dados?.query?.pages || [];
+
+  return paginas
+    .map(pagina => {
+      const info = pagina?.imageinfo?.[0];
+      if (!info) return null;
+
+      const url = info.thumburl || info.url;
+      const mime = info.thumbmime || info.mime || '';
+      const largura = Number(info.width || 0);
+      const altura = Number(info.height || 0);
+      const titulo = pagina.title || '';
+
+      if (!url || !mime.startsWith('image/')) return null;
+      if (mime === 'image/svg+xml' || mime === 'image/gif') return null;
+      if (largura && altura && (largura < 400 || altura < 220)) return null;
+      if (!fotoCorrespondeAoModelo(titulo, infoModelo)) return null;
+      if (possuiTermoIndesejado(titulo)) return null;
+
+      return {
+        url,
+        titulo,
+        largura,
+        altura,
+        fonte: 'commons',
+        pontuacao: pontuarFoto(titulo, infoModelo, cor, largura, altura, 'commons')
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.pontuacao - a.pontuacao);
+}
+
+async function buscarFotosWikipedia(infoModelo, cor, signal) {
+  const resultados = [];
+
+  // Primeiro tenta os títulos exatos. Isso resolve diretamente casos como
+  // "Volkswagen T-Cross" sem depender da interpretação livre do buscador.
+  const paramsExatos = new URLSearchParams({
+    action: 'query',
+    titles: infoModelo.aliases.join('|'),
+    redirects: '1',
+    prop: 'pageimages',
+    piprop: 'thumbnail|original',
+    pithumbsize: '900',
+    format: 'json',
+    formatversion: '2',
+    origin: '*'
+  });
+
+  const respostaExata = await fetch(`https://en.wikipedia.org/w/api.php?${paramsExatos.toString()}`, { signal });
+  if (respostaExata.ok) {
+    const dadosExatos = await respostaExata.json();
+    const paginas = dadosExatos?.query?.pages || [];
+    paginas.forEach(pagina => {
+      const url = pagina?.thumbnail?.source || pagina?.original?.source;
+      const titulo = pagina?.title || '';
+      if (!url || pagina?.missing || !fotoCorrespondeAoModelo(titulo, infoModelo)) return;
+      resultados.push({
+        url,
+        titulo,
+        largura: Number(pagina?.thumbnail?.width || 0),
+        altura: Number(pagina?.thumbnail?.height || 0),
+        fonte: 'wikipedia',
+        pontuacao: pontuarFoto(titulo, infoModelo, cor, 0, 0, 'wikipedia')
+      });
+    });
+  }
+
+  if (resultados.length > 0) return resultados;
+
+  // Fallback para modelos cujo artigo não usa exatamente o título digitado.
+  const paramsBusca = new URLSearchParams({
+    action: 'query',
+    generator: 'search',
+    gsrsearch: `intitle:"${infoModelo.canonico}" automobile`,
+    gsrnamespace: '0',
+    gsrlimit: '6',
+    prop: 'pageimages',
+    piprop: 'thumbnail|original',
+    pithumbsize: '900',
+    format: 'json',
+    formatversion: '2',
+    origin: '*'
+  });
+
+  const respostaBusca = await fetch(`https://en.wikipedia.org/w/api.php?${paramsBusca.toString()}`, { signal });
+  if (!respostaBusca.ok) return resultados;
+
+  const dadosBusca = await respostaBusca.json();
+  const paginasBusca = dadosBusca?.query?.pages || [];
+
+  paginasBusca.forEach(pagina => {
+    const url = pagina?.thumbnail?.source || pagina?.original?.source;
+    const titulo = pagina?.title || '';
+    if (!url || !fotoCorrespondeAoModelo(titulo, infoModelo)) return;
+    resultados.push({
+      url,
+      titulo,
+      largura: Number(pagina?.thumbnail?.width || 0),
+      altura: Number(pagina?.thumbnail?.height || 0),
+      fonte: 'wikipedia',
+      pontuacao: pontuarFoto(titulo, infoModelo, cor, 0, 0, 'wikipedia')
+    });
+  });
+
+  return resultados;
+}
+
+function resolverModeloBusca(modeloDigitado) {
+  const normalizado = normalizarTexto(modeloDigitado);
+  const compacto = compactarTexto(modeloDigitado);
+  const conhecido = MODELOS_CONHECIDOS.find(item => item.detectar(compacto));
+
+  if (conhecido) {
+    return {
+      digitado: modeloDigitado,
+      canonico: conhecido.canonico,
+      aliases: [...new Set(conhecido.aliases)],
+      identidades: conhecido.identidades,
+      marcas: conhecido.marcas,
+      tokens: normalizarTexto(conhecido.canonico).split(' ').filter(Boolean),
+      conhecido: true
+    };
+  }
+
+  const tokensOriginais = normalizado.split(' ').filter(Boolean);
+  const marcas = tokensOriginais.filter(token => MARCAS_CONHECIDAS.includes(token));
+  const tokensModelo = tokensOriginais.filter(token => {
+    if (MARCAS_CONHECIDAS.includes(token)) return false;
+    if (TERMOS_GENERICOS_MODELO.has(token)) return false;
+    if (/^(19|20)\d{2}$/.test(token)) return false;
+    return token.length >= 2;
+  });
+
+  const identidadeCompacta = tokensModelo.join('');
+  const identidades = identidadeCompacta ? [identidadeCompacta] : [compacto];
+
+  return {
+    digitado: modeloDigitado,
+    canonico: modeloDigitado,
+    aliases: [modeloDigitado],
+    identidades,
+    marcas,
+    tokens: tokensModelo,
+    conhecido: false
+  };
+}
+
+function fotoCorrespondeAoModelo(titulo, infoModelo) {
+  const texto = normalizarTexto(titulo);
+  const compacto = compactarTexto(titulo);
+
+  if (infoModelo.identidades.some(identidade => identidade && compacto.includes(identidade))) {
+    return true;
+  }
+
+  // Para modelos fora do catálogo, exige correspondência real dos termos do
+  // modelo em vez de aceitar qualquer resultado retornado pela busca.
+  const tokens = infoModelo.tokens.filter(token => token.length >= 2);
+  if (tokens.length === 0) return false;
+
+  const correspondencias = tokens.filter(token => texto.includes(token)).length;
+  const minimo = tokens.length === 1 ? 1 : Math.min(2, tokens.length);
+  return correspondencias >= minimo;
+}
+
+function possuiTermoIndesejado(titulo) {
+  const texto = normalizarTexto(titulo);
+  return [
+    'logo', 'emblem', 'badge', 'interior', 'engine', 'motor', 'diagram',
+    'drawing', 'sketch', 'toy', 'miniature', 'police', 'taxi', 'race',
+    'wreck', 'crash', 'dashboard', 'steering wheel', 'model t', 'vintage',
+    'classic car', 'oldtimer'
+  ].some(termo => texto.includes(termo));
+}
+
+function pontuarFoto(titulo, infoModelo, cor, largura, altura, fonte) {
+  const texto = normalizarTexto(titulo);
+  const compacto = compactarTexto(titulo);
+  const corNormalizada = normalizarTexto(cor);
+  const corTraduzida = normalizarTexto(CORES_BUSCA[corNormalizada] || cor);
+  let pontos = 0;
+
+  infoModelo.identidades.forEach(identidade => {
+    if (identidade && compacto.includes(identidade)) pontos += 35;
+  });
+
+  infoModelo.tokens.forEach(token => {
+    if (token.length >= 2 && texto.includes(token)) pontos += 5;
+  });
+
+  infoModelo.marcas.forEach(marca => {
+    if (texto.includes(marca)) pontos += 8;
+  });
+
+  if (corNormalizada && texto.includes(corNormalizada)) pontos += 14;
+  if (corTraduzida && texto.includes(corTraduzida)) pontos += 14;
+  if (largura > altura) pontos += 3;
+  if (fonte === 'wikipedia') pontos += cor ? 2 : 10;
+
+  if (possuiTermoIndesejado(titulo)) pontos -= 50;
+
+  return pontos;
+}
+
+function removerFotosDuplicadas(resultados) {
+  const urls = new Set();
+  return resultados.filter(item => {
+    if (!item?.url || urls.has(item.url)) return false;
+    urls.add(item.url);
+    return true;
+  });
+}
+
+function obterChaveBuscaFoto(
+  modelo = document.getElementById('v-modelo').value,
+  cor = document.getElementById('v-cor').value
+) {
+  return `${normalizarTexto(modelo)}|${normalizarTexto(cor)}`;
+}
+
+function normalizarTexto(valor) {
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function compactarTexto(valor) {
+  return normalizarTexto(valor).replace(/\s+/g, '');
+}
+
+function encontrarProximoIndiceFoto(indiceAtual) {
+  if (_fotoResultados.length === 0) return -1;
+
+  for (let passo = 1; passo <= _fotoResultados.length; passo++) {
+    const idx = (indiceAtual + passo) % _fotoResultados.length;
+    const url = _fotoResultados[idx]?.url;
+    if (url && !_fotoUrlsFalharam.has(url)) return idx;
+  }
+
+  return -1;
+}
+
+function tentarProximaFotoDisponivel() {
+  const urlQueFalhou = _fotoResultados[_fotoResultadoIdx]?.url || _fotoAtualUrl;
+  if (urlQueFalhou) _fotoUrlsFalharam.add(urlQueFalhou);
+
+  const proximoIdx = encontrarProximoIndiceFoto(_fotoResultadoIdx);
+  if (proximoIdx === -1) {
+    _fotoAtualUrl = null;
+    mostrarPlaceholderFoto('As fotos encontradas não puderam ser carregadas.');
+    return;
+  }
+
+  _fotoResultadoIdx = proximoIdx;
+  mostrarFoto(_fotoResultados[_fotoResultadoIdx].url);
 }
 
 function mostrarFoto(url) {
-  document.getElementById('foto-img').src = url;
-  document.getElementById('foto-img').hidden = false;
+  const img = document.getElementById('foto-img');
+  _fotoAtualUrl = url;
+  img.src = url;
+  img.hidden = false;
   document.getElementById('foto-placeholder').hidden = true;
   document.getElementById('btn-rebuscar-foto').hidden = false;
   mostrarLoading(false);
 }
 
-function resetarFoto() {
-  document.getElementById('foto-img').src = '';
-  document.getElementById('foto-img').hidden = true;
-  document.getElementById('foto-placeholder').hidden = false;
+function mostrarPlaceholderFoto(mensagem = 'Preencha o modelo para buscar uma foto') {
+  const img = document.getElementById('foto-img');
+  const placeholder = document.getElementById('foto-placeholder');
+  const texto = placeholder.querySelector('p');
+
+  img.removeAttribute('src');
+  img.hidden = true;
+  placeholder.hidden = false;
+  if (texto) texto.textContent = mensagem;
   document.getElementById('btn-rebuscar-foto').hidden = true;
   mostrarLoading(false);
+}
+
+function resetarFoto() {
   _fotoAtualUrl = null;
+  _fotoBuscaChave = '';
+  _fotoResultados = [];
+  _fotoResultadoIdx = -1;
+  _fotoUrlsFalharam = new Set();
+  mostrarPlaceholderFoto('Preencha o modelo para buscar uma foto');
 }
 
 function mostrarLoading(ativo) {
   document.getElementById('foto-loading').hidden = !ativo;
   if (ativo) document.getElementById('foto-img').hidden = true;
 }
+
 
 // ─── CONTA ────────────────────────────────────────────────────────────────────
 function preencherConta() {
