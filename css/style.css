@@ -77,6 +77,10 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Garante que o atributo hidden sempre oculte o elemento,
+   independente de qualquer display definido por outra regra CSS */
+[hidden] { display: none !important; }
+
 a { color: inherit; text-decoration: none; }
 button { font-family: var(--font); cursor: pointer; }
 input, select, textarea { font-family: var(--font); }
