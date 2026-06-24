@@ -90,10 +90,11 @@ service cloud.firestore {
         || modulo in perfil.modulos_ativos;
     }
 
+    // ── Coleção users ──
     match /users/{uid} {
 
-      allow read: if isProprioUsuario(uid) || isAdmin();
-
+      allow get:    if isProprioUsuario(uid) || isAdmin();
+      allow list:   if isAdmin();
       allow create: if isAdmin()
         || (
           isProprioUsuario(uid)
@@ -118,7 +119,6 @@ service cloud.firestore {
 
       allow delete: if isAdmin();
 
-      // Configurações e veículos: conta ativa, sem restrição de módulo
       match /config/{document=**} {
         allow read, write: if isAdmin()
           || (
@@ -135,7 +135,6 @@ service cloud.firestore {
           );
       }
 
-      // Módulos trial/básico
       match /despesas/{document=**} {
         allow read, write: if isAdmin()
           || (
@@ -163,7 +162,6 @@ service cloud.firestore {
           );
       }
 
-      // Módulo Pro+
       match /custo_operacional/{document=**} {
         allow read, write: if isAdmin()
           || (
@@ -172,6 +170,18 @@ service cloud.firestore {
             && temModulo(uid, "custo_operacional")
           );
       }
+
+      match /historico_admin/{document=**} {
+        allow read, write: if isAdmin();
+      }
+    }
+
+    // ── Configuração global (planos da landing) ──
+    // Leitura pública — a landing exibe os planos sem exigir login.
+    // Escrita exclusiva para admin.
+    match /config_global/{document=**} {
+      allow read:  if true;
+      allow write: if isAdmin();
     }
   }
 }

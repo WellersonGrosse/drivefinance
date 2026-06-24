@@ -95,7 +95,7 @@ async function carregarPlanos() {
     const snap = await getDoc(doc(db, "config_global", "planos"));
     if (snap.exists()) planos = snap.data();
   } catch (e) {
-    // usa padrão
+    console.warn("[DriveFinance/Landing] Firestore indisponível, usando planos padrão:", e?.code || e?.message);
   }
   renderPlanos(planos);
 }
