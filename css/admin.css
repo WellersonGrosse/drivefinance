@@ -228,7 +228,98 @@
 .recente-email { font-size: 12px; color: var(--text-muted); }
 .recente-data { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 
-/* ── Grid de planos ── */
+/* ── Blocos de planos (novo layout) ── */
+.planos-blocos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xl);
+}
+
+.plano-bloco {
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.plano-bloco-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-lg);
+  padding: var(--gap-lg) var(--gap-xl);
+  border-bottom: 0.5px solid var(--dark-border);
+  background: rgba(255,255,255,0.01);
+}
+
+.plano-bloco-titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.plano-bloco-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.plano-bloco-body {
+  overflow-x: auto;
+}
+
+/* Botão salvar pequeno */
+.btn.btn-sm {
+  font-size: 12px;
+  padding: 7px 16px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Tabela features — coluna de texto auto, colunas de toggle fixas */
+.planos-tabela-features th.col-plano-mini,
+.planos-tabela-features td.col-toggle-centro,
+.planos-tabela-modulos th.col-plano-mini,
+.planos-tabela-modulos td.col-toggle-centro {
+  width: 80px;
+  text-align: center;
+}
+
+.planos-tabela-features th.col-plano-mini,
+.planos-tabela-modulos th.col-plano-mini {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.col-feature-texto,
+.col-modulo-label {
+  padding: 8px var(--gap-lg) !important;
+}
+
+.col-modulo-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.feature-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.feature-linha .input-tabela {
+  flex: 1;
+  height: 32px;
+}
+
+/* Tabela de config — sem borda na última linha */
+.planos-tabela tr.last-row td {
+  border-bottom: none;
+}
+
+/* ── Grid de planos (legado — mantido por compatibilidade) ── */
 .planos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -607,13 +698,7 @@
   .planos-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Tabela de planos ── */
-.planos-tabela-wrap {
-  background: var(--dark-card);
-  border: 0.5px solid var(--dark-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
+/* planos-tabela-wrap substituído por .plano-bloco */
 
 .planos-tabela {
   width: 100%;
@@ -796,14 +881,7 @@
   border-color: var(--roxo);
 }
 
-/* Footer com botão salvar */
-.planos-tabela-footer {
-  padding: var(--gap-lg) var(--gap-xl);
-  border-top: 0.5px solid var(--dark-border);
-  display: flex;
-  justify-content: flex-end;
-  background: rgba(255,255,255,0.01);
-}
+/* Footer com botão salvar — legado removido, agora cada bloco tem o seu */
 
 /* Responsivo */
 @media (max-width: 768px) {
