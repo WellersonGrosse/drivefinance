@@ -1,6 +1,5 @@
 /**
  * configuracoes.js — DriveFinance
- * Perfil pessoal, perfil profissional, veículos, conta.
  */
 
 import {
@@ -8,7 +7,7 @@ import {
   getPerfil, updatePerfil,
   getConfig, saveConfig,
   getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo,
-  logout,
+  logout, isAdmin,
   formatData, toast
 } from './app.js';
 
@@ -24,6 +23,8 @@ let _carrosselIdx = 0;
 let _editandoVeiculoId = null;
 let _fotoAtualUrl = null;
 
+const DIAS_NOMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await exigirLogin();
@@ -38,6 +39,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   configurarProfissional();
   configurarVeiculos();
   configurarConta();
+
+  // Mostra app, oculta loading
+  document.getElementById('loading-screen').hidden = true;
+  document.getElementById('cfg-app').hidden = false;
 });
 
 // ─── Dados ────────────────────────────────────────────────────────────────────
@@ -61,19 +66,24 @@ async function carregarVeiculos() {
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
-function preencherSidebar() {
+async function preencherSidebar() {
   const iniciais = iniciarDeNome(_perfil?.nome || '');
   document.getElementById('sidebar-avatar').textContent = iniciais;
-  document.getElementById('sidebar-nome').textContent = _perfil?.nome || 'Usuário';
-  document.getElementById('sidebar-plano').textContent = formatarPlano(_perfil?.plano);
+  document.getElementById('sidebar-name').textContent = _perfil?.nome || 'Usuário';
+  document.getElementById('sidebar-email').textContent = _perfil?.email || '';
+  document.getElementById('sidebar-plan').textContent =
+    'Plano ' + formatarPlano(_perfil?.plano);
   document.getElementById('topbar-avatar').textContent = iniciais;
+
+  // Admin link
+  const adminOk = await isAdmin(_uid).catch(() => false);
+  if (adminOk) document.getElementById('admin-link').hidden = false;
 }
 
 function configurarSidebar() {
   const btn = document.getElementById('btn-menu');
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
-
   btn?.addEventListener('click', () => {
     sidebar.classList.toggle('aberta');
     overlay.classList.toggle('visivel');
@@ -90,7 +100,6 @@ function configurarTabs() {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('ativo'));
       document.querySelectorAll('.cfg-section').forEach(s => { s.hidden = true; });
-
       tab.classList.add('ativo');
       document.getElementById(`tab-${tab.dataset.tab}`).hidden = false;
     });
@@ -103,7 +112,6 @@ function preencherFormPessoal() {
   document.getElementById('input-nome').value = _perfil.nome || '';
   document.getElementById('input-telefone').value = _perfil.telefone || '';
   document.getElementById('input-nascimento').value = _perfil.data_nascimento || '';
-
   const iniciais = iniciarDeNome(_perfil.nome || '');
   document.getElementById('avatar-display').textContent = iniciais;
   document.getElementById('avatar-nome-display').textContent = _perfil.nome || 'Seu nome';
@@ -122,7 +130,6 @@ async function salvarPessoal() {
   const btn = document.getElementById('btn-salvar-pessoal');
   const nome = document.getElementById('input-nome').value.trim();
   if (!nome) { toast('Informe seu nome', 'aviso'); return; }
-
   btnLoading(btn, true);
   try {
     await updatePerfil(_uid, {
@@ -143,21 +150,18 @@ async function salvarPessoal() {
 
 // ─── PERFIL PROFISSIONAL ──────────────────────────────────────────────────────
 function preencherFormProfissional() {
-  if (!_config) return;
-
-  // Salário (vem do perfil, não do config)
   document.getElementById('input-salario').value = _perfil?.salario_liquido || '';
 
-  // Dias
-  const diasAtivos = _config.dias_trabalho || [];
+  const diasAtivos = _config?.dias_trabalho || [];
   document.querySelectorAll('.dia-toggle').forEach(btn => {
     btn.setAttribute('aria-pressed', diasAtivos.includes(parseInt(btn.dataset.dia)) ? 'true' : 'false');
   });
+  atualizarResumodias();
 
   renderPlataformas();
 
-  document.getElementById('toggle-superavit').checked = !!_config.superavit;
-  document.getElementById('toggle-deficit').checked = !!_config.deficit;
+  document.getElementById('toggle-superavit').checked = !!_config?.superavit;
+  document.getElementById('toggle-deficit').checked = !!_config?.deficit;
 }
 
 function configurarProfissional() {
@@ -165,6 +169,7 @@ function configurarProfissional() {
     btn.addEventListener('click', () => {
       const atual = btn.getAttribute('aria-pressed') === 'true';
       btn.setAttribute('aria-pressed', atual ? 'false' : 'true');
+      atualizarResumodias();
     });
   });
 
@@ -183,6 +188,30 @@ function configurarProfissional() {
   document.getElementById('btn-salvar-profissional').addEventListener('click', salvarProfissional);
 }
 
+function atualizarResumodias() {
+  const selecionados = [];
+  // Ordem lógica: Seg=1 … Dom=0
+  const ordem = [1,2,3,4,5,6,0];
+  ordem.forEach(dia => {
+    const btn = document.querySelector(`.dia-toggle[data-dia="${dia}"]`);
+    if (btn?.getAttribute('aria-pressed') === 'true') {
+      selecionados.push(DIAS_NOMES[dia]);
+    }
+  });
+
+  const el = document.getElementById('dias-resumo');
+  if (selecionados.length === 0) {
+    el.textContent = 'Nenhum dia selecionado';
+    el.classList.remove('tem-dias');
+  } else if (selecionados.length === 7) {
+    el.textContent = '✓ Todos os dias selecionados';
+    el.classList.add('tem-dias');
+  } else {
+    el.textContent = `✓ ${selecionados.join(', ')}`;
+    el.classList.add('tem-dias');
+  }
+}
+
 function renderPlataformas() {
   const lista = document.getElementById('plataformas-lista');
   const PADROES = ['Uber', '99', 'InDrive'];
@@ -196,9 +225,7 @@ function renderPlataformas() {
   const todas = [...PADROES, ...customizadas];
 
   const ativas = new Set(
-    plataformas
-      .filter(p => p.ativa !== false)
-      .map(p => typeof p === 'string' ? p : p.nome)
+    plataformas.filter(p => p.ativa !== false).map(p => typeof p === 'string' ? p : p.nome)
   );
 
   lista.innerHTML = '';
@@ -206,7 +233,6 @@ function renderPlataformas() {
     const row = document.createElement('div');
     row.className = `plataforma-row${ativas.has(nome) ? ' ativa' : ''}`;
     row.dataset.nome = nome;
-
     const isPadrao = PADROES.includes(nome);
     row.innerHTML = `
       <div class="plataforma-nome">
@@ -229,7 +255,6 @@ function renderPlataformas() {
       chk.closest('.plataforma-row').classList.toggle('ativa', chk.checked);
     });
   });
-
   lista.querySelectorAll('.plataforma-remover').forEach(btn => {
     btn.addEventListener('click', () => {
       const nome = btn.dataset.plat;
@@ -245,13 +270,8 @@ function adicionarPlataforma() {
   const input = document.getElementById('input-nova-plataforma');
   const nome = input.value.trim();
   if (!nome) { toast('Digite o nome da plataforma', 'aviso'); return; }
-
-  const existentes = Array.from(document.querySelectorAll('.plataforma-row'))
-    .map(r => r.dataset.nome.toLowerCase());
-  if (existentes.includes(nome.toLowerCase())) {
-    toast('Essa plataforma já existe', 'aviso'); return;
-  }
-
+  const existentes = Array.from(document.querySelectorAll('.plataforma-row')).map(r => r.dataset.nome.toLowerCase());
+  if (existentes.includes(nome.toLowerCase())) { toast('Essa plataforma já existe', 'aviso'); return; }
   if (!_config.plataformas) _config.plataformas = [];
   _config.plataformas.push({ nome, ativa: true });
   input.value = '';
@@ -268,34 +288,23 @@ function fecharFormPlataforma() {
 async function salvarProfissional() {
   const btn = document.getElementById('btn-salvar-profissional');
   btnLoading(btn, true);
-
   try {
     const salario = parseFloat(document.getElementById('input-salario').value) || 0;
-
     const dias = [];
     document.querySelectorAll('.dia-toggle').forEach(b => {
       if (b.getAttribute('aria-pressed') === 'true') dias.push(parseInt(b.dataset.dia));
     });
-
     const plataformas = [];
     document.querySelectorAll('.plataforma-row').forEach(row => {
-      plataformas.push({
-        nome: row.dataset.nome,
-        ativa: row.querySelector('.plat-toggle')?.checked ?? false
-      });
+      plataformas.push({ nome: row.dataset.nome, ativa: row.querySelector('.plat-toggle')?.checked ?? false });
     });
 
-    // Salário vai para o perfil do usuário
     await updatePerfil(_uid, { salario_liquido: salario });
-
-    // Config vai para config/settings
     await saveConfig(_uid, {
-      dias_trabalho: dias,
-      plataformas,
+      dias_trabalho: dias, plataformas,
       superavit: document.getElementById('toggle-superavit').checked,
       deficit: document.getElementById('toggle-deficit').checked
     });
-
     _perfil = { ..._perfil, salario_liquido: salario };
     toast('Configurações profissionais salvas!', 'sucesso');
   } catch (e) {
@@ -317,12 +326,10 @@ function configurarVeiculos() {
     const v = _veiculos[_carrosselIdx];
     if (v) abrirModalVeiculo(v);
   });
-
   document.getElementById('btn-remover-veiculo').addEventListener('click', () => {
     const v = _veiculos[_carrosselIdx];
     if (!v) return;
-    document.getElementById('modal-remover-texto').textContent =
-      `"${v.modelo || 'Este veículo'}" será removido permanentemente.`;
+    document.getElementById('modal-remover-texto').textContent = `"${v.modelo || 'Este veículo'}" será removido permanentemente.`;
     document.getElementById('modal-remover-veiculo').hidden = false;
   });
 
@@ -349,8 +356,6 @@ function configurarVeiculos() {
     const diff = touchX - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 40) moverCarrossel(diff > 0 ? 1 : -1);
   });
-
-  // Clique em card lateral navega
   track.addEventListener('click', e => {
     const card = e.target.closest('.veiculo-card');
     if (!card) return;
@@ -379,7 +384,6 @@ function renderCarrossel() {
   if (_veiculos.length === 0) {
     wrapper.hidden = true; empty.hidden = false; acoes.hidden = true; return;
   }
-
   empty.hidden = true; wrapper.hidden = false; acoes.hidden = false;
 
   if (_carrosselIdx >= _veiculos.length) _carrosselIdx = _veiculos.length - 1;
@@ -404,11 +408,9 @@ function criarCardVeiculo(v, idx) {
   const card = document.createElement('div');
   card.className = 'veiculo-card';
   card.dataset.idx = idx;
-
   const fotoHtml = v.foto_url
     ? `<img class="veiculo-card-foto" src="${v.foto_url}" alt="${v.modelo}" onerror="this.style.display='none'" />`
     : `<div class="veiculo-card-foto-placeholder">🚗</div>`;
-
   card.innerHTML = `
     ${fotoHtml}
     <div class="veiculo-card-body">
@@ -446,7 +448,6 @@ function moverCarrossel(dir) {
 function abrirModalVeiculo(v) {
   _editandoVeiculoId = v ? v.id : null;
   _fotoAtualUrl = v?.foto_url || null;
-
   document.getElementById('modal-veiculo-titulo').textContent = v ? 'Editar veículo' : 'Novo veículo';
   document.getElementById('v-modelo').value = v?.modelo || '';
   document.getElementById('v-placa').value = v?.placa || '';
@@ -454,24 +455,20 @@ function abrirModalVeiculo(v) {
   document.getElementById('v-combustivel').value = v?.combustivel || '';
   document.getElementById('v-consumo').value = v?.consumo_medio || '';
   document.getElementById('v-padrao').checked = !!v?.default;
-
   if (v?.foto_url) mostrarFoto(v.foto_url);
   else resetarFoto();
-
   document.getElementById('modal-veiculo').hidden = false;
 }
 
 function fecharModalVeiculo() {
   document.getElementById('modal-veiculo').hidden = true;
-  _editandoVeiculoId = null;
-  _fotoAtualUrl = null;
+  _editandoVeiculoId = null; _fotoAtualUrl = null;
 }
 
 async function salvarVeiculo() {
   const btn = document.getElementById('btn-modal-salvar');
   const modelo = document.getElementById('v-modelo').value.trim();
   if (!modelo) { toast('Informe o modelo do veículo', 'aviso'); return; }
-
   btnLoading(btn, true);
   try {
     const dados = {
@@ -483,15 +480,11 @@ async function salvarVeiculo() {
       default: document.getElementById('v-padrao').checked,
       foto_url: _fotoAtualUrl || null
     };
-
     if (dados.default) {
       for (const v of _veiculos) {
-        if (v.id !== _editandoVeiculoId && v.default) {
-          await updateVeiculo(_uid, v.id, { default: false });
-        }
+        if (v.id !== _editandoVeiculoId && v.default) await updateVeiculo(_uid, v.id, { default: false });
       }
     }
-
     if (_editandoVeiculoId) {
       await updateVeiculo(_uid, _editandoVeiculoId, dados);
       toast('Veículo atualizado!', 'sucesso');
@@ -499,7 +492,6 @@ async function salvarVeiculo() {
       await addVeiculo(_uid, dados);
       toast('Veículo adicionado!', 'sucesso');
     }
-
     fecharModalVeiculo();
     await carregarVeiculos();
   } catch (e) {
@@ -525,48 +517,58 @@ async function confirmarRemocao() {
   }
 }
 
-// ─── Foto (Unsplash → Pexels fallback) ───────────────────────────────────────
-const UNSPLASH_KEY = 'vF_dA6-r0G3wr5cNUBV2F0amHsYf74HxHQJqL08q4EI';
-const PEXELS_KEY   = 'S7MHGiiHbG9hE9ynKkVHEF4GDZRDijWCKRRMTk3U0Nh3AZGG8cBMwwxm';
-
+// ─── Foto via Wikipedia API (sem chave, sem CORS) ─────────────────────────────
 async function buscarFotoVeiculo(forcar = false) {
   const modelo = document.getElementById('v-modelo').value.trim();
   const cor = document.getElementById('v-cor').value.trim();
   if (!modelo) return;
   if (!forcar && _fotoAtualUrl) return;
 
-  const query = cor ? `${modelo} ${cor} car` : `${modelo} car`;
   mostrarLoading(true);
 
-  try {
-    const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape&client_id=${UNSPLASH_KEY}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.results?.length > 0) {
-        const pick = forcar ? data.results[Math.floor(Math.random() * data.results.length)] : data.results[0];
-        _fotoAtualUrl = pick.urls.regular;
-        mostrarFoto(_fotoAtualUrl);
-        return;
-      }
-    }
-  } catch (e) { console.warn('Unsplash falhou, tentando Pexels...'); }
+  // Termos de busca: tenta com cor, fallback sem cor
+  const termos = cor
+    ? [`${modelo} ${cor}`, modelo]
+    : [modelo];
 
-  try {
-    const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape`, {
-      headers: { Authorization: PEXELS_KEY }
-    });
-    if (res.ok) {
+  for (const termo of termos) {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(termo)}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
+    try {
+      const res = await fetch(url);
       const data = await res.json();
-      if (data.photos?.length > 0) {
-        const pick = forcar ? data.photos[Math.floor(Math.random() * data.photos.length)] : data.photos[0];
-        _fotoAtualUrl = pick.src.large;
+      const pages = data?.query?.pages || {};
+      const page = Object.values(pages)[0];
+      if (page?.thumbnail?.source) {
+        _fotoAtualUrl = page.thumbnail.source;
+        mostrarFoto(_fotoAtualUrl);
+        return;
+      }
+    } catch (e) { /* continua */ }
+  }
+
+  // Segunda tentativa: busca por imagem na Wikipedia com search
+  try {
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(modelo + ' car automobile')}&srlimit=3&format=json&origin=*`;
+    const res = await fetch(searchUrl);
+    const data = await res.json();
+    const results = data?.query?.search || [];
+
+    for (const result of results) {
+      const imgUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(result.title)}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
+      const imgRes = await fetch(imgUrl);
+      const imgData = await imgRes.json();
+      const pages = imgData?.query?.pages || {};
+      const page = Object.values(pages)[0];
+      if (page?.thumbnail?.source) {
+        _fotoAtualUrl = page.thumbnail.source;
         mostrarFoto(_fotoAtualUrl);
         return;
       }
     }
-  } catch (e) { console.warn('Pexels também falhou'); }
+  } catch (e) { /* silencioso */ }
 
   mostrarLoading(false);
+  // não encontrou — sem mensagem de erro, fica no placeholder
 }
 
 function mostrarFoto(url) {
@@ -598,7 +600,6 @@ function preencherConta() {
   document.getElementById('conta-desde').textContent = _perfil?.criado_em
     ? formatData(_perfil.criado_em.toDate?.()?.toISOString?.().slice(0, 10) || _perfil.criado_em)
     : '—';
-
   const isEmailProvider = auth.currentUser?.providerData?.some(p => p.providerId === 'password');
   document.getElementById('btn-alterar-senha').hidden = !isEmailProvider;
 }
@@ -610,26 +611,18 @@ function configurarConta() {
     try {
       await sendPasswordResetEmail(auth, email);
       toast('E-mail de redefinição enviado!', 'sucesso');
-    } catch (e) {
-      toast('Erro ao enviar e-mail', 'erro');
-    }
+    } catch (e) { toast('Erro ao enviar e-mail', 'erro'); }
   });
 
   document.getElementById('btn-logout').addEventListener('click', () => {
     document.getElementById('modal-logout').hidden = false;
   });
-  document.getElementById('modal-logout-fechar').addEventListener('click', () => {
-    document.getElementById('modal-logout').hidden = true;
-  });
-  document.getElementById('btn-logout-cancelar').addEventListener('click', () => {
-    document.getElementById('modal-logout').hidden = true;
-  });
-  document.getElementById('btn-logout-confirmar').addEventListener('click', async () => {
-    await logout();
-  });
+  document.getElementById('modal-logout-fechar').addEventListener('click', () => { document.getElementById('modal-logout').hidden = true; });
+  document.getElementById('btn-logout-cancelar').addEventListener('click', () => { document.getElementById('modal-logout').hidden = true; });
+  document.getElementById('btn-logout-confirmar').addEventListener('click', async () => { await logout(); });
 }
 
-// ─── Utilitários ──────────────────────────────────────────────────────────────
+// ─── Utils ────────────────────────────────────────────────────────────────────
 function iniciarDeNome(nome) {
   if (!nome) return '?';
   const p = nome.trim().split(' ').filter(Boolean);
