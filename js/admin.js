@@ -44,34 +44,6 @@ const MODULOS_LABELS = {
   relatorios:        'Relatórios'
 };
 
-const FEATURES_PADRAO = {
-  basico: [
-    { ok: true,  text: 'Meta diária automática' },
-    { ok: true,  text: 'Registro de corridas (app + particular)' },
-    { ok: true,  text: 'Controle de despesas e parcelas' },
-    { ok: true,  text: 'Histórico com calendário' },
-    { ok: false, text: 'Dashboard financeiro (DRE)' },
-    { ok: false, text: 'Custo operacional do veículo' },
-    { ok: false, text: 'Relatórios exportáveis' },
-  ],
-  pro: [
-    { ok: true,  text: 'Tudo do Básico' },
-    { ok: true,  text: 'Dashboard financeiro completo (DRE)' },
-    { ok: true,  text: 'Custo operacional por km' },
-    { ok: true,  text: 'KM ocioso com custo separado' },
-    { ok: true,  text: 'Múltiplos veículos' },
-    { ok: false, text: 'Relatórios exportáveis' },
-    { ok: false, text: 'Suporte prioritário WhatsApp' },
-  ],
-  completo: [
-    { ok: true,  text: 'Tudo do Pro' },
-    { ok: true,  text: 'Relatórios exportáveis (PDF/Excel)' },
-    { ok: true,  text: 'Suporte prioritário WhatsApp' },
-    { ok: true,  text: 'Histórico ilimitado' },
-    { ok: true,  text: 'Acesso antecipado a novidades' },
-  ]
-};
-
 const POR_PAGINA = 15;
 
 // ─────────────────────────────────────────────
@@ -670,172 +642,218 @@ async function carregarLog(uid) {
 }
 
 // ─────────────────────────────────────────────
-// PLANOS
+// PLANOS — TABELA
 // ─────────────────────────────────────────────
+
+// Estado local da tabela (editável antes de salvar)
+let tabelaState = {};
 
 function renderPlanos() {
-  const grid = $('lista-planos');
-  const planos = Object.values(state.planos);
+  const ids = ['basico', 'pro', 'completo'];
 
-  if (!planos.length) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>Nenhum plano encontrado.</p></div>';
-    return;
-  }
+  // Clona estado atual para edição local
+  tabelaState = {};
+  ids.forEach(id => {
+    const p = state.planos[id] || {};
+    tabelaState[id] = {
+      id,
+      nome:     p.nome    || '',
+      mensal:   p.mensal  || 0,
+      anual:    p.anual   || 0,
+      destaque: p.destaque || false,
+      features: (p.features?.length ? p.features : (FEATURES_PADRAO[id] || [])).map(f => ({ ...f })),
+      modulos:  [...(p.modulos || [])]
+    };
+  });
 
-  grid.innerHTML = planos.map(p => `
-    <div class="plano-card">
-      <div class="plano-card-id">${p.id}</div>
-      <div class="plano-card-nome">${p.nome}</div>
-      <div class="plano-card-preco">
-        <div class="plano-preco-item">
-          <span class="plano-preco-label">Mensal</span>
-          <span class="plano-preco-valor">${formatReal(p.mensal)}</span>
-        </div>
-        <div class="plano-preco-item">
-          <span class="plano-preco-label">Anual</span>
-          <span class="plano-preco-valor">${formatReal(p.anual)}</span>
-        </div>
-      </div>
-      <div class="plano-card-modulos">
-        ${(p.modulos || []).map(m => `<span class="modulo-tag">${MODULOS_LABELS[m] || m}</span>`).join('')}
-      </div>
-      <button class="btn btn-secondary btn-full" onclick="abrirModalPlano('${p.id}')">
-        Editar plano
-      </button>
-    </div>
-  `).join('');
+  renderTabelaHTML(ids);
 }
 
-// ─────────────────────────────────────────────
-// MODAL DE PLANO
-// ─────────────────────────────────────────────
+function renderTabelaHTML(ids) {
+  const container = $('planos-tabela-container');
 
-function abrirModalPlano(id) {
-  const p = state.planos[id];
-  if (!p) return;
-
-  $('plano-edit-id').value     = id;
-  $('modal-plano-titulo').textContent = `Editar — ${p.nome}`;
-  $('plano-edit-nome').value   = p.nome || '';
-  $('plano-edit-mensal').value = p.mensal || '';
-  $('plano-edit-anual').value  = p.anual || '';
-
-  // Módulos
-  $('plano-edit-modulos').innerHTML = TODOS_MODULOS.map(m => {
-    const checked = (p.modulos || []).includes(m);
-    return `
-      <label class="modulo-toggle ${checked ? 'checked' : ''}" id="planomod-${m}">
-        <input type="checkbox" value="${m}" ${checked ? 'checked' : ''}
-          onchange="togglePlanoModulo('${m}', this.checked)" />
-        <div class="modulo-toggle-dot"></div>
-        ${MODULOS_LABELS[m] || m}
-      </label>
-    `;
+  const nomesHeader = ids.map(id => {
+    const p = tabelaState[id];
+    return `<th class="col-plano">${p.nome || id}</th>`;
   }).join('');
 
-  // Features
-  renderFeatures(p.features?.length ? p.features : (FEATURES_PADRAO[id] || []));
+  const rowNome = ids.map(id =>
+    `<td class="col-valor"><input class="input-tabela" data-field="nome" data-id="${id}"
+      value="${tabelaState[id].nome}" placeholder="Nome do plano"
+      oninput="tabelaUpdate('${id}','nome',this.value)" /></td>`
+  ).join('');
 
-  $('modal-plano').hidden = false;
-  document.body.style.overflow = 'hidden';
-}
-window.abrirModalPlano = abrirModalPlano;
+  const rowMensal = ids.map(id =>
+    `<td class="col-valor"><input class="input-tabela" type="number" data-field="mensal" data-id="${id}"
+      value="${tabelaState[id].mensal}" min="0" step="0.01"
+      oninput="tabelaUpdate('${id}','mensal',parseFloat(this.value)||0)" /></td>`
+  ).join('');
 
-function fecharModalPlano() {
-  $('modal-plano').hidden = true;
-  document.body.style.overflow = '';
-}
-window.fecharModalPlano = fecharModalPlano;
+  const rowAnual = ids.map(id =>
+    `<td class="col-valor"><input class="input-tabela" type="number" data-field="anual" data-id="${id}"
+      value="${tabelaState[id].anual}" min="0" step="0.01"
+      oninput="tabelaUpdate('${id}','anual',parseFloat(this.value)||0)" /></td>`
+  ).join('');
 
-function togglePlanoModulo(m, checked) {
-  $(`planomod-${m}`)?.classList.toggle('checked', checked);
-}
-window.togglePlanoModulo = togglePlanoModulo;
+  const rowDestaque = ids.map(id => {
+    const ativo = tabelaState[id].destaque;
+    return `<td class="col-valor"><div class="cell-toggle">
+      <button class="cell-toggle-btn ${ativo ? 'destaque-ativo' : 'inativo'}"
+        onclick="tabelaToggleDestaque('${id}')" title="Destaque na landing">
+        ${ativo ? '★' : '☆'}
+      </button></div></td>`;
+  }).join('');
 
-function renderFeatures(features) {
-  const container = $('plano-edit-features');
-  container.innerHTML = features.map((f, i) => featureRow(f, i)).join('');
-}
+  // Máximo de features entre os planos
+  const maxFeatures = Math.max(...ids.map(id => tabelaState[id].features.length), 0);
 
-function featureRow(f, i) {
-  return `
-    <div class="feature-row" id="feature-row-${i}">
-      <button class="feature-ok-toggle ${f.ok ? 'ok' : ''}" type="button"
-        onclick="toggleFeatureOk(${i})" title="${f.ok ? 'Incluído' : 'Não incluído'}">
-        ${f.ok ? '✓' : '○'}
-      </button>
-      <input type="text" class="input" value="${f.text || ''}"
-        placeholder="Descrição do item" id="feature-text-${i}" />
-      <button class="feature-remove" type="button" onclick="removerFeature(${i})"
-        aria-label="Remover">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6 6 18M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
+  let rowsFeatures = '';
+  for (let fi = 0; fi < maxFeatures; fi++) {
+    const cols = ids.map(id => {
+      const f = tabelaState[id].features[fi];
+      if (!f) {
+        return `<td class="col-valor"><div class="cell-toggle">
+          <button class="cell-toggle-btn inativo" style="opacity:0.3" disabled>—</button>
+        </div></td>`;
+      }
+      return `<td>
+        <div class="feature-label-wrap">
+          <button class="cell-toggle-btn ${f.ok ? 'ativo' : 'inativo'}"
+            onclick="tabelaToggleFeature('${id}',${fi})">${f.ok ? '✓' : '○'}</button>
+          <input class="input-tabela" value="${f.text || ''}" placeholder="Descrição"
+            oninput="tabelaUpdateFeature('${id}',${fi},this.value)" />
+          <button class="btn-remove-row" onclick="tabelaRemoveFeature('${id}',${fi})" title="Remover">×</button>
+        </div>
+      </td>`;
+    }).join('');
+    rowsFeatures += `<tr><td></td>${cols}</tr>`;
+  }
+
+  const rowAddFeature = ids.map(id =>
+    `<td class="col-valor">
+      <button class="btn-add-feature" onclick="tabelaAddFeature('${id}')">+ Adicionar</button>
+    </td>`
+  ).join('');
+
+  const rowsModulos = TODOS_MODULOS.map(m => {
+    const cols = ids.map(id => {
+      const ativo = tabelaState[id].modulos.includes(m);
+      return `<td class="col-valor"><div class="cell-toggle">
+        <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}"
+          onclick="tabelaToggleModulo('${id}','${m}')">
+          ${ativo ? '✓' : '○'}
+        </button></div></td>`;
+    }).join('');
+    return `<tr><td>${MODULOS_LABELS[m]}</td>${cols}</tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <table class="planos-tabela">
+      <thead>
+        <tr>
+          <th></th>
+          ${nomesHeader}
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="grupo-header"><td colspan="4">Configurações do plano</td></tr>
+        <tr><td>Nome de exibição</td>${rowNome}</tr>
+        <tr><td>Preço mensal (R$)</td>${rowMensal}</tr>
+        <tr><td>Preço anual (R$)</td>${rowAnual}</tr>
+        <tr><td>Destaque na landing</td>${rowDestaque}</tr>
+
+        <tr class="grupo-header"><td colspan="4">Funcionalidades exibidas na landing</td></tr>
+        ${rowsFeatures}
+        <tr class="row-add-feature"><td></td>${rowAddFeature}</tr>
+
+        <tr class="grupo-header"><td colspan="4">Módulos de acesso</td></tr>
+        ${rowsModulos}
+      </tbody>
+    </table>
   `;
 }
 
-function adicionarFeature() {
-  const container = $('plano-edit-features');
-  const i = container.children.length;
-  const div = document.createElement('div');
-  div.innerHTML = featureRow({ ok: true, text: '' }, i);
-  container.appendChild(div.firstElementChild);
+// ── Interações da tabela ──
+
+function tabelaUpdate(id, field, value) {
+  tabelaState[id][field] = value;
+  if (field === 'nome') renderTabelaHTML(['basico','pro','completo']);
 }
-window.adicionarFeature = adicionarFeature;
+window.tabelaUpdate = tabelaUpdate;
 
-function toggleFeatureOk(i) {
-  const btn = document.querySelector(`#feature-row-${i} .feature-ok-toggle`);
-  const ok = !btn.classList.contains('ok');
-  btn.classList.toggle('ok', ok);
-  btn.textContent = ok ? '✓' : '○';
+function tabelaToggleDestaque(id) {
+  tabelaState[id].destaque = !tabelaState[id].destaque;
+  renderTabelaHTML(['basico','pro','completo']);
 }
-window.toggleFeatureOk = toggleFeatureOk;
+window.tabelaToggleDestaque = tabelaToggleDestaque;
 
-function removerFeature(i) {
-  $(`feature-row-${i}`)?.remove();
+function tabelaToggleFeature(id, fi) {
+  tabelaState[id].features[fi].ok = !tabelaState[id].features[fi].ok;
+  renderTabelaHTML(['basico','pro','completo']);
 }
-window.removerFeature = removerFeature;
+window.tabelaToggleFeature = tabelaToggleFeature;
 
-async function salvarPlano() {
-  const id     = $('plano-edit-id').value;
-  const nome   = $('plano-edit-nome').value.trim();
-  const mensal = parseFloat($('plano-edit-mensal').value);
-  const anual  = parseFloat($('plano-edit-anual').value);
+function tabelaUpdateFeature(id, fi, value) {
+  tabelaState[id].features[fi].text = value;
+}
+window.tabelaUpdateFeature = tabelaUpdateFeature;
 
-  if (!nome) { toast('Informe o nome do plano.', 'aviso'); return; }
+function tabelaRemoveFeature(id, fi) {
+  tabelaState[id].features.splice(fi, 1);
+  renderTabelaHTML(['basico','pro','completo']);
+}
+window.tabelaRemoveFeature = tabelaRemoveFeature;
 
-  // Módulos selecionados
-  const modulos = Array.from($('plano-edit-modulos').querySelectorAll('input:checked')).map(c => c.value);
+function tabelaAddFeature(id) {
+  tabelaState[id].features.push({ ok: true, text: '' });
+  renderTabelaHTML(['basico','pro','completo']);
+}
+window.tabelaAddFeature = tabelaAddFeature;
 
-  // Features
-  const rows = $('plano-edit-features').querySelectorAll('.feature-row');
-  const features = Array.from(rows).map(row => ({
-    ok:   row.querySelector('.feature-ok-toggle').classList.contains('ok'),
-    text: row.querySelector('input[type="text"]').value.trim()
-  })).filter(f => f.text);
+function tabelaToggleModulo(id, modulo) {
+  const idx = tabelaState[id].modulos.indexOf(modulo);
+  if (idx === -1) tabelaState[id].modulos.push(modulo);
+  else tabelaState[id].modulos.splice(idx, 1);
+  renderTabelaHTML(['basico','pro','completo']);
+}
+window.tabelaToggleModulo = tabelaToggleModulo;
 
-  const planoAtualizado = { id, nome, mensal, anual, modulos, features };
+async function salvarTodosPlanos() {
+  const ids = ['basico', 'pro', 'completo'];
+
+  for (const id of ids) {
+    if (!tabelaState[id].nome.trim()) {
+      toast(`Informe o nome do plano "${id}".`, 'aviso');
+      return;
+    }
+  }
+
+  const planosAtualizados = {};
+  ids.forEach(id => {
+    const p = tabelaState[id];
+    planosAtualizados[id] = {
+      id,
+      nome:     p.nome.trim(),
+      mensal:   p.mensal,
+      anual:    p.anual,
+      destaque: p.destaque,
+      features: p.features.filter(f => f.text.trim()),
+      modulos:  p.modulos
+    };
+  });
 
   try {
-    await setDoc(doc(db, 'config_global', 'planos'), {
-      ...state.planos,
-      [id]: planoAtualizado
-    });
-
-    state.planos[id] = planoAtualizado;
-    state.nomesPorId[id] = nome;
-
-    fecharModalPlano();
-    renderPlanos();
-    toast(`Plano "${nome}" salvo com sucesso.`, 'sucesso');
+    await setDoc(doc(db, 'config_global', 'planos'), planosAtualizados);
+    Object.assign(state.planos, planosAtualizados);
+    ids.forEach(id => { state.nomesPorId[id] = planosAtualizados[id].nome; });
+    toast('Planos salvos com sucesso.', 'sucesso');
+    renderTabelaHTML(ids);
   } catch (e) {
     console.error(e);
-    toast('Erro ao salvar plano.', 'erro');
+    toast('Erro ao salvar planos.', 'erro');
   }
 }
-window.salvarPlano = salvarPlano;
+window.salvarTodosPlanos = salvarTodosPlanos;
 
 // ─────────────────────────────────────────────
 // UTILITÁRIO — atualiza usuário na lista local
@@ -886,7 +904,6 @@ function bindEvents() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       fecharModalUsuario();
-      fecharModalPlano();
       fecharMenu();
     }
   });
@@ -894,9 +911,6 @@ function bindEvents() {
   // Fechar modal clicando no overlay
   $('modal-usuario').addEventListener('click', e => {
     if (e.target === $('modal-usuario')) fecharModalUsuario();
-  });
-  $('modal-plano').addEventListener('click', e => {
-    if (e.target === $('modal-plano')) fecharModalPlano();
   });
 
   window.addEventListener('resize', () => {
