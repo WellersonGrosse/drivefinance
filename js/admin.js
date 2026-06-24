@@ -732,6 +732,23 @@ function renderTabelaHTML(ids) {
       </button></div></td>`;
   }).join('');
 
+  // ── Helper: célula editável (toggle + input + remover) ──
+  function celulaEditavel(ativo, texto, onToggle, onInput, onRemove) {
+    return `<td>
+      <div class="linha-editavel">
+        <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}" onclick="${onToggle}">${ativo ? '✓' : '○'}</button>
+        <input class="input-tabela" value="${texto}" placeholder="Descrição" oninput="${onInput}" />
+        <button class="btn-remove-row" onclick="${onRemove}" title="Remover">×</button>
+      </div>
+    </td>`;
+  }
+
+  function celulaVazia() {
+    return `<td><div class="linha-editavel">
+      <button class="cell-toggle-btn inativo" style="opacity:0.25" disabled>—</button>
+    </div></td>`;
+  }
+
   // Máximo de features entre os planos
   const maxFeatures = Math.max(...ids.map(id => tabelaState[id].features.length), 0);
 
@@ -739,41 +756,42 @@ function renderTabelaHTML(ids) {
   for (let fi = 0; fi < maxFeatures; fi++) {
     const cols = ids.map(id => {
       const f = tabelaState[id].features[fi];
-      if (!f) {
-        return `<td class="col-valor"><div class="cell-toggle">
-          <button class="cell-toggle-btn inativo" style="opacity:0.3" disabled>—</button>
-        </div></td>`;
-      }
-      return `<td>
-        <div class="feature-label-wrap">
-          <button class="cell-toggle-btn ${f.ok ? 'ativo' : 'inativo'}"
-            onclick="tabelaToggleFeature('${id}',${fi})">${f.ok ? '✓' : '○'}</button>
-          <input class="input-tabela" value="${f.text || ''}" placeholder="Descrição"
-            oninput="tabelaUpdateFeature('${id}',${fi},this.value)" />
-          <button class="btn-remove-row" onclick="tabelaRemoveFeature('${id}',${fi})" title="Remover">×</button>
-        </div>
-      </td>`;
+      if (!f) return celulaVazia();
+      return celulaEditavel(
+        f.ok,
+        f.text || '',
+        `tabelaToggleFeature('${id}',${fi})`,
+        `tabelaUpdateFeature('${id}',${fi},this.value)`,
+        `tabelaRemoveFeature('${id}',${fi})`
+      );
     }).join('');
     rowsFeatures += `<tr><td></td>${cols}</tr>`;
   }
 
   const rowAddFeature = ids.map(id =>
-    `<td class="col-valor">
-      <button class="btn-add-feature" onclick="tabelaAddFeature('${id}')">+ Adicionar</button>
-    </td>`
+    `<td><button class="btn-add-feature" onclick="tabelaAddFeature('${id}')">+ Adicionar</button></td>`
   ).join('');
+
+  // Módulos também com campo editável + toggle + remover
+  const maxModulos = Math.max(...ids.map(id => tabelaState[id].modulos_extra?.length || 0), TODOS_MODULOS.length);
 
   const rowsModulos = TODOS_MODULOS.map(m => {
     const cols = ids.map(id => {
       const ativo = tabelaState[id].modulos.includes(m);
-      return `<td class="col-valor"><div class="cell-toggle">
-        <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}"
-          onclick="tabelaToggleModulo('${id}','${m}')">
-          ${ativo ? '✓' : '○'}
-        </button></div></td>`;
+      return celulaEditavel(
+        ativo,
+        MODULOS_LABELS[m],
+        `tabelaToggleModulo('${id}','${m}')`,
+        `tabelaUpdateModuloLabel('${id}','${m}',this.value)`,
+        `tabelaRemoveModulo('${id}','${m}')`
+      );
     }).join('');
-    return `<tr><td>${MODULOS_LABELS[m]}</td>${cols}</tr>`;
+    return `<tr><td></td>${cols}</tr>`;
   }).join('');
+
+  const rowAddModulo = ids.map(id =>
+    `<td><button class="btn-add-feature" onclick="tabelaAddModulo('${id}')">+ Adicionar</button></td>`
+  ).join('');
 
   container.innerHTML = `
     <table class="planos-tabela">
@@ -796,6 +814,7 @@ function renderTabelaHTML(ids) {
 
         <tr class="grupo-header"><td colspan="4">Módulos de acesso</td></tr>
         ${rowsModulos}
+        <tr class="row-add-feature"><td></td>${rowAddModulo}</tr>
       </tbody>
     </table>
   `;
@@ -846,6 +865,30 @@ function tabelaToggleModulo(id, modulo) {
 }
 window.tabelaToggleModulo = tabelaToggleModulo;
 
+function tabelaUpdateModuloLabel(id, modulo, value) {
+  // Atualiza o label exibido localmente — salvo como modulos_labels no Firestore
+  if (!tabelaState[id].modulos_labels) tabelaState[id].modulos_labels = {};
+  tabelaState[id].modulos_labels[modulo] = value;
+}
+window.tabelaUpdateModuloLabel = tabelaUpdateModuloLabel;
+
+function tabelaRemoveModulo(id, modulo) {
+  tabelaState[id].modulos = tabelaState[id].modulos.filter(m => m !== modulo);
+  // Remove de TODOS_MODULOS temporariamente para essa sessão
+  renderTabelaHTML(['basico','pro','completo']);
+}
+window.tabelaRemoveModulo = tabelaRemoveModulo;
+
+function tabelaAddModulo(id) {
+  // Adiciona módulo extra com ID gerado e label editável
+  const novoId = 'modulo_' + Date.now();
+  tabelaState[id].modulos.push(novoId);
+  if (!tabelaState[id].modulos_labels) tabelaState[id].modulos_labels = {};
+  tabelaState[id].modulos_labels[novoId] = '';
+  renderTabelaHTML(['basico','pro','completo']);
+}
+window.tabelaAddModulo = tabelaAddModulo;
+
 async function salvarTodosPlanos() {
   const ids = ['basico', 'pro', 'completo'];
 
@@ -861,12 +904,13 @@ async function salvarTodosPlanos() {
     const p = tabelaState[id];
     planosAtualizados[id] = {
       id,
-      nome:     p.nome.trim(),
-      mensal:   p.mensal,
-      anual:    p.anual,
-      destaque: p.destaque,
-      features: p.features.filter(f => f.text.trim()),
-      modulos:  p.modulos
+      nome:          p.nome.trim(),
+      mensal:        p.mensal,
+      anual:         p.anual,
+      destaque:      p.destaque,
+      features:      p.features.filter(f => f.text.trim()),
+      modulos:       p.modulos,
+      modulos_labels: p.modulos_labels || {}
     };
   });
 
