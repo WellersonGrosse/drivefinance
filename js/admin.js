@@ -734,7 +734,8 @@ function renderConfiguracoes() {
   const rowNome = IDS_PLANOS.map(id =>
     `<td class="col-valor"><input class="input-tabela" value="${tabelaState.configuracoes[id].nome}"
       placeholder="Nome do plano"
-      oninput="cfgUpdate('${id}','nome',this.value)" /></td>`
+      oninput="cfgUpdate('${id}','nome',this.value)"
+      onblur="renderConfiguracoes()" /></td>`
   ).join('');
 
   const rowMensal = IDS_PLANOS.map(id =>
@@ -785,9 +786,10 @@ function renderConfiguracoes() {
 
 function cfgUpdate(id, field, value) {
   tabelaState.configuracoes[id][field] = value;
-  if (field === 'nome') renderConfiguracoes();
+  // nome: re-render só no onblur para não destruir o foco durante digitação
 }
 window.cfgUpdate = cfgUpdate;
+window.renderConfiguracoes = renderConfiguracoes;
 
 function cfgToggleDestaque(id) {
   tabelaState.configuracoes[id].destaque = !tabelaState.configuracoes[id].destaque;
