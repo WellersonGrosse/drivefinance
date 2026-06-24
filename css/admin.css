@@ -347,11 +347,25 @@
   width: 100%;
 }
 
+.planos-tabela-modulos {
+  table-layout: fixed;
+}
+
+.planos-tabela-modulos th:first-child,
+.planos-tabela-modulos td:first-child {
+  width: auto;
+}
+
 .planos-tabela-modulos td.col-toggle-centro,
 .planos-tabela-modulos th.col-plano-mini {
-  width: 64px;
-  min-width: 64px;
-  max-width: 64px;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  font-size: 11px;
 }
 
 .feature-linha {
