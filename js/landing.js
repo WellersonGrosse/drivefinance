@@ -22,11 +22,14 @@ const PLANOS_PADRAO = {
   pro: {
     nome: "Pro", mensal: 25.90, anual: 169.90, destaque: true,
     features: [
-      { ok: true, text: "Tudo do Básico" },
-      { ok: true, text: "Dashboard financeiro completo (DRE)" },
-      { ok: true, text: "Custo operacional por km" },
-      { ok: true, text: "KM ocioso com custo separado" },
-      { ok: true, text: "Múltiplos veículos" },
+      { ok: true,  text: "Meta diária automática" },
+      { ok: true,  text: "Registro de corridas (app + particular)" },
+      { ok: true,  text: "Controle de despesas e parcelas" },
+      { ok: true,  text: "Histórico com calendário" },
+      { ok: true,  text: "Dashboard financeiro completo (DRE)" },
+      { ok: true,  text: "Custo operacional por km" },
+      { ok: true,  text: "KM ocioso com custo separado" },
+      { ok: true,  text: "Múltiplos veículos" },
       { ok: false, text: "Relatórios exportáveis" },
       { ok: false, text: "Suporte prioritário WhatsApp" },
     ]
@@ -34,7 +37,14 @@ const PLANOS_PADRAO = {
   completo: {
     nome: "Completo", mensal: 35.90, anual: 229.90, destaque: false,
     features: [
-      { ok: true, text: "Tudo do Pro" },
+      { ok: true, text: "Meta diária automática" },
+      { ok: true, text: "Registro de corridas (app + particular)" },
+      { ok: true, text: "Controle de despesas e parcelas" },
+      { ok: true, text: "Histórico com calendário" },
+      { ok: true, text: "Dashboard financeiro completo (DRE)" },
+      { ok: true, text: "Custo operacional por km" },
+      { ok: true, text: "KM ocioso com custo separado" },
+      { ok: true, text: "Múltiplos veículos" },
       { ok: true, text: "Relatórios exportáveis (PDF/Excel)" },
       { ok: true, text: "Suporte prioritário WhatsApp" },
       { ok: true, text: "Histórico ilimitado" },
@@ -48,12 +58,33 @@ function formatReal(v) {
 }
 
 // ── Renderiza os cards de planos ──
-function renderPlanos(planos) {
+function renderPlanos(dados) {
   const grid = document.getElementById("plansGrid");
   if (!grid) return;
   grid.innerHTML = "";
 
-  Object.values(planos).forEach(p => {
+  // Só renderiza os 3 planos conhecidos — ignora features_global e outros campos
+  const IDS = ["basico", "pro", "completo"];
+  const featuresGlobal = Array.isArray(dados.features_global) ? dados.features_global : null;
+
+  IDS.forEach(planId => {
+    const p = dados[planId];
+    if (!p || !p.nome) return;
+
+    // Monta lista de features para este plano
+    let features;
+    if (featuresGlobal) {
+      // Novo formato: lista global com flags por plano
+      features = featuresGlobal
+        .filter(f => f.text?.trim())
+        .map(f => ({ ok: f[planId] === true, text: f.text }));
+    } else {
+      // Formato legado: array por plano
+      features = Array.isArray(p.features) ? p.features : [];
+    }
+
+    const trialDias = p.trial_dias ?? 15;
+
     const card = document.createElement("div");
     card.className = "plan-card reveal" + (p.destaque ? " destaque" : "");
 
@@ -67,7 +98,7 @@ function renderPlanos(planos) {
       <p class="plan-anual">Ou <strong>${formatReal(p.anual)}</strong> no anual — pagamento único</p>
       <div class="plan-divider"></div>
       <ul class="plan-feats">
-        ${p.features.map(f => `
+        ${features.map(f => `
           <li>
             <span class="${f.ok ? "ok" : "no"}">${f.ok ? "✓" : "○"}</span>
             ${f.text}
@@ -78,7 +109,7 @@ function renderPlanos(planos) {
         class="btn-plan ${p.destaque ? "btn-plan-roxo" : "btn-plan-outline"}"
         onclick="window.open('https://wa.me/5531991184300?text=Olá! Tenho interesse no plano ${encodeURIComponent(p.nome)} do Drive Finance.','_blank')"
       >
-        Começar grátis — 15 dias
+        Começar grátis — ${trialDias} dias
       </button>
     `;
     grid.appendChild(card);

@@ -34,6 +34,9 @@ const TODOS_MODULOS = [
   'relatorios'
 ];
 
+// Módulos que fazem parte do core do sistema — não podem ser removidos pelo admin
+const MODULOS_FIXOS = [...TODOS_MODULOS];
+
 const MODULOS_LABELS = {
   home:              'Home',
   lancamentos:       'Lançamentos',
@@ -46,18 +49,18 @@ const MODULOS_LABELS = {
 
 // Features padrão no formato novo: lista global com flags por plano
 const FEATURES_PADRAO = [
-  { text: 'Meta diária automática',             basico: true,  pro: true,  completo: true  },
-  { text: 'Registro de corridas (app + particular)', basico: true, pro: true, completo: true },
-  { text: 'Controle de despesas e parcelas',    basico: true,  pro: true,  completo: true  },
-  { text: 'Histórico com calendário',           basico: true,  pro: true,  completo: true  },
-  { text: 'Dashboard financeiro (DRE)',         basico: false, pro: true,  completo: true  },
-  { text: 'Custo operacional do veículo',       basico: false, pro: true,  completo: true  },
-  { text: 'KM ocioso com custo separado',       basico: false, pro: true,  completo: true  },
-  { text: 'Múltiplos veículos',                 basico: false, pro: true,  completo: true  },
-  { text: 'Relatórios exportáveis (PDF/Excel)', basico: false, pro: false, completo: true  },
-  { text: 'Suporte prioritário WhatsApp',       basico: false, pro: false, completo: true  },
-  { text: 'Histórico ilimitado',                basico: false, pro: false, completo: true  },
-  { text: 'Acesso antecipado a novidades',      basico: false, pro: false, completo: true  }
+  { text: 'Meta diária automática',                basico: true,  pro: true,  completo: true  },
+  { text: 'Registro de corridas (app + particular)', basico: true, pro: true,  completo: true  },
+  { text: 'Controle de despesas e parcelas',       basico: true,  pro: true,  completo: true  },
+  { text: 'Histórico com calendário',              basico: true,  pro: true,  completo: true  },
+  { text: 'Dashboard financeiro (DRE)',            basico: false, pro: true,  completo: true  },
+  { text: 'Custo operacional por km',              basico: false, pro: true,  completo: true  },
+  { text: 'KM ocioso com custo separado',          basico: false, pro: true,  completo: true  },
+  { text: 'Múltiplos veículos',                    basico: false, pro: true,  completo: true  },
+  { text: 'Relatórios exportáveis (PDF/Excel)',    basico: false, pro: false, completo: true  },
+  { text: 'Suporte prioritário WhatsApp',          basico: false, pro: false, completo: true  },
+  { text: 'Histórico ilimitado',                   basico: false, pro: false, completo: true  },
+  { text: 'Acesso antecipado a novidades',         basico: false, pro: false, completo: true  }
 ];
 
 const IDS_PLANOS = ['basico', 'pro', 'completo'];
@@ -219,12 +222,25 @@ async function carregarPlanos() {
       }
 
       state.planos = dados;
+
+      // Sincroniza lista master de módulos: une fixos + extras do Firestore
+      const extrasSalvos = Array.isArray(dados.modulos_sistema)
+        ? dados.modulos_sistema.filter(m => !TODOS_MODULOS.includes(m.id))
+        : [];
+      extrasSalvos.forEach(m => {
+        if (!TODOS_MODULOS.includes(m.id)) {
+          TODOS_MODULOS.push(m.id);
+          MODULOS_LABELS[m.id] = m.label;
+        }
+      });
+
     } else {
       state.planos = {
         basico:   { id: 'basico',   nome: 'Básico',   mensal: 15.90, anual: 99.90,  trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico'] },
         pro:      { id: 'pro',      nome: 'Pro',       mensal: 25.90, anual: 169.90, trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico','dashboard','custo_operacional'] },
         completo: { id: 'completo', nome: 'Completo',  mensal: 35.90, anual: 229.90, trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico','dashboard','custo_operacional','relatorios'] },
-        features_global: FEATURES_PADRAO
+        features_global: FEATURES_PADRAO,
+        modulos_sistema: TODOS_MODULOS.map(id => ({ id, label: MODULOS_LABELS[id] }))
       };
       await setDoc(doc(db, 'config_global', 'planos'), state.planos);
     }
@@ -935,6 +951,7 @@ function renderModulosTabela() {
   ).join('');
 
   const rowsModulos = TODOS_MODULOS.map(m => {
+    const isFixo = MODULOS_FIXOS.includes(m);
     const toggles = IDS_PLANOS.map(id => {
       const ativo = tabelaState.modulos[id].includes(m);
       return `<td class="col-toggle-centro">
@@ -943,9 +960,15 @@ function renderModulosTabela() {
       </td>`;
     }).join('');
 
-    return `<tr>
+    const btnRemover = isFixo
+      ? `<td class="col-modulo-acoes"><span class="modulo-fixo-tag" title="Módulo fixo do sistema">fixo</span></td>`
+      : `<td class="col-modulo-acoes"><button class="btn-remove-row" onclick="moduloRemover('${m}')" title="Remover módulo">×</button></td>`;
+
+    return `<tr data-modulo="${m}">
       <td class="col-modulo-label">${MODULOS_LABELS[m] || m}</td>
+      <td class="col-modulo-id"><code class="modulo-id-code">${m}</code></td>
       ${toggles}
+      ${btnRemover}
     </tr>`;
   }).join('');
 
@@ -954,13 +977,32 @@ function renderModulosTabela() {
       <thead>
         <tr>
           <th style="width:auto">Módulo</th>
+          <th class="col-modulo-id-th">ID no sistema</th>
           ${nomesHeader}
+          <th style="width:40px"></th>
         </tr>
       </thead>
       <tbody>
         ${rowsModulos}
       </tbody>
     </table>
+    <div class="modulo-add-form" id="modulo-add-form">
+      <div class="modulo-add-titulo">Adicionar módulo</div>
+      <div class="modulo-add-campos">
+        <div class="modulo-add-campo">
+          <label class="modulo-add-label">Nome de exibição</label>
+          <input class="input-tabela" id="novo-modulo-label" placeholder="Ex: Relatórios Avançados" />
+        </div>
+        <div class="modulo-add-campo">
+          <label class="modulo-add-label">ID do sistema <span class="modulo-add-hint">(usado no código e banco)</span></label>
+          <input class="input-tabela modulo-id-input" id="novo-modulo-id"
+            placeholder="Ex: relatorios_avancados"
+            oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')" />
+        </div>
+        <button class="btn btn-teal btn-sm" onclick="moduloAdicionar()">Adicionar</button>
+      </div>
+      <p class="modulo-add-aviso">⚠️ O ID é permanente e deve corresponder ao nome do módulo no código (<code>temAcesso(uid, 'id_aqui')</code>) e à página HTML correspondente.</p>
+    </div>
   `;
 }
 
@@ -972,6 +1014,43 @@ function moduloToggle(id, modulo) {
 }
 window.moduloToggle = moduloToggle;
 
+function moduloAdicionar() {
+  const labelEl = $('novo-modulo-label');
+  const idEl    = $('novo-modulo-id');
+  const label   = labelEl.value.trim();
+  const id      = idEl.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+
+  if (!label) { toast('Informe o nome de exibição do módulo.', 'aviso'); labelEl.focus(); return; }
+  if (!id)    { toast('Informe o ID do módulo.', 'aviso'); idEl.focus(); return; }
+  if (TODOS_MODULOS.includes(id)) { toast(`ID "${id}" já existe.`, 'aviso'); idEl.focus(); return; }
+
+  TODOS_MODULOS.push(id);
+  MODULOS_LABELS[id] = label;
+  // Por padrão, nenhum plano recebe o módulo novo (admin decide depois)
+  IDS_PLANOS.forEach(planId => { /* tabelaState.modulos já tem o array, não adiciona */ });
+
+  labelEl.value = '';
+  idEl.value    = '';
+  renderModulosTabela();
+  toast(`Módulo "${label}" adicionado. Ative nos planos desejados e salve.`, 'sucesso');
+}
+window.moduloAdicionar = moduloAdicionar;
+
+function moduloRemover(id) {
+  if (MODULOS_FIXOS.includes(id)) { toast('Módulos fixos não podem ser removidos.', 'aviso'); return; }
+  if (!confirm(`Remover o módulo "${MODULOS_LABELS[id] || id}"? Esta ação remove das configurações de todos os planos.`)) return;
+
+  const idx = TODOS_MODULOS.indexOf(id);
+  if (idx !== -1) TODOS_MODULOS.splice(idx, 1);
+  delete MODULOS_LABELS[id];
+  IDS_PLANOS.forEach(planId => {
+    tabelaState.modulos[planId] = tabelaState.modulos[planId].filter(m => m !== id);
+  });
+  renderModulosTabela();
+  toast(`Módulo removido. Salve para aplicar.`, 'aviso');
+}
+window.moduloRemover = moduloRemover;
+
 async function salvarModulosPlanos() {
   const atualizacao = {};
   IDS_PLANOS.forEach(id => {
@@ -981,9 +1060,16 @@ async function salvarModulosPlanos() {
     };
   });
 
+  // Salva também a lista master de módulos (fixos + extras)
+  const modulosSistema = TODOS_MODULOS.map(id => ({ id, label: MODULOS_LABELS[id] || id }));
+
   try {
-    await setDoc(doc(db, 'config_global', 'planos'), { ...state.planos, ...atualizacao }, { merge: true });
+    await setDoc(doc(db, 'config_global', 'planos'),
+      { ...state.planos, ...atualizacao, modulos_sistema: modulosSistema },
+      { merge: true }
+    );
     IDS_PLANOS.forEach(id => { state.planos[id].modulos = tabelaState.modulos[id]; });
+    state.planos.modulos_sistema = modulosSistema;
     toast('Módulos salvos.', 'sucesso');
   } catch (e) {
     console.error(e);
