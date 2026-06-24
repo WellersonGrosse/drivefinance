@@ -44,6 +44,34 @@ const MODULOS_LABELS = {
   relatorios:        'Relatórios'
 };
 
+const FEATURES_PADRAO = {
+  basico: [
+    { ok: true,  text: 'Meta diária automática' },
+    { ok: true,  text: 'Registro de corridas (app + particular)' },
+    { ok: true,  text: 'Controle de despesas e parcelas' },
+    { ok: true,  text: 'Histórico com calendário' },
+    { ok: false, text: 'Dashboard financeiro (DRE)' },
+    { ok: false, text: 'Custo operacional do veículo' },
+    { ok: false, text: 'Relatórios exportáveis' }
+  ],
+  pro: [
+    { ok: true,  text: 'Tudo do Básico' },
+    { ok: true,  text: 'Dashboard financeiro completo (DRE)' },
+    { ok: true,  text: 'Custo operacional por km' },
+    { ok: true,  text: 'KM ocioso com custo separado' },
+    { ok: true,  text: 'Múltiplos veículos' },
+    { ok: false, text: 'Relatórios exportáveis' },
+    { ok: false, text: 'Suporte prioritário WhatsApp' }
+  ],
+  completo: [
+    { ok: true,  text: 'Tudo do Pro' },
+    { ok: true,  text: 'Relatórios exportáveis (PDF/Excel)' },
+    { ok: true,  text: 'Suporte prioritário WhatsApp' },
+    { ok: true,  text: 'Histórico ilimitado' },
+    { ok: true,  text: 'Acesso antecipado a novidades' }
+  ]
+};
+
 const POR_PAGINA = 15;
 
 // ─────────────────────────────────────────────
