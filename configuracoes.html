@@ -12,37 +12,45 @@
 </head>
 <body>
 
-  <!-- SIDEBAR (mesma estrutura do home) -->
+  <!-- TOPBAR mobile -->
+  <div class="topbar" id="topbar">
+    <button class="topbar-menu" id="btn-menu" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <span class="topbar-title">Configurações</span>
+    <div class="topbar-avatar" id="topbar-avatar">--</div>
+  </div>
+
+  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <span class="logo-icon">⚡</span>
-      <span class="logo-text">DriveFinance</span>
+      Drive<span>Finance</span><span class="dot"></span>
     </div>
     <nav class="sidebar-nav">
-      <a href="home.html" class="nav-item" data-page="home">
-        <span class="nav-icon">🏠</span><span class="nav-label">Início</span>
+      <a href="home.html" class="nav-item">
+        <span class="nav-icon">🏠</span> Início
       </a>
-      <a href="lancamentos.html" class="nav-item" data-page="lancamentos">
-        <span class="nav-icon">📋</span><span class="nav-label">Lançamentos</span>
+      <a href="lancamentos.html" class="nav-item">
+        <span class="nav-icon">📋</span> Lançamentos
       </a>
-      <a href="despesas.html" class="nav-item" data-page="despesas">
-        <span class="nav-icon">💳</span><span class="nav-label">Despesas</span>
+      <a href="despesas.html" class="nav-item">
+        <span class="nav-icon">💳</span> Despesas
       </a>
-      <a href="dashboard.html" class="nav-item" data-page="dashboard">
-        <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+      <a href="dashboard.html" class="nav-item">
+        <span class="nav-icon">📊</span> Dashboard
       </a>
-      <a href="custo-operacional.html" class="nav-item" data-page="custo-operacional">
-        <span class="nav-icon">🔧</span><span class="nav-label">Custo Operacional</span>
+      <a href="custo-operacional.html" class="nav-item">
+        <span class="nav-icon">🔧</span> Custo Operacional
       </a>
-      <a href="historico.html" class="nav-item" data-page="historico">
-        <span class="nav-icon">📁</span><span class="nav-label">Histórico</span>
+      <a href="historico.html" class="nav-item">
+        <span class="nav-icon">📁</span> Histórico
       </a>
-      <a href="configuracoes.html" class="nav-item active" data-page="configuracoes">
-        <span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span>
+      <a href="configuracoes.html" class="nav-item ativo">
+        <span class="nav-icon">⚙️</span> Configurações
       </a>
     </nav>
     <div class="sidebar-footer">
-      <div class="sidebar-user" id="sidebar-user">
+      <div class="sidebar-user">
         <div class="user-avatar" id="sidebar-avatar">--</div>
         <div class="user-info">
           <span class="user-name" id="sidebar-nome">Carregando...</span>
@@ -52,24 +60,12 @@
     </div>
   </aside>
 
-  <!-- OVERLAY mobile -->
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
   <!-- MAIN -->
   <main class="main-content">
-
-    <!-- TOPBAR mobile -->
-    <header class="topbar">
-      <button class="topbar-menu" id="btn-menu" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
-      <span class="topbar-title">Configurações</span>
-      <div class="topbar-avatar" id="topbar-avatar">--</div>
-    </header>
-
     <div class="page-wrapper">
 
-      <!-- PAGE HEADER -->
       <div class="page-header">
         <h1 class="page-title">Configurações</h1>
         <p class="page-subtitle">Gerencie seu perfil pessoal, preferências de trabalho e veículos.</p>
@@ -77,14 +73,14 @@
 
       <!-- TABS -->
       <div class="cfg-tabs" role="tablist">
-        <button class="cfg-tab active" data-tab="pessoal" role="tab" aria-selected="true">Perfil Pessoal</button>
-        <button class="cfg-tab" data-tab="profissional" role="tab" aria-selected="false">Perfil Profissional</button>
-        <button class="cfg-tab" data-tab="veiculos" role="tab" aria-selected="false">Veículos</button>
-        <button class="cfg-tab" data-tab="conta" role="tab" aria-selected="false">Conta</button>
+        <button class="cfg-tab ativo" data-tab="pessoal" role="tab">Perfil Pessoal</button>
+        <button class="cfg-tab" data-tab="profissional" role="tab">Perfil Profissional</button>
+        <button class="cfg-tab" data-tab="veiculos" role="tab">Veículos</button>
+        <button class="cfg-tab" data-tab="conta" role="tab">Conta</button>
       </div>
 
-      <!-- ======================== TAB: PERFIL PESSOAL ======================== -->
-      <section class="cfg-section active" id="tab-pessoal" role="tabpanel">
+      <!-- ══════════ TAB: PERFIL PESSOAL ══════════ -->
+      <section class="cfg-section" id="tab-pessoal">
         <div class="cfg-card">
           <div class="cfg-card-header">
             <div class="avatar-display" id="avatar-display">WG</div>
@@ -97,20 +93,20 @@
           <div class="form-grid">
             <div class="form-group full">
               <label for="input-nome">Nome completo</label>
-              <input type="text" id="input-nome" placeholder="Seu nome completo" autocomplete="name" />
+              <input type="text" id="input-nome" class="input" placeholder="Seu nome completo" autocomplete="name" />
             </div>
             <div class="form-group">
               <label for="input-telefone">Telefone</label>
-              <input type="tel" id="input-telefone" placeholder="(31) 9 0000-0000" autocomplete="tel" />
+              <input type="tel" id="input-telefone" class="input" placeholder="(31) 9 0000-0000" autocomplete="tel" />
             </div>
             <div class="form-group">
               <label for="input-nascimento">Data de nascimento</label>
-              <input type="date" id="input-nascimento" />
+              <input type="date" id="input-nascimento" class="input" />
             </div>
           </div>
 
-          <div class="form-actions">
-            <button class="btn-primary" id="btn-salvar-pessoal">
+          <div class="form-actions" style="margin-top: var(--gap-lg)">
+            <button class="btn btn-primary" id="btn-salvar-pessoal">
               <span class="btn-text">Salvar perfil pessoal</span>
               <span class="btn-spinner" hidden></span>
             </button>
@@ -118,9 +114,25 @@
         </div>
       </section>
 
-      <!-- ======================== TAB: PERFIL PROFISSIONAL ======================== -->
-      <section class="cfg-section" id="tab-profissional" role="tabpanel" hidden>
-        
+      <!-- ══════════ TAB: PERFIL PROFISSIONAL ══════════ -->
+      <section class="cfg-section" id="tab-profissional" hidden>
+
+        <!-- Salário desejado -->
+        <div class="cfg-card">
+          <div class="cfg-card-title">
+            <span class="card-icon">💰</span>
+            <h2>Salário desejado</h2>
+          </div>
+          <div class="form-group" style="margin-top: var(--gap-sm)">
+            <label for="input-salario">Quanto você quer ganhar por mês?</label>
+            <div class="salario-wrap">
+              <span class="salario-prefix">R$</span>
+              <input type="number" id="input-salario" class="input" placeholder="0,00" min="0" step="0.01" />
+            </div>
+            <span class="field-hint">💡 Este valor orienta sua meta diária. Para um número mais preciso, considere suas despesas fixas, dívidas e o desgaste do seu veículo.</span>
+          </div>
+        </div>
+
         <!-- Dias de trabalho -->
         <div class="cfg-card">
           <div class="cfg-card-title">
@@ -146,95 +158,87 @@
             <h2>Plataformas</h2>
           </div>
           <p class="cfg-card-desc">Ative as plataformas em que você trabalha.</p>
-          <div class="plataformas-lista" id="plataformas-lista">
-            <!-- renderizado via JS -->
-          </div>
-          <div class="add-plataforma-wrapper" id="add-plataforma-wrapper">
-            <button class="btn-ghost" id="btn-add-plataforma">
-              <span>＋</span> Adicionar plataforma
-            </button>
+          <div class="plataformas-lista" id="plataformas-lista"></div>
+          <div id="add-plataforma-wrapper">
+            <button class="btn-ghost" id="btn-add-plataforma">＋ Adicionar plataforma</button>
             <div class="add-plataforma-form" id="add-plataforma-form" hidden>
-              <input type="text" id="input-nova-plataforma" placeholder="Nome da plataforma" maxlength="30" />
-              <button class="btn-primary btn-sm" id="btn-confirmar-plataforma">Adicionar</button>
+              <input type="text" id="input-nova-plataforma" class="input" placeholder="Nome da plataforma" maxlength="30" />
+              <button class="btn btn-primary btn-sm" id="btn-confirmar-plataforma">Adicionar</button>
               <button class="btn-ghost btn-sm" id="btn-cancelar-plataforma">Cancelar</button>
             </div>
           </div>
         </div>
 
-        <!-- Meta: superávit e déficit -->
+        <!-- Meta -->
         <div class="cfg-card">
           <div class="cfg-card-title">
             <span class="card-icon">🎯</span>
             <h2>Redistribuição de meta</h2>
           </div>
-          <p class="cfg-card-desc">Defina como a meta diária deve se comportar ao longo do mês.</p>
+          <p class="cfg-card-desc">Defina como a meta diária se comporta ao longo do mês.</p>
+
           <div class="toggle-row">
             <div class="toggle-info">
               <span class="toggle-label">Aplicar superávit</span>
               <span class="toggle-desc">Dias bons reduzem a meta dos próximos dias</span>
             </div>
-            <label class="switch" for="toggle-superavit">
-              <input type="checkbox" id="toggle-superavit" role="switch" />
-              <span class="switch-track"></span>
+            <label class="toggle">
+              <input type="checkbox" id="toggle-superavit" />
+              <span class="toggle-slider"></span>
             </label>
           </div>
+
           <div class="toggle-row">
             <div class="toggle-info">
               <span class="toggle-label">Redistribuir déficit</span>
               <span class="toggle-desc">Dias fracos aumentam a meta dos próximos dias</span>
             </div>
-            <label class="switch" for="toggle-deficit">
-              <input type="checkbox" id="toggle-deficit" role="switch" />
-              <span class="switch-track"></span>
+            <label class="toggle">
+              <input type="checkbox" id="toggle-deficit" />
+              <span class="toggle-slider"></span>
             </label>
           </div>
         </div>
 
         <div class="form-actions">
-          <button class="btn-primary" id="btn-salvar-profissional">
+          <button class="btn btn-primary" id="btn-salvar-profissional">
             <span class="btn-text">Salvar configurações profissionais</span>
             <span class="btn-spinner" hidden></span>
           </button>
         </div>
       </section>
 
-      <!-- ======================== TAB: VEÍCULOS ======================== -->
-      <section class="cfg-section" id="tab-veiculos" role="tabpanel" hidden>
-
+      <!-- ══════════ TAB: VEÍCULOS ══════════ -->
+      <section class="cfg-section" id="tab-veiculos" hidden>
         <div class="veiculos-wrapper">
-          <!-- Estado vazio -->
-          <div class="veiculos-empty" id="veiculos-empty" hidden>
+
+          <div class="veiculos-empty" id="veiculos-empty">
             <span class="empty-icon">🚗</span>
             <p>Nenhum veículo cadastrado ainda.</p>
-            <button class="btn-primary" id="btn-add-veiculo-empty">Cadastrar meu veículo</button>
+            <button class="btn btn-primary" id="btn-add-veiculo-empty">Cadastrar meu veículo</button>
           </div>
 
-          <!-- Carrossel -->
           <div class="carrossel-wrapper" id="carrossel-wrapper" hidden>
-            <button class="carrossel-arrow left" id="arrow-left" aria-label="Anterior">‹</button>
-            <div class="carrossel-track" id="carrossel-track">
-              <!-- cards injetados via JS -->
-            </div>
-            <button class="carrossel-arrow right" id="arrow-right" aria-label="Próximo">›</button>
+            <button class="carrossel-arrow" id="arrow-left" aria-label="Anterior">‹</button>
+            <div class="carrossel-track" id="carrossel-track"></div>
+            <button class="carrossel-arrow" id="arrow-right" aria-label="Próximo">›</button>
           </div>
 
-          <!-- Indicadores -->
           <div class="carrossel-dots" id="carrossel-dots"></div>
 
-          <!-- Ações do veículo ativo -->
           <div class="veiculo-acoes" id="veiculo-acoes" hidden>
             <button class="btn-ghost" id="btn-editar-veiculo">✏️ Editar</button>
             <button class="btn-ghost btn-danger" id="btn-remover-veiculo">🗑️ Remover</button>
           </div>
         </div>
 
-        <div class="form-actions">
-          <button class="btn-primary" id="btn-add-veiculo">＋ Adicionar veículo</button>
+        <div class="form-actions" style="margin-top: var(--gap-lg)">
+          <button class="btn btn-primary" id="btn-add-veiculo">＋ Adicionar veículo</button>
         </div>
       </section>
 
-      <!-- ======================== TAB: CONTA ======================== -->
-      <section class="cfg-section" id="tab-conta" role="tabpanel" hidden>
+      <!-- ══════════ TAB: CONTA ══════════ -->
+      <section class="cfg-section" id="tab-conta" hidden>
         <div class="cfg-card">
           <div class="cfg-card-title">
             <span class="card-icon">🔐</span>
@@ -255,20 +259,16 @@
           </div>
 
           <div class="conta-acoes">
-            <button class="btn-ghost" id="btn-alterar-senha" hidden>
-              🔑 Alterar senha
-            </button>
-            <button class="btn-ghost btn-danger" id="btn-logout">
-              ↩ Sair da conta
-            </button>
+            <button class="btn-ghost" id="btn-alterar-senha" hidden>🔑 Alterar senha</button>
+            <button class="btn-ghost btn-danger" id="btn-logout">↩ Sair da conta</button>
           </div>
         </div>
       </section>
 
-    </div><!-- /page-wrapper -->
+    </div>
   </main>
 
-  <!-- ======================== MODAL: VEÍCULO ======================== -->
+  <!-- ══════════ MODAL: VEÍCULO ══════════ -->
   <div class="modal-overlay" id="modal-veiculo" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-veiculo-titulo">
       <div class="modal-header">
@@ -276,8 +276,6 @@
         <button class="modal-close" id="modal-veiculo-fechar" aria-label="Fechar">✕</button>
       </div>
       <div class="modal-body">
-
-        <!-- Preview da foto -->
         <div class="veiculo-foto-preview" id="veiculo-foto-preview">
           <div class="foto-placeholder" id="foto-placeholder">
             <span>🚗</span>
@@ -288,28 +286,26 @@
             <div class="spinner"></div>
             <p>Buscando foto...</p>
           </div>
-          <button class="btn-ghost btn-sm foto-rebuscar" id="btn-rebuscar-foto" hidden>
-            🔄 Buscar outra foto
-          </button>
+          <button class="btn-ghost btn-sm foto-rebuscar" id="btn-rebuscar-foto" hidden>🔄 Buscar outra foto</button>
         </div>
 
         <div class="form-grid">
           <div class="form-group">
             <label for="v-modelo">Modelo <span class="required">*</span></label>
-            <input type="text" id="v-modelo" placeholder="Ex: Onix, HB20, Argo..." />
+            <input type="text" id="v-modelo" class="input" placeholder="Ex: Onix, HB20, Argo..." />
           </div>
           <div class="form-group">
             <label for="v-placa">Placa</label>
-            <input type="text" id="v-placa" placeholder="ABC-1D23" maxlength="8" />
+            <input type="text" id="v-placa" class="input" placeholder="ABC-1D23" maxlength="8" />
           </div>
           <div class="form-group">
             <label for="v-cor">Cor</label>
-            <input type="text" id="v-cor" placeholder="Ex: Prata, Branco..." />
+            <input type="text" id="v-cor" class="input" placeholder="Ex: Prata, Branco..." />
             <span class="field-hint">💡 Informe a cor para uma foto mais precisa</span>
           </div>
           <div class="form-group">
             <label for="v-combustivel">Combustível</label>
-            <select id="v-combustivel">
+            <select id="v-combustivel" class="input select">
               <option value="">Selecione</option>
               <option value="flex">Flex</option>
               <option value="gasolina">Gasolina</option>
@@ -321,7 +317,7 @@
           </div>
           <div class="form-group">
             <label for="v-consumo">Consumo médio (km/l)</label>
-            <input type="number" id="v-consumo" placeholder="Ex: 12.5" min="1" max="99" step="0.1" />
+            <input type="number" id="v-consumo" class="input" placeholder="Ex: 12.5" min="1" max="99" step="0.1" />
           </div>
         </div>
 
@@ -330,16 +326,15 @@
             <span class="toggle-label">Veículo padrão</span>
             <span class="toggle-desc">Usado por padrão nos lançamentos</span>
           </div>
-          <label class="switch" for="v-padrao">
-            <input type="checkbox" id="v-padrao" role="switch" />
-            <span class="switch-track"></span>
+          <label class="toggle">
+            <input type="checkbox" id="v-padrao" />
+            <span class="toggle-slider"></span>
           </label>
         </div>
-
       </div>
       <div class="modal-footer">
         <button class="btn-ghost" id="btn-modal-cancelar">Cancelar</button>
-        <button class="btn-primary" id="btn-modal-salvar">
+        <button class="btn btn-primary" id="btn-modal-salvar">
           <span class="btn-text">Salvar veículo</span>
           <span class="btn-spinner" hidden></span>
         </button>
@@ -347,7 +342,7 @@
     </div>
   </div>
 
-  <!-- ======================== MODAL: CONFIRM LOGOUT ======================== -->
+  <!-- ══════════ MODAL: CONFIRM LOGOUT ══════════ -->
   <div class="modal-overlay" id="modal-logout" hidden>
     <div class="modal modal-sm" role="dialog" aria-modal="true">
       <div class="modal-header">
@@ -364,7 +359,7 @@
     </div>
   </div>
 
-  <!-- ======================== MODAL: CONFIRM REMOVER VEÍCULO ======================== -->
+  <!-- ══════════ MODAL: CONFIRM REMOVER VEÍCULO ══════════ -->
   <div class="modal-overlay" id="modal-remover-veiculo" hidden>
     <div class="modal modal-sm" role="dialog" aria-modal="true">
       <div class="modal-header">
