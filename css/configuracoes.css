@@ -402,12 +402,24 @@
   align-items: center;
   gap: var(--gap-sm);
 }
-.btn-add-plat svg, .btn-add-veiculo svg {
+.btn-add-plat svg, #btn-add-veiculo svg {
   width: 16px; height: 16px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
+}
+
+#btn-add-veiculo {
+  width: auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 12px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-sm);
+  white-space: nowrap;
 }
 
 .add-plataforma-form {
@@ -838,6 +850,10 @@
   .modal-overlay { align-items: flex-end; padding: 0; }
 
   .conta-acoes { flex-direction: column; }
+
+  #btn-add-veiculo {
+    width: 100%;
+  }
 }
 
 @media (max-width: 400px) {
