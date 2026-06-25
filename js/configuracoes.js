@@ -336,7 +336,8 @@ function configurarVeiculos() {
   document.getElementById('btn-remover-veiculo').addEventListener('click', () => {
     const v = _veiculos[_carrosselIdx];
     if (!v) return;
-    document.getElementById('modal-remover-texto').textContent = `"${v.modelo || 'Este veículo'}" será removido permanentemente.`;
+    const nomeVeiculo = [v.marca, v.modelo].filter(Boolean).join(' ') || 'Este veículo';
+    document.getElementById('modal-remover-texto').textContent = `"${nomeVeiculo}" será removido permanentemente.`;
     document.getElementById('modal-remover-veiculo').hidden = false;
   });
 
@@ -349,12 +350,15 @@ function configurarVeiculos() {
   document.getElementById('btn-modal-salvar').addEventListener('click', salvarVeiculo);
   document.getElementById('btn-rebuscar-foto').addEventListener('click', () => buscarFotoVeiculo(true));
 
+  const inputMarca = document.getElementById('v-marca');
   const inputModelo = document.getElementById('v-modelo');
   const inputCor = document.getElementById('v-cor');
 
-  inputModelo.addEventListener('input', () => {
-    invalidarFotoSeBuscaMudou();
-    agendarBuscaFoto(700);
+  [inputMarca, inputModelo].forEach(input => {
+    input.addEventListener('input', () => {
+      invalidarFotoSeBuscaMudou();
+      agendarBuscaFoto(700);
+    });
   });
 
   inputCor.addEventListener('input', () => {
@@ -362,9 +366,11 @@ function configurarVeiculos() {
     agendarBuscaFoto(550);
   });
 
-  [inputModelo, inputCor].forEach(input => {
+  [inputMarca, inputModelo, inputCor].forEach(input => {
     input.addEventListener('blur', () => {
-      if (inputModelo.value.trim()) buscarFotoVeiculo(false);
+      if (inputMarca.value.trim() && inputModelo.value.trim()) {
+        buscarFotoVeiculo(false);
+      }
     });
   });
 
@@ -430,13 +436,14 @@ function criarCardVeiculo(v, idx) {
   const card = document.createElement('div');
   card.className = 'veiculo-card';
   card.dataset.idx = idx;
+  const nomeVeiculo = [v.marca, v.modelo].filter(Boolean).join(' ') || 'Veículo';
   const fotoHtml = v.foto_url
-    ? `<img class="veiculo-card-foto" src="${v.foto_url}" alt="${v.modelo}" onerror="this.style.display='none'" />`
+    ? `<img class="veiculo-card-foto" src="${v.foto_url}" alt="${nomeVeiculo}" onerror="this.style.display='none'" />`
     : `<div class="veiculo-card-foto-placeholder">🚗</div>`;
   card.innerHTML = `
     ${fotoHtml}
     <div class="veiculo-card-body">
-      <p class="veiculo-card-modelo">${v.modelo || 'Veículo'}${v.placa ? ' · ' + v.placa : ''}</p>
+      <p class="veiculo-card-modelo">${nomeVeiculo}${v.placa ? ' · ' + v.placa : ''}</p>
       <div class="veiculo-card-detalhes">
         ${v.default ? '<span class="veiculo-tag padrao">⭐ Padrão</span>' : ''}
         ${v.cor ? `<span class="veiculo-tag">${v.cor}</span>` : ''}
@@ -471,6 +478,7 @@ function abrirModalVeiculo(v) {
   cancelarBuscaFotoAtiva();
   _editandoVeiculoId = v ? v.id : null;
   document.getElementById('modal-veiculo-titulo').textContent = v ? 'Editar veículo' : 'Novo veículo';
+  document.getElementById('v-marca').value = v?.marca || '';
   document.getElementById('v-modelo').value = v?.modelo || '';
   document.getElementById('v-placa').value = v?.placa || '';
   document.getElementById('v-cor').value = v?.cor || '';
@@ -481,7 +489,11 @@ function abrirModalVeiculo(v) {
   resetarFoto();
   if (v?.foto_url) {
     _fotoBuscaChave = obterChaveBuscaFoto();
-    _fotoResultados = [{ url: v.foto_url, titulo: v.modelo || 'Veículo', pontuacao: 0 }];
+    _fotoResultados = [{
+      url: v.foto_url,
+      titulo: [v.marca, v.modelo].filter(Boolean).join(' ') || 'Veículo',
+      pontuacao: 0
+    }];
     _fotoResultadoIdx = 0;
     mostrarFoto(v.foto_url);
   }
@@ -498,11 +510,16 @@ function fecharModalVeiculo() {
 
 async function salvarVeiculo() {
   const btn = document.getElementById('btn-modal-salvar');
+  const marca = document.getElementById('v-marca').value.trim();
   const modelo = document.getElementById('v-modelo').value.trim();
+
+  if (!marca) { toast('Informe a marca do veículo', 'aviso'); return; }
   if (!modelo) { toast('Informe o modelo do veículo', 'aviso'); return; }
+
   btnLoading(btn, true);
   try {
     const dados = {
+      marca,
       modelo,
       placa: document.getElementById('v-placa').value.trim().toUpperCase(),
       cor: document.getElementById('v-cor').value.trim(),
@@ -697,6 +714,17 @@ const MARCAS_CONHECIDAS = [
   'kia', 'bmw', 'mercedes', 'audi', 'volvo', 'chery', 'caoa', 'byd', 'gm'
 ];
 
+const ALIASES_MARCAS = {
+  'volkswagen': ['volkswagen', 'vw'],
+  'vw': ['volkswagen', 'vw'],
+  'chevrolet': ['chevrolet', 'gm'],
+  'gm': ['chevrolet', 'gm'],
+  'mercedes benz': ['mercedes benz', 'mercedes', 'benz'],
+  'mercedes': ['mercedes benz', 'mercedes', 'benz'],
+  'caoa chery': ['caoa chery', 'caoa', 'chery'],
+  'chery': ['caoa chery', 'caoa', 'chery']
+};
+
 const TERMOS_GENERICOS_MODELO = new Set([
   'carro', 'car', 'automobile', 'vehicle', 'veiculo', 'modelo', 'versao',
   'flex', 'gasolina', 'etanol', 'diesel', 'hibrido', 'eletrico',
@@ -706,8 +734,9 @@ const TERMOS_GENERICOS_MODELO = new Set([
 function agendarBuscaFoto(atraso = 650) {
   clearTimeout(_fotoBuscaTimer);
 
+  const marca = document.getElementById('v-marca').value.trim();
   const modelo = document.getElementById('v-modelo').value.trim();
-  if (!modelo) {
+  if (!marca || !modelo) {
     cancelarBuscaFotoAtiva();
     resetarFoto();
     return;
@@ -719,10 +748,11 @@ function agendarBuscaFoto(atraso = 650) {
 }
 
 function invalidarFotoSeBuscaMudou() {
+  const marca = document.getElementById('v-marca').value.trim();
   const modelo = document.getElementById('v-modelo').value.trim();
   const novaChave = obterChaveBuscaFoto();
 
-  if (!modelo) {
+  if (!marca || !modelo) {
     cancelarBuscaFotoAtiva();
     resetarFoto();
     return;
@@ -760,14 +790,15 @@ async function buscarFotoVeiculo(forcar = false) {
   clearTimeout(_fotoBuscaTimer);
   _fotoBuscaTimer = null;
 
+  const marca = document.getElementById('v-marca').value.trim();
   const modelo = document.getElementById('v-modelo').value.trim();
   const cor = document.getElementById('v-cor').value.trim();
-  if (!modelo) {
+  if (!marca || !modelo) {
     resetarFoto();
     return;
   }
 
-  const chave = obterChaveBuscaFoto(modelo, cor);
+  const chave = obterChaveBuscaFoto(marca, modelo, cor);
 
   // No botão “Buscar outra foto”, percorre os resultados já encontrados primeiro.
   if (forcar && chave === _fotoBuscaChave && _fotoResultados.length > 1) {
@@ -790,7 +821,7 @@ async function buscarFotoVeiculo(forcar = false) {
   mostrarLoading(true);
 
   try {
-    const resultados = await coletarFotosVeiculo(modelo, cor, signal);
+    const resultados = await coletarFotosVeiculo(marca, modelo, cor, signal);
     if (sequencia !== _fotoBuscaSequencia) return;
 
     _fotoBuscaChave = chave;
@@ -822,8 +853,8 @@ async function buscarFotoVeiculo(forcar = false) {
   }
 }
 
-async function coletarFotosVeiculo(modelo, cor, signal) {
-  const infoModelo = resolverModeloBusca(modelo);
+async function coletarFotosVeiculo(marca, modelo, cor, signal) {
+  const infoModelo = resolverModeloBusca(marca, modelo);
   const corNormalizada = normalizarTexto(cor);
   const corTraduzida = CORES_BUSCA[corNormalizada] || cor;
   const resultados = [];
@@ -862,7 +893,8 @@ function montarConsultasCommons(infoModelo, corTraduzida = '', incluirCor = fals
   const cor = incluirCor && corTraduzida ? ` ${corTraduzida}` : '';
 
   infoModelo.aliases.forEach(alias => {
-    consultas.push(`"${alias}"${cor}`);
+    consultas.push(`"${alias}"${cor} automobile`);
+    consultas.push(`"${alias}"${cor} car`);
   });
 
   // Categorias do Commons costumam usar o nome canônico do veículo.
@@ -946,7 +978,7 @@ async function buscarFotosWikipedia(infoModelo, cor, signal) {
     paginas.forEach(pagina => {
       const url = pagina?.thumbnail?.source || pagina?.original?.source;
       const titulo = pagina?.title || '';
-      if (!url || pagina?.missing || !fotoCorrespondeAoModelo(titulo, infoModelo)) return;
+      if (!url || pagina?.missing || !fotoCorrespondeAoModelo(titulo, infoModelo) || possuiTermoIndesejado(titulo)) return;
       resultados.push({
         url,
         titulo,
@@ -984,7 +1016,7 @@ async function buscarFotosWikipedia(infoModelo, cor, signal) {
   paginasBusca.forEach(pagina => {
     const url = pagina?.thumbnail?.source || pagina?.original?.source;
     const titulo = pagina?.title || '';
-    if (!url || !fotoCorrespondeAoModelo(titulo, infoModelo)) return;
+    if (!url || !fotoCorrespondeAoModelo(titulo, infoModelo) || possuiTermoIndesejado(titulo)) return;
     resultados.push({
       url,
       titulo,
@@ -998,60 +1030,103 @@ async function buscarFotosWikipedia(infoModelo, cor, signal) {
   return resultados;
 }
 
-function resolverModeloBusca(modeloDigitado) {
-  const normalizado = normalizarTexto(modeloDigitado);
-  const compacto = compactarTexto(modeloDigitado);
-  const conhecido = MODELOS_CONHECIDOS.find(item => item.detectar(compacto));
+function resolverModeloBusca(marcaDigitada, modeloDigitado) {
+  const marcaNormalizada = normalizarTexto(marcaDigitada);
+  const aliasesMarca = resolverAliasesMarca(marcaDigitada);
+  const modeloNormalizado = normalizarTexto(modeloDigitado);
+  const modeloCompacto = compactarTexto(modeloDigitado);
+
+  const conhecido = MODELOS_CONHECIDOS.find(item => {
+    if (!item.detectar(modeloCompacto)) return false;
+    return item.marcas.some(marca => aliasesMarca.includes(normalizarTexto(marca)));
+  });
 
   if (conhecido) {
     return {
-      digitado: modeloDigitado,
+      digitado: `${marcaDigitada} ${modeloDigitado}`.trim(),
       canonico: conhecido.canonico,
-      aliases: [...new Set(conhecido.aliases)],
+      aliases: [...new Set([
+        conhecido.canonico,
+        `${marcaDigitada} ${modeloDigitado}`.trim(),
+        ...conhecido.aliases
+      ])],
       identidades: conhecido.identidades,
-      marcas: conhecido.marcas,
-      tokens: normalizarTexto(conhecido.canonico).split(' ').filter(Boolean),
+      marcas: [...new Set([...aliasesMarca, ...conhecido.marcas.map(normalizarTexto)])],
+      tokens: modeloNormalizado
+        .split(' ')
+        .filter(token => token.length >= 2 && !TERMOS_GENERICOS_MODELO.has(token)),
       conhecido: true
     };
   }
 
-  const tokensOriginais = normalizado.split(' ').filter(Boolean);
-  const marcas = tokensOriginais.filter(token => MARCAS_CONHECIDAS.includes(token));
-  const tokensModelo = tokensOriginais.filter(token => {
-    if (MARCAS_CONHECIDAS.includes(token)) return false;
+  const tokensModelo = modeloNormalizado.split(' ').filter(token => {
     if (TERMOS_GENERICOS_MODELO.has(token)) return false;
     if (/^(19|20)\d{2}$/.test(token)) return false;
     return token.length >= 2;
   });
 
   const identidadeCompacta = tokensModelo.join('');
-  const identidades = identidadeCompacta ? [identidadeCompacta] : [compacto];
+  const identidades = identidadeCompacta ? [identidadeCompacta] : [modeloCompacto];
+  const canonico = `${marcaDigitada} ${modeloDigitado}`.replace(/\s+/g, ' ').trim();
 
   return {
-    digitado: modeloDigitado,
-    canonico: modeloDigitado,
-    aliases: [modeloDigitado],
+    digitado: canonico,
+    canonico,
+    aliases: [canonico],
     identidades,
-    marcas,
+    marcas: aliasesMarca.length ? aliasesMarca : [marcaNormalizada],
     tokens: tokensModelo,
     conhecido: false
   };
 }
 
+function resolverAliasesMarca(marcaDigitada) {
+  const normalizada = normalizarTexto(marcaDigitada);
+  const aliases = ALIASES_MARCAS[normalizada] || [normalizada];
+
+  return [...new Set(
+    [normalizada, ...aliases]
+      .map(normalizarTexto)
+      .filter(Boolean)
+  )];
+}
+
 function fotoCorrespondeAoModelo(titulo, infoModelo) {
   const texto = normalizarTexto(titulo);
+  const tokensTitulo = texto.split(' ').filter(Boolean);
   const compacto = compactarTexto(titulo);
 
-  if (infoModelo.identidades.some(identidade => identidade && compacto.includes(identidade))) {
-    return true;
-  }
+  const correspondeMarca = infoModelo.marcas.some(marca => {
+    const marcaNormalizada = normalizarTexto(marca);
+    if (!marcaNormalizada) return false;
 
-  // Para modelos fora do catálogo, exige correspondência real dos termos do
-  // modelo em vez de aceitar qualquer resultado retornado pela busca.
+    if (marcaNormalizada.length <= 3) {
+      return tokensTitulo.includes(marcaNormalizada);
+    }
+
+    return texto.includes(marcaNormalizada) ||
+      compacto.includes(compactarTexto(marcaNormalizada));
+  });
+
+  if (!correspondeMarca) return false;
+
+  const correspondeIdentidade = infoModelo.identidades.some(identidade => {
+    const identidadeNormalizada = normalizarTexto(identidade);
+    if (!identidadeNormalizada) return false;
+
+    if (identidadeNormalizada.length <= 3) {
+      return tokensTitulo.includes(identidadeNormalizada);
+    }
+
+    return compacto.includes(compactarTexto(identidadeNormalizada));
+  });
+
+  if (correspondeIdentidade) return true;
+
   const tokens = infoModelo.tokens.filter(token => token.length >= 2);
   if (tokens.length === 0) return false;
 
-  const correspondencias = tokens.filter(token => texto.includes(token)).length;
+  const correspondencias = tokens.filter(token => tokensTitulo.includes(token)).length;
   const minimo = tokens.length === 1 ? 1 : Math.min(2, tokens.length);
   return correspondencias >= minimo;
 }
@@ -1061,28 +1136,47 @@ function possuiTermoIndesejado(titulo) {
   return [
     'logo', 'emblem', 'badge', 'interior', 'engine', 'motor', 'diagram',
     'drawing', 'sketch', 'toy', 'miniature', 'police', 'taxi', 'race',
-    'wreck', 'crash', 'dashboard', 'steering wheel', 'model t', 'vintage',
-    'classic car', 'oldtimer'
+    'wreck', 'crash', 'damaged', 'wrecked', 'accident', 'abandoned',
+    'scrapyard', 'junkyard', 'burned', 'rusty', 'dashboard', 'steering wheel',
+    'model t', 'vintage', 'classic car', 'oldtimer', 'shirt', 'jersey',
+    'football', 'soccer', 'playing card', 'card game', 'construction',
+    'building', 'demolition', 'camisa', 'futebol', 'baralho', 'carta', 'obra'
   ].some(termo => texto.includes(termo));
 }
 
 function pontuarFoto(titulo, infoModelo, cor, largura, altura, fonte) {
   const texto = normalizarTexto(titulo);
+  const tokensTitulo = texto.split(' ').filter(Boolean);
   const compacto = compactarTexto(titulo);
   const corNormalizada = normalizarTexto(cor);
   const corTraduzida = normalizarTexto(CORES_BUSCA[corNormalizada] || cor);
   let pontos = 0;
 
   infoModelo.identidades.forEach(identidade => {
-    if (identidade && compacto.includes(identidade)) pontos += 35;
+    const identidadeNormalizada = normalizarTexto(identidade);
+    if (!identidadeNormalizada) return;
+
+    const encontrou = identidadeNormalizada.length <= 3
+      ? tokensTitulo.includes(identidadeNormalizada)
+      : compacto.includes(compactarTexto(identidadeNormalizada));
+
+    if (encontrou) pontos += 35;
   });
 
   infoModelo.tokens.forEach(token => {
-    if (token.length >= 2 && texto.includes(token)) pontos += 5;
+    if (token.length >= 2 && tokensTitulo.includes(token)) pontos += 5;
   });
 
   infoModelo.marcas.forEach(marca => {
-    if (texto.includes(marca)) pontos += 8;
+    const marcaNormalizada = normalizarTexto(marca);
+    if (!marcaNormalizada) return;
+
+    const encontrou = marcaNormalizada.length <= 3
+      ? tokensTitulo.includes(marcaNormalizada)
+      : texto.includes(marcaNormalizada) ||
+        compacto.includes(compactarTexto(marcaNormalizada));
+
+    if (encontrou) pontos += 18;
   });
 
   if (corNormalizada && texto.includes(corNormalizada)) pontos += 14;
@@ -1105,10 +1199,15 @@ function removerFotosDuplicadas(resultados) {
 }
 
 function obterChaveBuscaFoto(
+  marca = document.getElementById('v-marca').value,
   modelo = document.getElementById('v-modelo').value,
   cor = document.getElementById('v-cor').value
 ) {
-  return `${normalizarTexto(modelo)}|${normalizarTexto(cor)}`;
+  return [
+    normalizarTexto(marca),
+    normalizarTexto(modelo),
+    normalizarTexto(cor)
+  ].join('|');
 }
 
 function normalizarTexto(valor) {
@@ -1161,7 +1260,7 @@ function mostrarFoto(url) {
   mostrarLoading(false);
 }
 
-function mostrarPlaceholderFoto(mensagem = 'Preencha o modelo para buscar uma foto') {
+function mostrarPlaceholderFoto(mensagem = 'Preencha marca e modelo para buscar uma foto') {
   const img = document.getElementById('foto-img');
   const placeholder = document.getElementById('foto-placeholder');
   const texto = placeholder.querySelector('p');
@@ -1180,7 +1279,7 @@ function resetarFoto() {
   _fotoResultados = [];
   _fotoResultadoIdx = -1;
   _fotoUrlsFalharam = new Set();
-  mostrarPlaceholderFoto('Preencha o modelo para buscar uma foto');
+  mostrarPlaceholderFoto('Preencha marca e modelo para buscar uma foto');
 }
 
 function mostrarLoading(ativo) {
