@@ -35,21 +35,17 @@ const TODOS_MODULOS = [
   'historico',
   'dashboard',
   'custo_operacional',
-  'relatorios',
-  'configuracoes',
-  'configuracoes_sugestao_salario'
+  'relatorios'
 ];
 
 const MODULOS_LABELS = {
-  home:                           'Home',
-  lancamentos:                    'Lançamentos',
-  despesas:                       'Despesas',
-  historico:                      'Histórico',
-  dashboard:                      'Dashboard',
-  custo_operacional:              'Custo Operacional',
-  relatorios:                     'Relatórios',
-  configuracoes:                  'Configurações',
-  configuracoes_sugestao_salario: 'Configurações — Sugestão de salário'
+  home:              'Home',
+  lancamentos:       'Lançamentos',
+  despesas:          'Despesas',
+  historico:         'Histórico',
+  dashboard:         'Dashboard',
+  custo_operacional: 'Custo Operacional',
+  relatorios:        'Relatórios'
 };
 
 // Hierarquia de módulos: define quais IDs são sub-módulos de um pai.
@@ -1031,7 +1027,25 @@ function moduloToggle(id, modulo) {
   const idx = tabelaState.modulos[id].indexOf(modulo);
   if (idx === -1) tabelaState.modulos[id].push(modulo);
   else tabelaState.modulos[id].splice(idx, 1);
+
+  // Preserva quais pais estão expandidos antes de re-renderizar
+  const tabela = $('planos-modulos-container');
+  const expandidos = new Set();
+  tabela?.querySelectorAll('.modulo-expandir[aria-expanded="true"]').forEach(btn => {
+    const pai = btn.closest('tr')?.dataset.modulo;
+    if (pai) expandidos.add(pai);
+  });
+
   renderModulosTabela();
+
+  // Restaura o estado de expansão
+  expandidos.forEach(pai => {
+    const container = $('planos-modulos-container');
+    const filhos = container?.querySelectorAll(`.modulo-filho-de-${pai}`);
+    const btn = container?.querySelector(`tr[data-modulo="${pai}"] .modulo-expandir`);
+    filhos?.forEach(f => { f.hidden = false; });
+    btn?.setAttribute('aria-expanded', 'true');
+  });
 }
 window.moduloToggle = moduloToggle;
 
