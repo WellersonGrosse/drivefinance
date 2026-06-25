@@ -159,22 +159,7 @@ svg {
   gap: 10px;
 }
 
-.user-avatar,
-.topbar-avatar {
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(123,94,167,0.34);
-  border-radius: 11px;
-  background: linear-gradient(145deg, rgba(123,94,167,0.32), rgba(79,195,161,0.10));
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.user-avatar {
-  width: 38px;
-  height: 38px;
-}
+/* .user-avatar, .topbar-avatar — global em style.css */
 
 .user-copy {
   min-width: 0;
@@ -195,8 +180,7 @@ svg {
 
 .logout-btn,
 .topbar-menu,
-.refresh-btn,
-.topbar-avatar {
+.refresh-btn {
   border: 0;
   color: var(--text-secondary);
 }
