@@ -337,7 +337,7 @@
           <div class="veiculo-foto-preview" id="veiculo-foto-preview">
             <div class="foto-placeholder" id="foto-placeholder">
               <svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1l2-4h12l2 4h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z"/></svg>
-              <p>Preencha marca e modelo para buscar uma foto</p>
+              <p>Preencha marca, modelo e cor para buscar uma foto</p>
             </div>
             <img id="foto-img" src="" alt="Foto do veículo" hidden />
             <div class="foto-loading" id="foto-loading" hidden>
@@ -372,14 +372,14 @@
             <label class="form-label" for="v-modelo">Modelo <span class="required">*</span></label>
             <input type="text" id="v-modelo" class="input" placeholder="Ex: Uno Way, Gol, Agile..." autocomplete="off" />
           </div>
+          <div class="form-group campo-cor">
+            <label class="form-label" for="v-cor">Cor</label>
+            <input type="text" id="v-cor" class="input" placeholder="Ex: Prata, Branco..." autocomplete="off" />
+            <span class="field-hint">💡 A foto só será exibida quando a cor puder ser confirmada</span>
+          </div>
           <div class="form-group campo-placa">
             <label class="form-label" for="v-placa">Placa</label>
             <input type="text" id="v-placa" class="input" placeholder="ABC-1D23" maxlength="8" />
-          </div>
-          <div class="form-group campo-cor">
-            <label class="form-label" for="v-cor">Cor</label>
-            <input type="text" id="v-cor" class="input" placeholder="Ex: Prata, Branco..." />
-            <span class="field-hint">💡 Informe a cor para uma foto mais precisa</span>
           </div>
           <div class="form-group campo-combustivel">
             <label class="form-label" for="v-combustivel">Combustível</label>
