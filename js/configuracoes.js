@@ -176,6 +176,11 @@ async function salvarPessoal() {
 function preencherFormProfissional() {
   document.getElementById('input-salario').value = _perfil?.salario_liquido || '';
 
+  const margemSalario = Number(_config?.margem_salario_percentual);
+  document.getElementById('input-margem-salario').value =
+    Number.isFinite(margemSalario) ? margemSalario : 20;
+  atualizarSalarioRecomendado();
+
   const diasAtivos = _config?.dias_trabalho || [];
   document.querySelectorAll('.dia-toggle').forEach(btn => {
     btn.setAttribute('aria-pressed', diasAtivos.includes(parseInt(btn.dataset.dia)) ? 'true' : 'false');
@@ -189,6 +194,10 @@ function preencherFormProfissional() {
 }
 
 function configurarProfissional() {
+  document.getElementById('input-margem-salario').addEventListener('input', () => {
+    atualizarSalarioRecomendado();
+  });
+
   document.querySelectorAll('.dia-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
       const atual = btn.getAttribute('aria-pressed') === 'true';
@@ -210,6 +219,28 @@ function configurarProfissional() {
   });
 
   document.getElementById('btn-salvar-profissional').addEventListener('click', salvarProfissional);
+}
+
+function atualizarSalarioRecomendado(totalDespesasMensais = null) {
+  const valorEl = document.getElementById('salario-recomendado-valor');
+  if (!valorEl) return;
+
+  const margem = parseFloat(document.getElementById('input-margem-salario')?.value);
+  const possuiDespesas = Number.isFinite(totalDespesasMensais) && totalDespesasMensais > 0;
+  const possuiMargem = Number.isFinite(margem) && margem >= 0;
+
+  if (!possuiDespesas || !possuiMargem) {
+    valorEl.textContent = 'Aguardando despesas';
+    valorEl.classList.add('pendente');
+    return;
+  }
+
+  const recomendado = totalDespesasMensais * (1 + (margem / 100));
+  valorEl.textContent = recomendado.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
+  valorEl.classList.remove('pendente');
 }
 
 function atualizarResumodias() {
@@ -314,6 +345,13 @@ async function salvarProfissional() {
   btnLoading(btn, true);
   try {
     const salario = parseFloat(document.getElementById('input-salario').value) || 0;
+    const margemSalario = parseFloat(document.getElementById('input-margem-salario').value);
+
+    if (!Number.isFinite(margemSalario) || margemSalario < 0 || margemSalario > 999) {
+      toast('Informe uma margem de salário entre 0% e 999%', 'aviso');
+      return;
+    }
+
     const dias = [];
     document.querySelectorAll('.dia-toggle').forEach(b => {
       if (b.getAttribute('aria-pressed') === 'true') dias.push(parseInt(b.dataset.dia));
@@ -324,12 +362,26 @@ async function salvarProfissional() {
     });
 
     await updatePerfil(_uid, { salario_liquido: salario });
+    const superavit = document.getElementById('toggle-superavit').checked;
+    const deficit = document.getElementById('toggle-deficit').checked;
+
     await saveConfig(_uid, {
-      dias_trabalho: dias, plataformas,
-      superavit: document.getElementById('toggle-superavit').checked,
-      deficit: document.getElementById('toggle-deficit').checked
+      dias_trabalho: dias,
+      plataformas,
+      superavit,
+      deficit,
+      margem_salario_percentual: margemSalario
     });
+
     _perfil = { ..._perfil, salario_liquido: salario };
+    _config = {
+      ..._config,
+      dias_trabalho: dias,
+      plataformas,
+      superavit,
+      deficit,
+      margem_salario_percentual: margemSalario
+    };
     toast('Configurações profissionais salvas!', 'sucesso');
   } catch (e) {
     console.error(e);
