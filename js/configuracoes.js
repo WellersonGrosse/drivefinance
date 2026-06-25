@@ -404,11 +404,21 @@ function renderCarrossel() {
   const acoes = document.getElementById('veiculo-acoes');
   const track = document.getElementById('carrossel-track');
   const dots = document.getElementById('carrossel-dots');
+  const btnAdicionar = document.getElementById('btn-add-veiculo');
+  const acoesAdicionar = btnAdicionar?.closest('.form-actions');
 
   if (_veiculos.length === 0) {
-    wrapper.hidden = true; empty.hidden = false; acoes.hidden = true; return;
+    wrapper.hidden = true;
+    empty.hidden = false;
+    acoes.hidden = true;
+    if (acoesAdicionar) acoesAdicionar.style.display = 'none';
+    return;
   }
-  empty.hidden = true; wrapper.hidden = false; acoes.hidden = false;
+
+  empty.hidden = true;
+  wrapper.hidden = false;
+  acoes.hidden = false;
+  if (acoesAdicionar) acoesAdicionar.style.display = 'flex';
 
   if (_carrosselIdx >= _veiculos.length) _carrosselIdx = _veiculos.length - 1;
   if (_carrosselIdx < 0) _carrosselIdx = 0;
