@@ -692,10 +692,14 @@
   stroke-width: 2; stroke-linecap: round;
 }
 
-/* Modal duas colunas (veículo) */
+/* Modal de veículo: foto + formulário em duas colunas no desktop */
+.modal-veiculo-content {
+  max-width: 960px;
+}
+
 .modal-veiculo-body {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: minmax(250px, 290px) minmax(0, 1fr);
   gap: var(--gap-xl);
   padding: var(--gap-lg) var(--gap-xl);
   align-items: start;
@@ -705,18 +709,34 @@
   display: flex;
   flex-direction: column;
   gap: var(--gap-md);
+  min-width: 0;
 }
 
 .modal-campos-col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-md);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "marca placa"
+    "modelo combustivel"
+    "cor consumo";
+  column-gap: var(--gap-xl);
+  row-gap: var(--gap-lg);
+  align-content: start;
+  min-width: 0;
 }
+
+.modal-campos-col .form-group { min-width: 0; }
+.campo-marca       { grid-area: marca; }
+.campo-modelo      { grid-area: modelo; }
+.campo-placa       { grid-area: placa; }
+.campo-cor         { grid-area: cor; }
+.campo-combustivel { grid-area: combustivel; }
+.campo-consumo     { grid-area: consumo; }
 
 /* foto preview */
 .veiculo-foto-preview {
   position: relative;
-  width: 100%; height: 200px;
+  width: 100%; height: 250px;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--dark-surface);
@@ -797,6 +817,17 @@
   /* Modal veículo: empilha em mobile */
   .modal-veiculo-body {
     grid-template-columns: 1fr;
+  }
+  .modal-campos-col {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "marca"
+      "modelo"
+      "placa"
+      "cor"
+      "combustivel"
+      "consumo";
+    gap: var(--gap-md);
   }
   .veiculo-foto-preview { height: 160px; }
 
