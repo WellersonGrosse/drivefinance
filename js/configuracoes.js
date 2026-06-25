@@ -173,12 +173,126 @@ async function salvarPessoal() {
 }
 
 // ─── PERFIL PROFISSIONAL ──────────────────────────────────────────────────────
+function normalizarEntradaNumerica(valor) {
+  return String(valor || '')
+    .replace(/\s+/g, '')
+    .replace(/[^0-9.,]/g, '');
+}
+
+function converterNumeroLocalizado(valor) {
+  const limpo = normalizarEntradaNumerica(valor);
+  if (!limpo) return null;
+
+  const ultimaVirgula = limpo.lastIndexOf(',');
+  const ultimoPonto = limpo.lastIndexOf('.');
+  const ultimoSeparador = Math.max(ultimaVirgula, ultimoPonto);
+
+  let inteiro = limpo;
+  let decimais = '';
+
+  if (ultimaVirgula !== -1 && ultimoPonto !== -1) {
+    inteiro = limpo.slice(0, ultimoSeparador).replace(/[.,]/g, '');
+    decimais = limpo.slice(ultimoSeparador + 1).replace(/[.,]/g, '');
+  } else if (ultimaVirgula !== -1) {
+    inteiro = limpo.slice(0, ultimaVirgula).replace(/,/g, '');
+    decimais = limpo.slice(ultimaVirgula + 1).replace(/,/g, '');
+  } else if (ultimoPonto !== -1) {
+    const depoisPonto = limpo.slice(ultimoPonto + 1);
+    const pontos = (limpo.match(/\./g) || []).length;
+    const pontoPareceDecimal = pontos === 1 && depoisPonto.length > 0 && depoisPonto.length <= 2;
+
+    if (pontoPareceDecimal) {
+      inteiro = limpo.slice(0, ultimoPonto);
+      decimais = depoisPonto;
+    } else {
+      inteiro = limpo.replace(/\./g, '');
+    }
+  }
+
+  inteiro = inteiro.replace(/[.,]/g, '') || '0';
+  decimais = decimais.slice(0, 2);
+  const numero = Number(`${inteiro}.${decimais || '0'}`);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function formatarNumeroLocalizado(numero, minimoDecimais = 0, maximoDecimais = 2) {
+  if (!Number.isFinite(numero)) return '';
+  return numero.toLocaleString('pt-BR', {
+    minimumFractionDigits: minimoDecimais,
+    maximumFractionDigits: maximoDecimais
+  });
+}
+
+function piscarCampoNumerico(input) {
+  if (!input) return;
+  input.classList.remove('input-invalido-pisca');
+  void input.offsetWidth;
+  input.classList.add('input-invalido-pisca');
+  window.setTimeout(() => input.classList.remove('input-invalido-pisca'), 560);
+}
+
+function limitarSeparadoresNumericos(valor) {
+  const limpo = normalizarEntradaNumerica(valor);
+  const separadores = limpo.match(/[.,]/g) || [];
+
+  if (separadores.length <= 1) return limpo;
+
+  const ultimoSeparador = Math.max(limpo.lastIndexOf(','), limpo.lastIndexOf('.'));
+  const inteiro = limpo.slice(0, ultimoSeparador).replace(/[.,]/g, '');
+  const decimais = limpo.slice(ultimoSeparador + 1).replace(/[.,]/g, '').slice(0, 2);
+  const separadorFinal = limpo[ultimoSeparador] === '.' ? '.' : ',';
+  return `${inteiro}${decimais ? separadorFinal + decimais : separadorFinal}`;
+}
+
+function configurarCampoNumerico(input, { moeda = false, aoAlterar = null } = {}) {
+  if (!input) return;
+
+  input.addEventListener('beforeinput', evento => {
+    if (!evento.data) return;
+    if (!/^[0-9.,]+$/.test(evento.data)) {
+      evento.preventDefault();
+      piscarCampoNumerico(input);
+    }
+  });
+
+  input.addEventListener('paste', evento => {
+    const texto = evento.clipboardData?.getData('text') || '';
+    if (/[^0-9.,\s]/.test(texto)) {
+      piscarCampoNumerico(input);
+    }
+  });
+
+  input.addEventListener('input', () => {
+    const anterior = input.value;
+    const permitido = limitarSeparadoresNumericos(anterior);
+    if (permitido !== anterior) {
+      input.value = permitido;
+      piscarCampoNumerico(input);
+    }
+    aoAlterar?.();
+  });
+
+  input.addEventListener('blur', () => {
+    if (!input.value.trim()) return;
+    const numero = converterNumeroLocalizado(input.value);
+    if (numero === null) {
+      piscarCampoNumerico(input);
+      return;
+    }
+    input.value = moeda
+      ? formatarNumeroLocalizado(numero, 2, 2)
+      : formatarNumeroLocalizado(numero, 0, 2);
+    aoAlterar?.();
+  });
+}
 function preencherFormProfissional() {
-  document.getElementById('input-salario').value = _perfil?.salario_liquido || '';
+  const salarioAtual = Number(_perfil?.salario_liquido);
+  document.getElementById('input-salario').value =
+    Number.isFinite(salarioAtual) && salarioAtual > 0 ? formatarNumeroLocalizado(salarioAtual, 2, 2) : '';
 
   const margemSalario = Number(_config?.margem_salario_percentual);
   document.getElementById('input-margem-salario').value =
-    Number.isFinite(margemSalario) ? margemSalario : 20;
+    formatarNumeroLocalizado(Number.isFinite(margemSalario) ? margemSalario : 20, 0, 2);
   atualizarSalarioRecomendado();
 
   const diasAtivos = _config?.dias_trabalho || [];
@@ -194,8 +308,9 @@ function preencherFormProfissional() {
 }
 
 function configurarProfissional() {
-  document.getElementById('input-margem-salario').addEventListener('input', () => {
-    atualizarSalarioRecomendado();
+  configurarCampoNumerico(document.getElementById('input-salario'), { moeda: true });
+  configurarCampoNumerico(document.getElementById('input-margem-salario'), {
+    aoAlterar: atualizarSalarioRecomendado
   });
 
   document.querySelectorAll('.dia-toggle').forEach(btn => {
@@ -225,7 +340,7 @@ function atualizarSalarioRecomendado(totalDespesasMensais = null) {
   const valorEl = document.getElementById('salario-recomendado-valor');
   if (!valorEl) return;
 
-  const margem = parseFloat(document.getElementById('input-margem-salario')?.value);
+  const margem = converterNumeroLocalizado(document.getElementById('input-margem-salario')?.value);
   const possuiDespesas = Number.isFinite(totalDespesasMensais) && totalDespesasMensais > 0;
   const possuiMargem = Number.isFinite(margem) && margem >= 0;
 
@@ -344,13 +459,26 @@ async function salvarProfissional() {
   const btn = document.getElementById('btn-salvar-profissional');
   btnLoading(btn, true);
   try {
-    const salario = parseFloat(document.getElementById('input-salario').value) || 0;
-    const margemSalario = parseFloat(document.getElementById('input-margem-salario').value);
+    const inputSalario = document.getElementById('input-salario');
+    const inputMargem = document.getElementById('input-margem-salario');
+    const salarioConvertido = converterNumeroLocalizado(inputSalario.value);
+    const margemSalario = converterNumeroLocalizado(inputMargem.value);
+    const salario = salarioConvertido ?? 0;
+
+    if (salarioConvertido === null && inputSalario.value.trim()) {
+      piscarCampoNumerico(inputSalario);
+      toast('Informe o salário usando apenas números e vírgula para os centavos', 'aviso');
+      return;
+    }
 
     if (!Number.isFinite(margemSalario) || margemSalario < 0 || margemSalario > 999) {
+      piscarCampoNumerico(inputMargem);
       toast('Informe uma margem de salário entre 0% e 999%', 'aviso');
       return;
     }
+
+    inputSalario.value = salario > 0 ? formatarNumeroLocalizado(salario, 2, 2) : '';
+    inputMargem.value = formatarNumeroLocalizado(margemSalario, 0, 2);
 
     const dias = [];
     document.querySelectorAll('.dia-toggle').forEach(b => {
