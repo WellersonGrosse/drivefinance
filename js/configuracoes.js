@@ -354,21 +354,18 @@ function configurarVeiculos() {
   const inputModelo = document.getElementById('v-modelo');
   const inputCor = document.getElementById('v-cor');
 
-  [inputMarca, inputModelo].forEach(input => {
+  [inputMarca, inputModelo, inputCor].forEach(input => {
     input.addEventListener('input', () => {
       invalidarFotoSeBuscaMudou();
       agendarBuscaFoto(700);
     });
-  });
 
-  inputCor.addEventListener('input', () => {
-    invalidarFotoSeBuscaMudou();
-    agendarBuscaFoto(550);
-  });
-
-  [inputMarca, inputModelo, inputCor].forEach(input => {
     input.addEventListener('blur', () => {
-      if (inputMarca.value.trim() && inputModelo.value.trim()) {
+      if (
+        inputMarca.value.trim() &&
+        inputModelo.value.trim() &&
+        inputCor.value.trim()
+      ) {
         buscarFotoVeiculo(false);
       }
     });
@@ -594,6 +591,44 @@ const CORES_BUSCA = {
   'vinho': 'burgundy'
 };
 
+const CORES_CANONICAS = {
+  'branco': 'branco', 'branca': 'branco', 'white': 'branco',
+  'preto': 'preto', 'preta': 'preto', 'black': 'preto',
+  'prata': 'prata', 'prateado': 'prata', 'prateada': 'prata', 'silver': 'prata',
+  'cinza': 'cinza', 'gray': 'cinza', 'grey': 'cinza',
+  'cinza chumbo': 'chumbo', 'chumbo': 'chumbo', 'dark gray': 'chumbo', 'dark grey': 'chumbo',
+  'vermelho': 'vermelho', 'vermelha': 'vermelho', 'red': 'vermelho',
+  'azul': 'azul', 'blue': 'azul',
+  'azul marinho': 'azul marinho', 'navy': 'azul marinho', 'navy blue': 'azul marinho',
+  'verde': 'verde', 'green': 'verde',
+  'amarelo': 'amarelo', 'amarela': 'amarelo', 'yellow': 'amarelo',
+  'marrom': 'marrom', 'brown': 'marrom',
+  'bege': 'bege', 'beige': 'bege',
+  'dourado': 'dourado', 'dourada': 'dourado', 'gold': 'dourado',
+  'laranja': 'laranja', 'orange': 'laranja',
+  'roxo': 'roxo', 'roxa': 'roxo', 'purple': 'roxo',
+  'vinho': 'vinho', 'bordo': 'vinho', 'bordô': 'vinho', 'burgundy': 'vinho'
+};
+
+const TERMOS_COR_TITULO = {
+  branco: ['branco', 'branca', 'white'],
+  preto: ['preto', 'preta', 'black'],
+  prata: ['prata', 'prateado', 'prateada', 'silver'],
+  cinza: ['cinza', 'gray', 'grey'],
+  chumbo: ['chumbo', 'dark gray', 'dark grey', 'graphite'],
+  vermelho: ['vermelho', 'vermelha', 'red'],
+  azul: ['azul', 'blue'],
+  'azul marinho': ['azul marinho', 'navy', 'navy blue'],
+  verde: ['verde', 'green'],
+  amarelo: ['amarelo', 'amarela', 'yellow'],
+  marrom: ['marrom', 'brown'],
+  bege: ['bege', 'beige'],
+  dourado: ['dourado', 'dourada', 'gold'],
+  laranja: ['laranja', 'orange'],
+  roxo: ['roxo', 'roxa', 'purple'],
+  vinho: ['vinho', 'bordo', 'bordô', 'burgundy', 'wine red']
+};
+
 /*
  * Alguns nomes de veículos são ambíguos para mecanismos de busca.
  * Exemplo: "T-Cross" pode ser interpretado como "Model T" + "cross".
@@ -601,6 +636,55 @@ const CORES_BUSCA = {
  * a busca de veículos que não estejam na lista.
  */
 const MODELOS_CONHECIDOS = [
+  {
+    detectar: compacto => compacto.includes('unoway'),
+    canonico: 'Fiat Uno Way',
+    aliases: ['Fiat Uno Way', 'Uno Way'],
+    identidades: ['unoway'],
+    marcas: ['fiat']
+  },
+  {
+    detectar: compacto => compacto.startsWith('uno') && !compacto.startsWith('unoway'),
+    canonico: 'Fiat Uno',
+    aliases: ['Fiat Uno', 'Uno'],
+    identidades: ['uno'],
+    marcas: ['fiat']
+  },
+  {
+    detectar: compacto => compacto.startsWith('gol') && !compacto.startsWith('golf'),
+    canonico: 'Volkswagen Gol',
+    aliases: ['Volkswagen Gol', 'VW Gol', 'Gol'],
+    identidades: ['gol'],
+    marcas: ['volkswagen', 'vw']
+  },
+  {
+    detectar: compacto => compacto.startsWith('polo'),
+    canonico: 'Volkswagen Polo',
+    aliases: ['Volkswagen Polo', 'VW Polo', 'Polo'],
+    identidades: ['polo'],
+    marcas: ['volkswagen', 'vw']
+  },
+  {
+    detectar: compacto => compacto.startsWith('agile'),
+    canonico: 'Chevrolet Agile',
+    aliases: ['Chevrolet Agile', 'Agile'],
+    identidades: ['agile'],
+    marcas: ['chevrolet', 'gm']
+  },
+  {
+    detectar: compacto => compacto.startsWith('sonic'),
+    canonico: 'Chevrolet Sonic',
+    aliases: ['Chevrolet Sonic', 'Sonic'],
+    identidades: ['sonic'],
+    marcas: ['chevrolet', 'gm']
+  },
+  {
+    detectar: compacto => compacto === 'ka' || compacto.startsWith('ka10') || compacto.startsWith('ka15') || compacto.startsWith('kase'),
+    canonico: 'Ford Ka',
+    aliases: ['Ford Ka', 'Ka'],
+    identidades: ['fordka', 'ka'],
+    marcas: ['ford']
+  },
   {
     detectar: compacto => compacto.includes('tcross'),
     canonico: 'Volkswagen T-Cross',
@@ -731,14 +815,33 @@ const TERMOS_GENERICOS_MODELO = new Set([
   'automatico', 'automatica', 'manual', 'turbo'
 ]);
 
-function agendarBuscaFoto(atraso = 650) {
+function obterParametrosBuscaFoto() {
+  return {
+    marca: document.getElementById('v-marca').value.trim(),
+    modelo: document.getElementById('v-modelo').value.trim(),
+    cor: document.getElementById('v-cor').value.trim()
+  };
+}
+
+function obterMensagemCamposFoto({ marca, modelo, cor }) {
+  const faltantes = [];
+  if (!marca) faltantes.push('marca');
+  if (!modelo) faltantes.push('modelo');
+  if (!cor) faltantes.push('cor');
+
+  if (faltantes.length === 0) return '';
+  if (faltantes.length === 1) return `Preencha ${faltantes[0]} para buscar uma foto`;
+  if (faltantes.length === 2) return `Preencha ${faltantes[0]} e ${faltantes[1]} para buscar uma foto`;
+  return 'Preencha marca, modelo e cor para buscar uma foto';
+}
+
+function agendarBuscaFoto(atraso = 700) {
   clearTimeout(_fotoBuscaTimer);
 
-  const marca = document.getElementById('v-marca').value.trim();
-  const modelo = document.getElementById('v-modelo').value.trim();
-  if (!marca || !modelo) {
+  const parametros = obterParametrosBuscaFoto();
+  if (!parametros.marca || !parametros.modelo || !parametros.cor) {
     cancelarBuscaFotoAtiva();
-    resetarFoto();
+    resetarFoto(obterMensagemCamposFoto(parametros));
     return;
   }
 
@@ -748,17 +851,19 @@ function agendarBuscaFoto(atraso = 650) {
 }
 
 function invalidarFotoSeBuscaMudou() {
-  const marca = document.getElementById('v-marca').value.trim();
-  const modelo = document.getElementById('v-modelo').value.trim();
-  const novaChave = obterChaveBuscaFoto();
+  const parametros = obterParametrosBuscaFoto();
+  const novaChave = obterChaveBuscaFoto(parametros.marca, parametros.modelo, parametros.cor);
 
-  if (!marca || !modelo) {
+  if (!parametros.marca || !parametros.modelo || !parametros.cor) {
     cancelarBuscaFotoAtiva();
-    resetarFoto();
+    resetarFoto(obterMensagemCamposFoto(parametros));
     return;
   }
 
   if (novaChave === _fotoBuscaChave) return;
+
+  clearTimeout(_fotoBuscaTimer);
+  _fotoBuscaTimer = null;
 
   if (_fotoAbortController) {
     _fotoAbortController.abort();
@@ -770,7 +875,9 @@ function invalidarFotoSeBuscaMudou() {
   _fotoResultados = [];
   _fotoResultadoIdx = -1;
   _fotoUrlsFalharam = new Set();
-  mostrarLoading(false);
+
+  // Nunca mantém na tela uma foto encontrada com valores anteriores.
+  mostrarPlaceholderFoto('Atualizando a foto para os dados informados...');
 }
 
 function cancelarBuscaFotoAtiva() {
@@ -790,17 +897,15 @@ async function buscarFotoVeiculo(forcar = false) {
   clearTimeout(_fotoBuscaTimer);
   _fotoBuscaTimer = null;
 
-  const marca = document.getElementById('v-marca').value.trim();
-  const modelo = document.getElementById('v-modelo').value.trim();
-  const cor = document.getElementById('v-cor').value.trim();
-  if (!marca || !modelo) {
-    resetarFoto();
+  const { marca, modelo, cor } = obterParametrosBuscaFoto();
+  if (!marca || !modelo || !cor) {
+    resetarFoto(obterMensagemCamposFoto({ marca, modelo, cor }));
     return;
   }
 
   const chave = obterChaveBuscaFoto(marca, modelo, cor);
 
-  // No botão “Buscar outra foto”, percorre os resultados já encontrados primeiro.
+  // “Buscar outra foto” percorre somente resultados já validados para a cor atual.
   if (forcar && chave === _fotoBuscaChave && _fotoResultados.length > 1) {
     const proximoIdx = encontrarProximoIndiceFoto(_fotoResultadoIdx);
     if (proximoIdx !== -1) {
@@ -810,7 +915,6 @@ async function buscarFotoVeiculo(forcar = false) {
     }
   }
 
-  // Evita repetir a mesma busca ao sair do campo sem alterar modelo ou cor.
   if (!forcar && chave === _fotoBuscaChave && _fotoAtualUrl) return;
 
   if (_fotoAbortController) _fotoAbortController.abort();
@@ -822,7 +926,12 @@ async function buscarFotoVeiculo(forcar = false) {
 
   try {
     const resultados = await coletarFotosVeiculo(marca, modelo, cor, signal);
-    if (sequencia !== _fotoBuscaSequencia) return;
+
+    // Garante que nenhum resultado de uma busca antiga seja aplicado depois.
+    if (
+      sequencia !== _fotoBuscaSequencia ||
+      chave !== obterChaveBuscaFoto()
+    ) return;
 
     _fotoBuscaChave = chave;
     _fotoResultados = removerFotosDuplicadas(resultados);
@@ -831,7 +940,9 @@ async function buscarFotoVeiculo(forcar = false) {
 
     if (_fotoResultados.length === 0) {
       _fotoAtualUrl = null;
-      mostrarPlaceholderFoto('Nenhuma foto confiável encontrada. Tente informar marca e modelo.');
+      mostrarPlaceholderFoto(
+        `Não encontramos uma foto confiável de ${marca} ${modelo} na cor ${cor}.`
+      );
       return;
     }
 
@@ -859,33 +970,38 @@ async function coletarFotosVeiculo(marca, modelo, cor, signal) {
   const corTraduzida = CORES_BUSCA[corNormalizada] || cor;
   const resultados = [];
 
-  // Com cor informada, prioriza fotos do Commons cujo título também indique a cor.
-  if (cor) {
-    const consultasComCor = montarConsultasCommons(infoModelo, corTraduzida, true);
-    for (const consulta of consultasComCor) {
+  // Todas as consultas iniciais carregam marca + modelo + cor + contexto automotivo.
+  const consultasComCor = montarConsultasCommons(infoModelo, corTraduzida, true);
+  for (const consulta of consultasComCor) {
+    const encontrados = await buscarFotosCommons(consulta, infoModelo, cor, signal);
+    resultados.push(...encontrados);
+    if (removerFotosDuplicadas(resultados).length >= 24) break;
+  }
+
+  // Amplia os candidatos apenas quando necessário; a validação visual de cor
+  // continua obrigatória antes de qualquer foto ser exibida.
+  if (removerFotosDuplicadas(resultados).length < 12) {
+    const consultasModelo = montarConsultasCommons(infoModelo, '', false);
+    for (const consulta of consultasModelo) {
       const encontrados = await buscarFotosCommons(consulta, infoModelo, cor, signal);
       resultados.push(...encontrados);
-      if (removerFotosDuplicadas(resultados).length >= 12) break;
+      if (removerFotosDuplicadas(resultados).length >= 28) break;
     }
   }
 
-  // Busca exata do modelo no Commons. O filtro posterior exige que o título
-  // realmente contenha a identidade do modelo, evitando resultados como Model T.
-  const consultasModelo = montarConsultasCommons(infoModelo, '', false);
-  for (const consulta of consultasModelo) {
-    const encontrados = await buscarFotosCommons(consulta, infoModelo, cor, signal);
-    resultados.push(...encontrados);
-    if (removerFotosDuplicadas(resultados).length >= 16) break;
-  }
-
-  // A imagem principal do artigo da Wikipedia funciona como fallback confiável
-  // para o modelo, mesmo quando o Commons não possui uma foto com a cor desejada.
+  // A Wikipedia entra somente como fonte adicional de candidatos. Ela também
+  // passará pela mesma validação visual de cor.
   const wikipedia = await buscarFotosWikipedia(infoModelo, cor, signal);
   resultados.push(...wikipedia);
 
-  return removerFotosDuplicadas(resultados)
+  const candidatos = removerFotosDuplicadas(resultados)
     .filter(item => fotoCorrespondeAoModelo(item.titulo, infoModelo))
-    .sort((a, b) => b.pontuacao - a.pontuacao);
+    .sort((a, b) => b.pontuacao - a.pontuacao)
+    .slice(0, 32);
+
+  const validados = await filtrarFotosPelaCor(candidatos, cor, signal);
+
+  return validados.sort((a, b) => b.pontuacao - a.pontuacao);
 }
 
 function montarConsultasCommons(infoModelo, corTraduzida = '', incluirCor = false) {
@@ -1189,6 +1305,246 @@ function pontuarFoto(titulo, infoModelo, cor, largura, altura, fonte) {
   return pontos;
 }
 
+function resolverCorCanonica(cor) {
+  const normalizada = normalizarTexto(cor);
+  if (CORES_CANONICAS[normalizada]) return CORES_CANONICAS[normalizada];
+
+  const entrada = Object.keys(CORES_CANONICAS)
+    .sort((a, b) => b.length - a.length)
+    .find(alias => normalizada.includes(alias));
+
+  return entrada ? CORES_CANONICAS[entrada] : null;
+}
+
+function tituloConfirmaCor(titulo, cor) {
+  const canonica = resolverCorCanonica(cor);
+  if (!canonica) return false;
+
+  const texto = normalizarTexto(titulo);
+  const termos = TERMOS_COR_TITULO[canonica] || [];
+  return termos.some(termo => texto.includes(normalizarTexto(termo)));
+}
+
+async function filtrarFotosPelaCor(candidatos, cor, signal) {
+  const corCanonica = resolverCorCanonica(cor);
+
+  // Cor fora do catálogo: exige que o nome do arquivo confirme exatamente
+  // o texto digitado, evitando assumir uma cor que não pode ser validada.
+  if (!corCanonica) {
+    const corNormalizada = normalizarTexto(cor);
+    return candidatos.filter(item => normalizarTexto(item.titulo).includes(corNormalizada));
+  }
+
+  const validados = [];
+  const tamanhoLote = 4;
+
+  for (let inicio = 0; inicio < candidatos.length; inicio += tamanhoLote) {
+    if (signal?.aborted) throw criarErroAbortado();
+
+    const lote = candidatos.slice(inicio, inicio + tamanhoLote);
+    const analises = await Promise.all(lote.map(async item => {
+      const tituloConfirma = tituloConfirmaCor(item.titulo, cor);
+
+      try {
+        const analise = await analisarCorDaImagem(item.url, corCanonica, signal);
+        if (!analise.compativel && !tituloConfirma) return null;
+
+        return {
+          ...item,
+          cor_confirmada: true,
+          confianca_cor: Math.max(analise.confianca, tituloConfirma ? 0.85 : 0),
+          pontuacao: item.pontuacao + Math.round(Math.max(analise.confianca, tituloConfirma ? 0.85 : 0) * 100)
+        };
+      } catch (erro) {
+        if (erro?.name === 'AbortError') throw erro;
+
+        // Se o navegador não conseguir ler os pixels por CORS, só aceita a foto
+        // quando a cor estiver explicitamente no título do arquivo.
+        if (!tituloConfirma) return null;
+        return {
+          ...item,
+          cor_confirmada: true,
+          confianca_cor: 0.85,
+          pontuacao: item.pontuacao + 85
+        };
+      }
+    }));
+
+    validados.push(...analises.filter(Boolean));
+    if (validados.length >= 12) break;
+  }
+
+  return removerFotosDuplicadas(validados);
+}
+
+function criarErroAbortado() {
+  const erro = new Error('Busca cancelada');
+  erro.name = 'AbortError';
+  return erro;
+}
+
+function carregarImagemParaAnalise(url, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(criarErroAbortado());
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.decoding = 'async';
+
+    const limpar = () => signal?.removeEventListener('abort', abortar);
+    const abortar = () => {
+      limpar();
+      img.src = '';
+      reject(criarErroAbortado());
+    };
+
+    img.onload = () => {
+      limpar();
+      resolve(img);
+    };
+    img.onerror = () => {
+      limpar();
+      reject(new Error('Não foi possível analisar a cor da imagem'));
+    };
+
+    signal?.addEventListener('abort', abortar, { once: true });
+    img.src = url;
+  });
+}
+
+async function analisarCorDaImagem(url, corCanonica, signal) {
+  const img = await carregarImagemParaAnalise(url, signal);
+  if (signal?.aborted) throw criarErroAbortado();
+
+  const largura = 180;
+  const altura = 120;
+  const canvas = document.createElement('canvas');
+  canvas.width = largura;
+  canvas.height = altura;
+
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('Canvas indisponível');
+
+  // Recorta a área central/inferior, onde normalmente está a carroceria,
+  // reduzindo a influência de céu, árvores e chão.
+  const sx = img.naturalWidth * 0.08;
+  const sy = img.naturalHeight * 0.18;
+  const sw = img.naturalWidth * 0.84;
+  const sh = img.naturalHeight * 0.72;
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, largura, altura);
+
+  const pixels = ctx.getImageData(0, 0, largura, altura).data;
+  let pesoTotal = 0;
+  let pesoCompativel = 0;
+  let quantidadeCompativel = 0;
+
+  for (let y = 0; y < altura; y += 2) {
+    for (let x = 0; x < largura; x += 2) {
+      const i = (y * largura + x) * 4;
+      if (pixels[i + 3] < 220) continue;
+
+      const r = pixels[i] / 255;
+      const g = pixels[i + 1] / 255;
+      const b = pixels[i + 2] / 255;
+      const hsv = rgbParaHsv(r, g, b);
+
+      // O núcleo recebe mais peso que as bordas da fotografia.
+      const noNucleo = x > largura * 0.18 && x < largura * 0.82 &&
+        y > altura * 0.20 && y < altura * 0.88;
+      const peso = noNucleo ? 2 : 1;
+
+      pesoTotal += peso;
+      if (pixelCompativelComCor(hsv, corCanonica)) {
+        pesoCompativel += peso;
+        quantidadeCompativel++;
+      }
+    }
+  }
+
+  const proporcao = pesoTotal ? pesoCompativel / pesoTotal : 0;
+  const minimo = minimoProporcaoCor(corCanonica);
+
+  return {
+    compativel: proporcao >= minimo && quantidadeCompativel >= 24,
+    confianca: Math.min(1, proporcao / Math.max(minimo * 2.2, 0.01)),
+    proporcao
+  };
+}
+
+function rgbParaHsv(r, g, b) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  let h = 0;
+
+  if (delta !== 0) {
+    if (max === r) h = 60 * (((g - b) / delta) % 6);
+    else if (max === g) h = 60 * (((b - r) / delta) + 2);
+    else h = 60 * (((r - g) / delta) + 4);
+  }
+
+  if (h < 0) h += 360;
+
+  return {
+    h,
+    s: max === 0 ? 0 : delta / max,
+    v: max
+  };
+}
+
+function hueEntre(h, inicio, fim) {
+  if (inicio <= fim) return h >= inicio && h <= fim;
+  return h >= inicio || h <= fim;
+}
+
+function pixelCompativelComCor({ h, s, v }, cor) {
+  switch (cor) {
+    case 'branco':
+      return s <= 0.22 && v >= 0.72;
+    case 'preto':
+      return v <= 0.24;
+    case 'prata':
+      return s <= 0.22 && v >= 0.48 && v < 0.84;
+    case 'cinza':
+      return s <= 0.24 && v >= 0.28 && v < 0.70;
+    case 'chumbo':
+      return s <= 0.25 && v >= 0.18 && v < 0.48;
+    case 'vermelho':
+      return hueEntre(h, 345, 14) && s >= 0.38 && v >= 0.28;
+    case 'vinho':
+      return hueEntre(h, 340, 18) && s >= 0.32 && v >= 0.16 && v < 0.58;
+    case 'laranja':
+      return hueEntre(h, 15, 38) && s >= 0.42 && v >= 0.38;
+    case 'marrom':
+      return hueEntre(h, 12, 42) && s >= 0.28 && v >= 0.16 && v < 0.58;
+    case 'dourado':
+      return hueEntre(h, 35, 58) && s >= 0.28 && v >= 0.42;
+    case 'amarelo':
+      return hueEntre(h, 42, 72) && s >= 0.42 && v >= 0.52;
+    case 'verde':
+      return hueEntre(h, 72, 170) && s >= 0.30 && v >= 0.22;
+    case 'azul':
+      return hueEntre(h, 185, 255) && s >= 0.30 && v >= 0.22;
+    case 'azul marinho':
+      return hueEntre(h, 195, 245) && s >= 0.28 && v >= 0.12 && v < 0.52;
+    case 'roxo':
+      return hueEntre(h, 255, 330) && s >= 0.30 && v >= 0.22;
+    case 'bege':
+      return hueEntre(h, 25, 65) && s >= 0.10 && s <= 0.45 && v >= 0.52;
+    default:
+      return false;
+  }
+}
+
+function minimoProporcaoCor(cor) {
+  if (['branco', 'preto', 'prata', 'cinza', 'chumbo'].includes(cor)) return 0.16;
+  if (['bege', 'dourado'].includes(cor)) return 0.07;
+  return 0.045;
+}
+
 function removerFotosDuplicadas(resultados) {
   const urls = new Set();
   return resultados.filter(item => {
@@ -1260,7 +1616,7 @@ function mostrarFoto(url) {
   mostrarLoading(false);
 }
 
-function mostrarPlaceholderFoto(mensagem = 'Preencha marca e modelo para buscar uma foto') {
+function mostrarPlaceholderFoto(mensagem = 'Preencha marca, modelo e cor para buscar uma foto') {
   const img = document.getElementById('foto-img');
   const placeholder = document.getElementById('foto-placeholder');
   const texto = placeholder.querySelector('p');
@@ -1273,13 +1629,13 @@ function mostrarPlaceholderFoto(mensagem = 'Preencha marca e modelo para buscar 
   mostrarLoading(false);
 }
 
-function resetarFoto() {
+function resetarFoto(mensagem = 'Preencha marca, modelo e cor para buscar uma foto') {
   _fotoAtualUrl = null;
   _fotoBuscaChave = '';
   _fotoResultados = [];
   _fotoResultadoIdx = -1;
   _fotoUrlsFalharam = new Set();
-  mostrarPlaceholderFoto('Preencha marca e modelo para buscar uma foto');
+  mostrarPlaceholderFoto(mensagem);
 }
 
 function mostrarLoading(ativo) {
