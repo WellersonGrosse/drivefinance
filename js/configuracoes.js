@@ -363,8 +363,7 @@ function configurarVeiculos() {
     input.addEventListener('blur', () => {
       if (
         inputMarca.value.trim() &&
-        inputModelo.value.trim() &&
-        inputCor.value.trim()
+        inputModelo.value.trim()
       ) {
         buscarFotoVeiculo(false);
       }
@@ -639,15 +638,31 @@ const MODELOS_CONHECIDOS = [
   {
     detectar: compacto => compacto.includes('unoway'),
     canonico: 'Fiat Uno Way',
-    aliases: ['Fiat Uno Way', 'Uno Way'],
+    aliases: ['Fiat Uno Way', 'Fiat Uno 1.0 Way', 'Fiat Uno 1.4 Way', 'Uno Way'],
     identidades: ['unoway'],
+    tokensObrigatorios: ['uno', 'way'],
+    categorias: ['Fiat Uno (2010)', 'Fiat Uno (2014)'],
     marcas: ['fiat']
   },
   {
-    detectar: compacto => compacto.startsWith('uno') && !compacto.startsWith('unoway'),
+    detectar: compacto => compacto.includes('unovivace'),
+    canonico: 'Fiat Uno Vivace',
+    aliases: ['Fiat Uno Vivace', 'Fiat Uno 1.0 Vivace', 'Fiat Uno 1.4 Vivace', 'Uno Vivace'],
+    identidades: ['unovivace'],
+    tokensObrigatorios: ['uno', 'vivace'],
+    categorias: ['Fiat Uno (2010)'],
+    marcas: ['fiat']
+  },
+  {
+    detectar: compacto => {
+      const semAno = compacto.replace(/(19|20)\d{2}/g, '');
+      return semAno === 'uno' || /^uno(10|14|mille|fire|economy)?$/.test(semAno);
+    },
     canonico: 'Fiat Uno',
     aliases: ['Fiat Uno', 'Uno'],
     identidades: ['uno'],
+    tokensObrigatorios: ['uno'],
+    categorias: ['Fiat Uno'],
     marcas: ['fiat']
   },
   {
@@ -823,23 +838,18 @@ function obterParametrosBuscaFoto() {
   };
 }
 
-function obterMensagemCamposFoto({ marca, modelo, cor }) {
-  const faltantes = [];
-  if (!marca) faltantes.push('marca');
-  if (!modelo) faltantes.push('modelo');
-  if (!cor) faltantes.push('cor');
-
-  if (faltantes.length === 0) return '';
-  if (faltantes.length === 1) return `Preencha ${faltantes[0]} para buscar uma foto`;
-  if (faltantes.length === 2) return `Preencha ${faltantes[0]} e ${faltantes[1]} para buscar uma foto`;
-  return 'Preencha marca, modelo e cor para buscar uma foto';
+function obterMensagemCamposFoto({ marca, modelo }) {
+  if (!marca && !modelo) return 'Preencha marca e modelo para buscar uma foto';
+  if (!marca) return 'Preencha a marca para buscar uma foto';
+  if (!modelo) return 'Preencha o modelo para buscar uma foto';
+  return '';
 }
 
 function agendarBuscaFoto(atraso = 700) {
   clearTimeout(_fotoBuscaTimer);
 
   const parametros = obterParametrosBuscaFoto();
-  if (!parametros.marca || !parametros.modelo || !parametros.cor) {
+  if (!parametros.marca || !parametros.modelo) {
     cancelarBuscaFotoAtiva();
     resetarFoto(obterMensagemCamposFoto(parametros));
     return;
@@ -854,7 +864,7 @@ function invalidarFotoSeBuscaMudou() {
   const parametros = obterParametrosBuscaFoto();
   const novaChave = obterChaveBuscaFoto(parametros.marca, parametros.modelo, parametros.cor);
 
-  if (!parametros.marca || !parametros.modelo || !parametros.cor) {
+  if (!parametros.marca || !parametros.modelo) {
     cancelarBuscaFotoAtiva();
     resetarFoto(obterMensagemCamposFoto(parametros));
     return;
@@ -898,8 +908,8 @@ async function buscarFotoVeiculo(forcar = false) {
   _fotoBuscaTimer = null;
 
   const { marca, modelo, cor } = obterParametrosBuscaFoto();
-  if (!marca || !modelo || !cor) {
-    resetarFoto(obterMensagemCamposFoto({ marca, modelo, cor }));
+  if (!marca || !modelo) {
+    resetarFoto(obterMensagemCamposFoto({ marca, modelo }));
     return;
   }
 
@@ -940,8 +950,11 @@ async function buscarFotoVeiculo(forcar = false) {
 
     if (_fotoResultados.length === 0) {
       _fotoAtualUrl = null;
+      const detalheCor = cor
+        ? ` na cor ${cor}. Você pode apagar a cor para visualizar fotos do modelo em outras cores.`
+        : '.';
       mostrarPlaceholderFoto(
-        `Não encontramos uma foto confiável de ${marca} ${modelo} na cor ${cor}.`
+        `Não encontramos uma foto confiável de ${marca} ${modelo}${detalheCor}`
       );
       return;
     }
@@ -970,37 +983,43 @@ async function coletarFotosVeiculo(marca, modelo, cor, signal) {
   const corTraduzida = CORES_BUSCA[corNormalizada] || cor;
   const resultados = [];
 
-  // Todas as consultas iniciais carregam marca + modelo + cor + contexto automotivo.
-  const consultasComCor = montarConsultasCommons(infoModelo, corTraduzida, true);
-  for (const consulta of consultasComCor) {
-    const encontrados = await buscarFotosCommons(consulta, infoModelo, cor, signal);
-    resultados.push(...encontrados);
-    if (removerFotosDuplicadas(resultados).length >= 24) break;
-  }
-
-  // Amplia os candidatos apenas quando necessário; a validação visual de cor
-  // continua obrigatória antes de qualquer foto ser exibida.
-  if (removerFotosDuplicadas(resultados).length < 12) {
-    const consultasModelo = montarConsultasCommons(infoModelo, '', false);
-    for (const consulta of consultasModelo) {
-      const encontrados = await buscarFotosCommons(consulta, infoModelo, cor, signal);
-      resultados.push(...encontrados);
+  // A cor é opcional. Quando informada, entra em todas as consultas prioritárias.
+  if (cor) {
+    const termosCor = [...new Set([cor, corTraduzida].filter(Boolean))];
+    for (const termoCor of termosCor) {
+      const consultasComCor = montarConsultasCommons(infoModelo, termoCor, true);
+      for (const consulta of consultasComCor) {
+        const encontrados = await buscarFotosCommons(consulta, infoModelo, cor, signal);
+        resultados.push(...encontrados);
+        if (removerFotosDuplicadas(resultados).length >= 28) break;
+      }
       if (removerFotosDuplicadas(resultados).length >= 28) break;
     }
   }
 
-  // A Wikipedia entra somente como fonte adicional de candidatos. Ela também
-  // passará pela mesma validação visual de cor.
+  // Busca sempre o modelo exato, inclusive quando a cor não foi informada.
+  if (!cor || removerFotosDuplicadas(resultados).length < 16) {
+    const consultasModelo = montarConsultasCommons(infoModelo, '', false);
+    for (const consulta of consultasModelo) {
+      const encontrados = await buscarFotosCommons(consulta, infoModelo, cor, signal);
+      resultados.push(...encontrados);
+      if (removerFotosDuplicadas(resultados).length >= 36) break;
+    }
+  }
+
   const wikipedia = await buscarFotosWikipedia(infoModelo, cor, signal);
   resultados.push(...wikipedia);
 
   const candidatos = removerFotosDuplicadas(resultados)
     .filter(item => fotoCorrespondeAoModelo(item.titulo, infoModelo))
     .sort((a, b) => b.pontuacao - a.pontuacao)
-    .slice(0, 32);
+    .slice(0, 40);
 
+  // Sem cor, retorna somente os candidatos validados para marca e modelo.
+  if (!cor) return candidatos;
+
+  // Com cor, exibe apenas fotos cuja cor tenha sido confirmada.
   const validados = await filtrarFotosPelaCor(candidatos, cor, signal);
-
   return validados.sort((a, b) => b.pontuacao - a.pontuacao);
 }
 
@@ -1011,10 +1030,18 @@ function montarConsultasCommons(infoModelo, corTraduzida = '', incluirCor = fals
   infoModelo.aliases.forEach(alias => {
     consultas.push(`"${alias}"${cor} automobile`);
     consultas.push(`"${alias}"${cor} car`);
+    consultas.push(`intitle:"${alias}"${cor}`);
   });
 
-  // Categorias do Commons costumam usar o nome canônico do veículo.
-  consultas.push(`incategory:"${infoModelo.canonico}"${cor}`);
+  // Algumas versões, como Uno Way e Uno Vivace, ficam em categorias da geração.
+  (infoModelo.categorias || []).forEach(categoria => {
+    const termosVersao = (infoModelo.tokensObrigatorios || [])
+      .filter(token => token !== 'uno')
+      .join(' ');
+    consultas.push(
+      `incategory:"${categoria}"${termosVersao ? ` "${termosVersao}"` : ''}${cor}`
+    );
+  });
 
   return [...new Set(consultas)];
 }
@@ -1167,6 +1194,10 @@ function resolverModeloBusca(marcaDigitada, modeloDigitado) {
         ...conhecido.aliases
       ])],
       identidades: conhecido.identidades,
+      tokensObrigatorios: (conhecido.tokensObrigatorios || [])
+        .map(normalizarTexto)
+        .filter(Boolean),
+      categorias: conhecido.categorias || [],
       marcas: [...new Set([...aliasesMarca, ...conhecido.marcas.map(normalizarTexto)])],
       tokens: modeloNormalizado
         .split(' ')
@@ -1190,6 +1221,8 @@ function resolverModeloBusca(marcaDigitada, modeloDigitado) {
     canonico,
     aliases: [canonico],
     identidades,
+    tokensObrigatorios: tokensModelo.filter(token => !/^(19|20)\d{2}$/.test(token)),
+    categorias: [],
     marcas: aliasesMarca.length ? aliasesMarca : [marcaNormalizada],
     tokens: tokensModelo,
     conhecido: false
@@ -1226,6 +1259,18 @@ function fotoCorrespondeAoModelo(titulo, infoModelo) {
 
   if (!correspondeMarca) return false;
 
+  const obrigatorios = (infoModelo.tokensObrigatorios || [])
+    .map(normalizarTexto)
+    .filter(Boolean);
+
+  // Versões específicas precisam conter todos os termos essenciais.
+  if (
+    obrigatorios.length > 0 &&
+    !obrigatorios.every(token => tokensTitulo.includes(token) || compacto.includes(compactarTexto(token)))
+  ) {
+    return false;
+  }
+
   const correspondeIdentidade = infoModelo.identidades.some(identidade => {
     const identidadeNormalizada = normalizarTexto(identidade);
     if (!identidadeNormalizada) return false;
@@ -1237,7 +1282,7 @@ function fotoCorrespondeAoModelo(titulo, infoModelo) {
     return compacto.includes(compactarTexto(identidadeNormalizada));
   });
 
-  if (correspondeIdentidade) return true;
+  if (correspondeIdentidade || obrigatorios.length > 0) return true;
 
   const tokens = infoModelo.tokens.filter(token => token.length >= 2);
   if (tokens.length === 0) return false;
@@ -1347,13 +1392,14 @@ async function filtrarFotosPelaCor(candidatos, cor, signal) {
 
       try {
         const analise = await analisarCorDaImagem(item.url, corCanonica, signal);
-        if (!analise.compativel && !tituloConfirma) return null;
+        if (!analise.compativel) return null;
 
+        const confianca = Math.max(analise.confianca, tituloConfirma ? 0.90 : 0);
         return {
           ...item,
           cor_confirmada: true,
-          confianca_cor: Math.max(analise.confianca, tituloConfirma ? 0.85 : 0),
-          pontuacao: item.pontuacao + Math.round(Math.max(analise.confianca, tituloConfirma ? 0.85 : 0) * 100)
+          confianca_cor: confianca,
+          pontuacao: item.pontuacao + Math.round(confianca * 100)
         };
       } catch (erro) {
         if (erro?.name === 'AbortError') throw erro;
@@ -1513,7 +1559,8 @@ function pixelCompativelComCor({ h, s, v }, cor) {
     case 'chumbo':
       return s <= 0.25 && v >= 0.18 && v < 0.48;
     case 'vermelho':
-      return hueEntre(h, 345, 14) && s >= 0.38 && v >= 0.28;
+      // Faixa mais estreita para não confundir marrom, laranja ou vinho com vermelho.
+      return hueEntre(h, 350, 9) && s >= 0.48 && v >= 0.34;
     case 'vinho':
       return hueEntre(h, 340, 18) && s >= 0.32 && v >= 0.16 && v < 0.58;
     case 'laranja':
@@ -1616,7 +1663,7 @@ function mostrarFoto(url) {
   mostrarLoading(false);
 }
 
-function mostrarPlaceholderFoto(mensagem = 'Preencha marca, modelo e cor para buscar uma foto') {
+function mostrarPlaceholderFoto(mensagem = 'Preencha marca e modelo para buscar uma foto') {
   const img = document.getElementById('foto-img');
   const placeholder = document.getElementById('foto-placeholder');
   const texto = placeholder.querySelector('p');
@@ -1629,7 +1676,7 @@ function mostrarPlaceholderFoto(mensagem = 'Preencha marca, modelo e cor para bu
   mostrarLoading(false);
 }
 
-function resetarFoto(mensagem = 'Preencha marca, modelo e cor para buscar uma foto') {
+function resetarFoto(mensagem = 'Preencha marca e modelo para buscar uma foto') {
   _fotoAtualUrl = null;
   _fotoBuscaChave = '';
   _fotoResultados = [];
