@@ -340,7 +340,10 @@ function configurarProfissional() {
     if (e.key === 'Escape') fecharFormPlataforma();
   });
 
-  document.getElementById('btn-salvar-profissional').addEventListener('click', salvarProfissional);
+  document.getElementById('btn-salvar-salario').addEventListener('click', salvarSalario);
+  document.getElementById('btn-salvar-dias').addEventListener('click', salvarDias);
+  document.getElementById('btn-salvar-plataformas').addEventListener('click', salvarPlataformas);
+  document.getElementById('btn-salvar-meta').addEventListener('click', salvarMeta);
 }
 
 function atualizarSalarioRecomendado(totalDespesasMensais = null) {
@@ -469,65 +472,92 @@ function fecharFormPlataforma() {
   document.getElementById('input-nova-plataforma').value = '';
 }
 
-async function salvarProfissional() {
-  const btn = document.getElementById('btn-salvar-profissional');
+async function salvarSalario() {
+  const btn = document.getElementById('btn-salvar-salario');
+  const inputSalario = document.getElementById('input-salario');
+  const inputMargem = document.getElementById('input-margem-salario');
+  const salarioConvertido = converterNumeroLocalizado(inputSalario.value);
+  const margemSalario = converterNumeroLocalizado(inputMargem.value);
+  const salario = salarioConvertido ?? 0;
+
+  if (salarioConvertido === null && inputSalario.value.trim()) {
+    piscarCampoNumerico(inputSalario);
+    toast('Informe o salário usando apenas números e vírgula para os centavos', 'aviso');
+    return;
+  }
+  if (!Number.isFinite(margemSalario) || margemSalario < 0 || margemSalario > 999) {
+    piscarCampoNumerico(inputMargem);
+    toast('Informe uma margem de salário entre 0% e 999%', 'aviso');
+    return;
+  }
+
   btnLoading(btn, true);
   try {
-    const inputSalario = document.getElementById('input-salario');
-    const inputMargem = document.getElementById('input-margem-salario');
-    const salarioConvertido = converterNumeroLocalizado(inputSalario.value);
-    const margemSalario = converterNumeroLocalizado(inputMargem.value);
-    const salario = salarioConvertido ?? 0;
-
-    if (salarioConvertido === null && inputSalario.value.trim()) {
-      piscarCampoNumerico(inputSalario);
-      toast('Informe o salário usando apenas números e vírgula para os centavos', 'aviso');
-      return;
-    }
-
-    if (!Number.isFinite(margemSalario) || margemSalario < 0 || margemSalario > 999) {
-      piscarCampoNumerico(inputMargem);
-      toast('Informe uma margem de salário entre 0% e 999%', 'aviso');
-      return;
-    }
-
     inputSalario.value = salario > 0 ? formatarNumeroLocalizado(salario, 2, 2) : '';
     inputMargem.value = formatarNumeroLocalizado(margemSalario, 0, 2);
+    await updatePerfil(_uid, { salario_liquido: salario });
+    await saveConfig(_uid, { margem_salario_percentual: margemSalario });
+    _perfil = { ..._perfil, salario_liquido: salario };
+    _config = { ..._config, margem_salario_percentual: margemSalario };
+    toast('Salário salvo!', 'sucesso');
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao salvar salário', 'erro');
+  } finally {
+    btnLoading(btn, false);
+  }
+}
 
+async function salvarDias() {
+  const btn = document.getElementById('btn-salvar-dias');
+  btnLoading(btn, true);
+  try {
     const dias = [];
     document.querySelectorAll('.dia-toggle').forEach(b => {
       if (b.getAttribute('aria-pressed') === 'true') dias.push(parseInt(b.dataset.dia));
     });
+    await saveConfig(_uid, { dias_trabalho: dias });
+    _config = { ..._config, dias_trabalho: dias };
+    toast('Dias de trabalho salvos!', 'sucesso');
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao salvar dias de trabalho', 'erro');
+  } finally {
+    btnLoading(btn, false);
+  }
+}
+
+async function salvarPlataformas() {
+  const btn = document.getElementById('btn-salvar-plataformas');
+  btnLoading(btn, true);
+  try {
     const plataformas = [];
     document.querySelectorAll('.plataforma-row').forEach(row => {
       plataformas.push({ nome: row.dataset.nome, ativa: row.querySelector('.plat-toggle')?.checked ?? false });
     });
-
-    await updatePerfil(_uid, { salario_liquido: salario });
-    const superavit = document.getElementById('toggle-superavit').checked;
-    const deficit = document.getElementById('toggle-deficit').checked;
-
-    await saveConfig(_uid, {
-      dias_trabalho: dias,
-      plataformas,
-      superavit,
-      deficit,
-      margem_salario_percentual: margemSalario
-    });
-
-    _perfil = { ..._perfil, salario_liquido: salario };
-    _config = {
-      ..._config,
-      dias_trabalho: dias,
-      plataformas,
-      superavit,
-      deficit,
-      margem_salario_percentual: margemSalario
-    };
-    toast('Configurações profissionais salvas!', 'sucesso');
+    await saveConfig(_uid, { plataformas });
+    _config = { ..._config, plataformas };
+    toast('Plataformas salvas!', 'sucesso');
   } catch (e) {
     console.error(e);
-    toast('Erro ao salvar configurações', 'erro');
+    toast('Erro ao salvar plataformas', 'erro');
+  } finally {
+    btnLoading(btn, false);
+  }
+}
+
+async function salvarMeta() {
+  const btn = document.getElementById('btn-salvar-meta');
+  btnLoading(btn, true);
+  try {
+    const superavit = document.getElementById('toggle-superavit').checked;
+    const deficit = document.getElementById('toggle-deficit').checked;
+    await saveConfig(_uid, { superavit, deficit });
+    _config = { ..._config, superavit, deficit };
+    toast('Redistribuição de meta salva!', 'sucesso');
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao salvar redistribuição de meta', 'erro');
   } finally {
     btnLoading(btn, false);
   }
