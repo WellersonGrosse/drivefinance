@@ -283,6 +283,69 @@
 }
 .salario-wrap .input { padding-left: 40px; }
 
+.salario-config-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1.3fr);
+  gap: var(--gap-lg);
+  align-items: end;
+  margin-top: var(--gap-lg);
+  padding-top: var(--gap-lg);
+  border-top: 0.5px solid var(--dark-border);
+}
+
+.salario-margem-group {
+  min-width: 0;
+}
+
+.percentual-wrap {
+  position: relative;
+}
+
+.percentual-wrap .input {
+  padding-right: 42px;
+}
+
+.percentual-suffix {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.salario-recomendado-linha {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-md);
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-sm);
+}
+
+.salario-recomendado-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.salario-recomendado-valor {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--teal);
+  text-align: right;
+}
+
+.salario-recomendado-valor.pendente {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 /* ── Dias de trabalho ─────────────────────────────────────── */
 .dias-grid {
   display: flex;
@@ -819,6 +882,19 @@
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; }
   .form-group.full { grid-column: 1; }
+
+  .salario-config-row {
+    grid-template-columns: 1fr;
+  }
+
+  .salario-recomendado-linha {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .salario-recomendado-valor {
+    text-align: left;
+  }
 
   .cfg-tab { font-size: 12px; padding: 7px 10px; }
 
