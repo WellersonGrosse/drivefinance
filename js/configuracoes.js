@@ -11,13 +11,15 @@ import {
   formatData, toast
 } from './app.js';
 
-import { auth } from './firebase-config.js';
+import { auth, db } from './firebase-config.js';
 import { sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let _uid = null;
 let _perfil = null;
 let _config = null;
+let _planosGlobais = null;
 let _veiculos = [];
 let _carrosselIdx = 0;
 let _editandoVeiculoId = null;
@@ -37,8 +39,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = await exigirLogin();
   _uid = user.uid;
 
-  await Promise.all([carregarPerfil(), carregarConfig(), carregarVeiculos()]);
+  await Promise.all([
+    carregarPerfil(),
+    carregarConfig(),
+    carregarVeiculos(),
+    carregarPlanosGlobais()
+  ]);
 
+  preencherConta();
   preencherSidebar();
   configurarSidebar();
   configurarTabs();
@@ -56,7 +64,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function carregarPerfil() {
   _perfil = await getPerfil(_uid);
   preencherFormPessoal();
-  preencherConta();
+}
+
+async function carregarPlanosGlobais() {
+  try {
+    const snap = await getDoc(doc(db, 'config_global', 'planos'));
+    _planosGlobais = snap.exists() ? snap.data() : null;
+  } catch (erro) {
+    console.warn('[DriveFinance/Configurações] Não foi possível carregar os nomes dos planos:', erro?.code || erro?.message);
+    _planosGlobais = null;
+  }
 }
 
 async function carregarConfig() {
@@ -1739,7 +1756,19 @@ function iniciarDeNome(nome) {
 }
 
 function formatarPlano(plano) {
-  return { trial: 'Período de teste', basico: 'Básico', pro: 'Pro', completo: 'Completo' }[plano] || plano || '—';
+  if (!plano) return '—';
+
+  const nomeConfigurado = _planosGlobais?.[plano]?.nome;
+  if (typeof nomeConfigurado === 'string' && nomeConfigurado.trim()) {
+    return nomeConfigurado.trim();
+  }
+
+  return {
+    trial: 'Período de teste',
+    basico: 'Básico',
+    pro: 'Pro',
+    completo: 'Completo'
+  }[plano] || plano;
 }
 
 function btnLoading(btn, loading) {
