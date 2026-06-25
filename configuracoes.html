@@ -337,7 +337,7 @@
           <div class="veiculo-foto-preview" id="veiculo-foto-preview">
             <div class="foto-placeholder" id="foto-placeholder">
               <svg viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1l2-4h12l2 4h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z"/></svg>
-              <p>Preencha o modelo para buscar uma foto</p>
+              <p>Preencha marca e modelo para buscar uma foto</p>
             </div>
             <img id="foto-img" src="" alt="Foto do veículo" hidden />
             <div class="foto-loading" id="foto-loading" hidden>
@@ -365,8 +365,12 @@
         <!-- Coluna direita: campos -->
         <div class="modal-campos-col">
           <div class="form-group">
+            <label class="form-label" for="v-marca">Marca <span class="required">*</span></label>
+            <input type="text" id="v-marca" class="input" placeholder="Ex: Fiat, Volkswagen, Chevrolet..." autocomplete="off" />
+          </div>
+          <div class="form-group">
             <label class="form-label" for="v-modelo">Modelo <span class="required">*</span></label>
-            <input type="text" id="v-modelo" class="input" placeholder="Ex: Onix, HB20, Creta..." />
+            <input type="text" id="v-modelo" class="input" placeholder="Ex: Uno Way, Gol, Agile..." autocomplete="off" />
           </div>
           <div class="form-group">
             <label class="form-label" for="v-placa">Placa</label>
