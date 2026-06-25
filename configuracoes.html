@@ -150,12 +150,38 @@
               <h2>Salário desejado</h2>
             </div>
             <p class="cfg-card-desc">Quanto você quer ganhar por mês?</p>
+
             <div class="form-group">
               <div class="salario-wrap">
                 <span class="salario-prefix">R$</span>
                 <input type="number" id="input-salario" class="input" placeholder="0,00" min="0" step="0.01" />
               </div>
-              <span class="field-hint">💡 Este valor orienta sua meta diária. Para um número mais preciso, considere suas despesas fixas, dívidas e o desgaste do seu veículo.</span>
+              <span class="field-hint">💡 Este valor orienta sua meta diária.</span>
+            </div>
+
+            <div class="salario-config-row">
+              <div class="form-group salario-margem-group">
+                <label class="form-label" for="input-margem-salario">Margem de salário</label>
+                <div class="percentual-wrap">
+                  <input
+                    type="number"
+                    id="input-margem-salario"
+                    class="input"
+                    placeholder="20"
+                    min="0"
+                    max="999"
+                    step="1"
+                    inputmode="decimal"
+                  />
+                  <span class="percentual-suffix">%</span>
+                </div>
+                <span class="field-hint">Percentual desejado acima das despesas mensais.</span>
+              </div>
+
+              <div class="salario-recomendado-linha" aria-live="polite">
+                <span class="salario-recomendado-label">Salário recomendado</span>
+                <strong class="salario-recomendado-valor pendente" id="salario-recomendado-valor">Aguardando despesas</strong>
+              </div>
             </div>
           </div>
 
