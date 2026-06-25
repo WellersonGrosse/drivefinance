@@ -316,6 +316,26 @@
   pointer-events: none;
 }
 
+/* Campos numéricos sem controles nativos e com feedback de digitação inválida */
+.input-numerico-formatado {
+  font-variant-numeric: tabular-nums;
+}
+
+.input-numerico-formatado.input-invalido-pisca {
+  animation: campoNumericoInvalido 520ms ease;
+}
+
+@keyframes campoNumericoInvalido {
+  0%, 100% {
+    border-color: var(--dark-border-md);
+    box-shadow: none;
+  }
+  30%, 70% {
+    border-color: var(--coral);
+    box-shadow: 0 0 0 3px rgba(224,92,92,0.16);
+  }
+}
+
 .salario-recomendado-linha {
   min-height: 44px;
   display: flex;
