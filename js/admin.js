@@ -35,21 +35,23 @@ const TODOS_MODULOS = [
   'historico',
   'dashboard',
   'custo_operacional',
-  'relatorios',
-  'configuracoes',
-  'configuracoes_sugestao_salario'
+  'relatorios'
 ];
 
 const MODULOS_LABELS = {
-  home:                           'Home',
-  lancamentos:                    'Lançamentos',
-  despesas:                       'Despesas',
-  historico:                      'Histórico',
-  dashboard:                      'Dashboard',
-  custo_operacional:              'Custo Operacional',
-  relatorios:                     'Relatórios',
-  configuracoes:                  'Configurações',
-  configuracoes_sugestao_salario: 'Configurações — Sugestão de salário'
+  home:              'Home',
+  lancamentos:       'Lançamentos',
+  despesas:          'Despesas',
+  historico:         'Histórico',
+  dashboard:         'Dashboard',
+  custo_operacional: 'Custo Operacional',
+  relatorios:        'Relatórios'
+};
+
+// Hierarquia de módulos: define quais IDs são sub-módulos de um pai.
+// Pais não listados aqui são exibidos normalmente como linhas simples.
+const MODULOS_FILHOS = {
+  configuracoes: ['configuracoes_sugestao_salario']
 };
 
 // Features padrão no formato novo: lista global com flags por plano
@@ -955,20 +957,53 @@ function renderModulosTabela() {
     `<th class="col-plano-mini">${tabelaState.configuracoes[id].nome || id}</th>`
   ).join('');
 
-  const rowsModulos = TODOS_MODULOS.map(m => {
-    const toggles = IDS_PLANOS.map(id => {
-      const ativo = tabelaState.modulos[id].includes(m);
-      return `<td class="col-toggle-centro">
-        <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}"
-          onclick="moduloToggle('${id}','${m}')">${ativo ? '✓' : '○'}</button>
-      </td>`;
-    }).join('');
+  // IDs que são sub-módulos — não renderizam como linha principal
+  const todosFilhos = new Set(Object.values(MODULOS_FILHOS).flat());
 
-    return `<tr data-modulo="${m}">
-      <td class="col-modulo-label">${MODULOS_LABELS[m] || m}</td>
-      ${toggles}
-    </tr>`;
-  }).join('');
+  const rowsModulos = TODOS_MODULOS
+    .filter(m => !todosFilhos.has(m))
+    .map(m => {
+      const filhos = MODULOS_FILHOS[m] || [];
+      const temFilhos = filhos.length > 0;
+
+      const toggles = IDS_PLANOS.map(id => {
+        const ativo = tabelaState.modulos[id].includes(m);
+        return `<td class="col-toggle-centro">
+          <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}"
+            onclick="moduloToggle('${id}','${m}')">${ativo ? '✓' : '○'}</button>
+        </td>`;
+      }).join('');
+
+      const linhaPai = `<tr data-modulo="${m}" class="${temFilhos ? 'modulo-pai' : ''}">
+        <td class="col-modulo-label">
+          ${temFilhos ? `<button class="modulo-expandir" onclick="moduloExpandir('${m}')" aria-expanded="false" aria-label="Expandir sub-módulos">
+            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </button>` : ''}
+          ${MODULOS_LABELS[m] || m}
+        </td>
+        ${toggles}
+      </tr>`;
+
+      const linhasFilhos = filhos.map(f => {
+        const togglesFilho = IDS_PLANOS.map(id => {
+          const ativo = tabelaState.modulos[id].includes(f);
+          return `<td class="col-toggle-centro">
+            <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}"
+              onclick="moduloToggle('${id}','${f}')">${ativo ? '✓' : '○'}</button>
+          </td>`;
+        }).join('');
+
+        // Extrai só o nome após o " — " para exibir indentado
+        const labelFilho = (MODULOS_LABELS[f] || f).replace(/^[^—]*—\s*/, '');
+
+        return `<tr data-modulo="${f}" class="modulo-filho modulo-filho-de-${m}" hidden>
+          <td class="col-modulo-label col-modulo-filho-label">${labelFilho}</td>
+          ${togglesFilho}
+        </tr>`;
+      }).join('');
+
+      return linhaPai + linhasFilhos;
+    }).join('');
 
   c.innerHTML = `
     <table class="planos-tabela planos-tabela-modulos">
@@ -995,6 +1030,17 @@ function moduloToggle(id, modulo) {
   renderModulosTabela();
 }
 window.moduloToggle = moduloToggle;
+
+function moduloExpandir(pai) {
+  const tabela = $('planos-modulos-container');
+  if (!tabela) return;
+  const filhos = tabela.querySelectorAll(`.modulo-filho-de-${pai}`);
+  const btn = tabela.querySelector(`tr[data-modulo="${pai}"] .modulo-expandir`);
+  const expandido = btn?.getAttribute('aria-expanded') === 'true';
+  filhos.forEach(f => { f.hidden = expandido; });
+  if (btn) btn.setAttribute('aria-expanded', String(!expandido));
+}
+window.moduloExpandir = moduloExpandir;
 
 async function salvarModulosPlanos() {
   const atualizacao = {};
