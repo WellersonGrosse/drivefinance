@@ -35,17 +35,21 @@ const TODOS_MODULOS = [
   'historico',
   'dashboard',
   'custo_operacional',
-  'relatorios'
+  'relatorios',
+  'configuracoes',
+  'configuracoes_sugestao_salario'
 ];
 
 const MODULOS_LABELS = {
-  home:              'Home',
-  lancamentos:       'Lançamentos',
-  despesas:          'Despesas',
-  historico:         'Histórico',
-  dashboard:         'Dashboard',
-  custo_operacional: 'Custo Operacional',
-  relatorios:        'Relatórios'
+  home:                           'Home',
+  lancamentos:                    'Lançamentos',
+  despesas:                       'Despesas',
+  historico:                      'Histórico',
+  dashboard:                      'Dashboard',
+  custo_operacional:              'Custo Operacional',
+  relatorios:                     'Relatórios',
+  configuracoes:                  'Configurações',
+  configuracoes_sugestao_salario: 'Configurações — Sugestão de salário'
 };
 
 // Hierarquia de módulos: define quais IDs são sub-módulos de um pai.
