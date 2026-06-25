@@ -159,22 +159,7 @@ svg {
   gap: 10px;
 }
 
-.user-avatar,
-.topbar-avatar {
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: 11px;
-  background: linear-gradient(135deg, var(--roxo), var(--teal));
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.user-avatar {
-  width: 38px;
-  height: 38px;
-}
+/* avatar — estilos globais em style.css */
 
 .user-copy {
   min-width: 0;
