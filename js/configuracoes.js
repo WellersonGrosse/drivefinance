@@ -34,6 +34,13 @@ let _fotoUrlsFalharam = new Set();
 
 const DIAS_NOMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+// ─── Módulos desta página ─────────────────────────────────────────────────────
+// Flags de acesso por funcionalidade. Altere aqui quando mapear os planos.
+// false = sem restrição por enquanto; true = funcionalidade ativa/visível.
+const MODULOS_CONFIGURACOES = {
+  sugestao_salario: true  // Futuramente restrito ao plano mais alto
+};
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await exigirLogin();
@@ -339,6 +346,13 @@ function configurarProfissional() {
 function atualizarSalarioRecomendado(totalDespesasMensais = null) {
   const valorEl = document.getElementById('salario-recomendado-valor');
   if (!valorEl) return;
+
+  // Controle de acesso — módulo desabilitado oculta o bloco de sugestão
+  if (!MODULOS_CONFIGURACOES.sugestao_salario) {
+    const bloco = document.getElementById('salario-recomendado-valor')?.closest('.salario-recomendado-linha');
+    if (bloco) bloco.hidden = true;
+    return;
+  }
 
   const margem = converterNumeroLocalizado(document.getElementById('input-margem-salario')?.value);
   const possuiDespesas = Number.isFinite(totalDespesasMensais) && totalDespesasMensais > 0;
@@ -1580,54 +1594,59 @@ function tituloConfirmaCor(titulo, cor) {
 async function filtrarFotosPelaCor(candidatos, cor, signal) {
   const corCanonica = resolverCorCanonica(cor);
 
-  // Cor fora do catálogo: exige que o nome do arquivo confirme exatamente
-  // o texto digitado, evitando assumir uma cor que não pode ser validada.
+  // Cor fora do catálogo: aceita somente quando o título confirma o texto digitado.
   if (!corCanonica) {
     const corNormalizada = normalizarTexto(cor);
     return candidatos.filter(item => normalizarTexto(item.titulo).includes(corNormalizada));
   }
 
-  const validados = [];
+  // ── Fase 1: retorna imediatamente as fotos cujo título já confirma a cor ──
+  // Isso elimina a espera de canvas para o caso mais comum (foto bem rotulada).
+  const confirmadasPorTitulo = candidatos
+    .filter(item => tituloConfirmaCor(item.titulo, cor))
+    .map(item => ({
+      ...item,
+      cor_confirmada: true,
+      confianca_cor: 0.90,
+      pontuacao: item.pontuacao + 90
+    }));
+
+  if (confirmadasPorTitulo.length >= 3) {
+    return removerFotosDuplicadas(confirmadasPorTitulo);
+  }
+
+  // ── Fase 2: análise de canvas apenas nos candidatos sem confirmação por título ──
+  // Só chega aqui se não encontrou fotos suficientes pela fase rápida.
+  const semConfirmacao = candidatos.filter(item => !tituloConfirmaCor(item.titulo, cor));
+  const validados = [...confirmadasPorTitulo];
   const tamanhoLote = 4;
 
-  for (let inicio = 0; inicio < candidatos.length; inicio += tamanhoLote) {
+  for (let inicio = 0; inicio < semConfirmacao.length; inicio += tamanhoLote) {
     if (signal?.aborted) throw criarErroAbortado();
+    if (validados.length >= 12) break;
 
-    const lote = candidatos.slice(inicio, inicio + tamanhoLote);
+    const lote = semConfirmacao.slice(inicio, inicio + tamanhoLote);
     const analises = await Promise.all(lote.map(async item => {
-      const tituloConfirma = tituloConfirmaCor(item.titulo, cor);
-
       try {
         const analise = await analisarCorDaImagem(item.url, corCanonica, signal);
         if (!analise.compativel) return null;
-
-        const confianca = Math.max(analise.confianca, tituloConfirma ? 0.90 : 0);
         return {
           ...item,
           cor_confirmada: true,
-          confianca_cor: confianca,
-          pontuacao: item.pontuacao + Math.round(confianca * 100)
+          confianca_cor: analise.confianca,
+          pontuacao: item.pontuacao + Math.round(analise.confianca * 100)
         };
       } catch (erro) {
         if (erro?.name === 'AbortError') throw erro;
-
-        // Se o navegador não conseguir ler os pixels por CORS, só aceita a foto
-        // quando a cor estiver explicitamente no título do arquivo.
-        if (!tituloConfirma) return null;
-        return {
-          ...item,
-          cor_confirmada: true,
-          confianca_cor: 0.85,
-          pontuacao: item.pontuacao + 85
-        };
+        // CORS bloqueou a leitura de pixels — descarta sem título confirmatório.
+        return null;
       }
     }));
 
     validados.push(...analises.filter(Boolean));
-    if (validados.length >= 12) break;
   }
 
-  return removerFotosDuplicadas(validados);
+  return removerFotosDuplicadas(validados).sort((a, b) => b.pontuacao - a.pontuacao);
 }
 
 function criarErroAbortado() {
