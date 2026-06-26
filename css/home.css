@@ -70,98 +70,6 @@ svg {
     var(--dark-base);
 }
 
-.home-sidebar {
-  width: 252px;
-  padding-top: 22px;
-  background: rgba(15, 15, 26, 0.98);
-  backdrop-filter: blur(18px);
-}
-
-.home-logo {
-  display: flex;
-  align-items: center;
-  padding: 2px 20px 24px;
-  font-weight: 600;
-}
-
-.home-logo .logo-drive,
-.home-topbar .logo-drive {
-  color: var(--text-primary);
-  font-weight: 400;
-}
-
-.home-logo .dot {
-  margin-left: 5px;
-}
-
-.nav-svg {
-  width: 19px;
-  height: 19px;
-  flex: 0 0 auto;
-}
-
-.home-sidebar .nav-item {
-  min-height: 44px;
-  position: relative;
-}
-
-.home-sidebar .nav-item span:nth-child(2) {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.nav-lock {
-  width: 7px;
-  height: 7px;
-  margin-left: auto;
-  border-radius: 50%;
-  background: transparent;
-}
-
-.nav-item.is-locked {
-  color: rgba(124,111,160,0.58);
-}
-
-.nav-item.is-locked .nav-lock {
-  background: var(--ambar);
-  box-shadow: 0 0 0 3px rgba(240,168,48,0.10);
-}
-
-.nav-separator {
-  height: 0.5px;
-  margin: 12px 12px;
-  background: var(--dark-border);
-}
-
-.home-topbar {
-  height: 64px;
-  padding-left: max(16px, env(safe-area-inset-left));
-  padding-right: max(16px, env(safe-area-inset-right));
-  background: rgba(15,15,26,0.88);
-  backdrop-filter: blur(18px);
-}
-
-.topbar-menu {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.04);
-}
-
-.topbar-menu svg { width: 20px; height: 20px; }
-
-.home-topbar .topbar-logo {
-  display: flex;
-  align-items: center;
-  font-size: 18px;
-}
-
-/* .topbar-logo .dot — estilos e animação globais em style.css */
-
 .topbar-avatar {
   width: 38px;
   height: 38px;
@@ -224,7 +132,6 @@ svg {
   border-color: rgba(224,92,92,0.28);
   background: rgba(224,92,92,0.10);
 }
-
 
 .plan-badge,
 .month-chip,
@@ -754,17 +661,7 @@ svg {
 }
 
 @media (max-width: 1023px) {
-  .home-sidebar {
-    width: min(82vw, 290px);
-    transform: translateX(-105%);
-    box-shadow: 24px 0 64px rgba(0,0,0,0.36);
-  }
-
-  .home-sidebar.aberta { transform: translateX(0); }
-
   .sidebar-overlay.visivel { display: block; }
-
-  .home-topbar { display: flex; }
 
   .home-main {
     margin-left: 0;
@@ -987,7 +884,6 @@ svg {
 }
 
 @media (max-width: 430px) {
-  .home-topbar { height: 60px; }
   .home-main { padding-top: 77px; }
 
   .home-header {
