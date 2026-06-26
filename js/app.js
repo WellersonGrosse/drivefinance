@@ -598,7 +598,7 @@ function _navInfoPlano(perfil = {}) {
  * @param {Function} [opts.onNavigate]  - callback chamado antes de navegar (pode retornar false para cancelar)
  * @param {Set<string>} [opts.paginasProntas] - Set de páginas já implementadas
  */
-export function renderNav(paginaAtual, perfil, { onNavigate, paginasProntas } = {}) {
+export function renderNav(paginaAtual, perfil, { onNavigate, paginasProntas, onLogout } = {}) {
   const sidebar  = document.getElementById('sidebar');
   const overlay  = document.getElementById('sidebar-overlay');
   const topbar   = document.getElementById('topbar');
@@ -698,6 +698,7 @@ export function renderNav(paginaAtual, perfil, { onNavigate, paginasProntas } = 
   overlay.addEventListener('click', fecharMenu);
 
   document.getElementById('btn-logout')?.addEventListener('click', async () => {
+    if (onLogout) { onLogout(); return; }
     try { await logout(); } catch { toast('Não foi possível sair agora. Tente novamente.', 'erro'); }
   });
 

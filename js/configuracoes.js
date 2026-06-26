@@ -55,7 +55,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]);
 
   preencherConta();
-  renderNav('configuracoes.html', _perfil);
+  renderNav('configuracoes.html', _perfil, {
+    onLogout: () => { document.getElementById('modal-logout').hidden = false; }
+  });
   configurarTabs();
   configurarPessoal();
   configurarProfissional();
@@ -1939,9 +1941,6 @@ function configurarConta() {
     } catch (e) { toast('Erro ao enviar e-mail', 'erro'); }
   });
 
-  document.getElementById('btn-logout').addEventListener('click', () => {
-    document.getElementById('modal-logout').hidden = false;
-  });
   document.getElementById('modal-logout-fechar').addEventListener('click', () => { document.getElementById('modal-logout').hidden = true; });
   document.getElementById('btn-logout-cancelar').addEventListener('click', () => { document.getElementById('modal-logout').hidden = true; });
   document.getElementById('btn-logout-confirmar').addEventListener('click', async () => { await logout(); });
