@@ -1,0 +1,663 @@
+/* ─────────────────────────────────────────────
+   custo-operacional.css — DriveFinance
+───────────────────────────────────────────── */
+
+/* ── Loading screen ── */
+.loading-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.loading-logo {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.loading-logo span { color: var(--roxo); }
+.loading-logo strong { font-weight: 600; }
+.loading-logo i {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* ── Layout ── */
+.co-main {
+  padding-bottom: 48px;
+}
+
+.co-shell {
+  max-width: 860px;
+}
+
+/* ── Banner plano bloqueado ── */
+.co-banner-plano {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+  padding: var(--gap-md) var(--gap-lg);
+  background: rgba(123,94,167,0.12);
+  border: 0.5px solid rgba(123,94,167,0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--gap-xl);
+}
+
+.co-banner-plano svg {
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--roxo);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.co-banner-plano div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.co-banner-plano strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.co-banner-plano span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.btn-sm {
+  padding: 7px 14px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* ── Header ── */
+.co-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--gap-lg);
+  margin-bottom: var(--gap-xl);
+  flex-wrap: wrap;
+}
+
+.co-header h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.co-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.co-veiculo-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.co-select-veiculo {
+  height: 40px;
+  font-size: 13px;
+}
+
+/* ── Cards de resumo ── */
+.co-resumo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-lg);
+  margin-bottom: var(--gap-xl);
+}
+
+.co-card-custo-km,
+.co-card-periodo {
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-lg);
+  padding: var(--gap-xl);
+}
+
+.co-card-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 400;
+}
+
+.co-card-valor-grande {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--teal);
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.co-card-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Tabs de período */
+.co-periodo-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255,255,255,0.04);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: var(--gap-lg);
+}
+
+.co-tab {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.co-tab.ativo {
+  background: var(--dark-card);
+  color: var(--text-primary);
+  font-weight: 500;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.co-periodo-valor .co-card-valor-grande {
+  color: var(--roxo);
+}
+
+/* ── Info msg ── */
+.co-info-msg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(79,195,161,0.06);
+  border: 0.5px solid rgba(79,195,161,0.2);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--gap-md);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.co-info-msg svg {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+/* ── Tabela desktop ── */
+.co-table-wrap {
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.co-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.co-table thead tr {
+  border-bottom: 0.5px solid var(--dark-border);
+}
+
+.co-table thead th {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 12px 16px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.co-table tbody tr {
+  border-bottom: 0.5px solid var(--dark-border);
+  transition: background var(--transition);
+}
+
+.co-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.co-table tbody tr:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.co-table td {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--text-primary);
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.co-table td.co-td-nome {
+  font-weight: 500;
+}
+
+.co-table td.co-td-muted {
+  color: var(--text-muted);
+}
+
+.co-table td.co-td-custo {
+  font-weight: 600;
+  color: var(--teal);
+}
+
+.text-right { text-align: right; }
+
+/* Coluna widths */
+.co-table col.c-nome  { width: 26%; }
+.co-table col.c-qtd   { width: 11%; }
+.co-table col.c-unit  { width: 13%; }
+.co-table col.c-total { width: 13%; }
+.co-table col.c-vida  { width: 13%; }
+.co-table col.c-custo { width: 13%; }
+.co-table col.c-act   { width: 11%; }
+
+.co-td-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.co-btn-action {
+  width: 32px; height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.co-btn-action:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+}
+
+.co-btn-action.danger:hover {
+  background: rgba(224,92,92,0.1);
+  color: var(--coral);
+}
+
+.co-btn-action svg {
+  width: 15px; height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Tfoot totais */
+.co-table tfoot tr {
+  border-top: 0.5px solid var(--dark-border);
+  background: rgba(255,255,255,0.02);
+}
+
+.co-tfoot-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: right !important;
+  padding: 12px 16px !important;
+}
+
+.co-tfoot-valor {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--teal) !important;
+  text-align: right !important;
+  padding: 12px 16px !important;
+}
+
+/* ── Mobile: cards ── */
+.co-cards-mobile {
+  display: none;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.co-card-item {
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-md);
+  padding: var(--gap-md) var(--gap-lg);
+}
+
+.co-card-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.co-card-item-nome {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.co-card-item-custo {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.co-card-item-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.co-card-item-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.co-card-item-row span:first-child {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.co-card-item-row span:last-child {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.co-card-item-actions {
+  display: flex;
+  gap: var(--gap-sm);
+  border-top: 0.5px solid var(--dark-border);
+  padding-top: 10px;
+}
+
+.co-card-item-actions button {
+  flex: 1;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+}
+
+/* ── Estado vazio ── */
+.co-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-md);
+  padding: 48px var(--gap-xl);
+  text-align: center;
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-lg);
+}
+
+.co-empty svg {
+  width: 40px; height: 40px;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.4;
+}
+
+.co-empty p {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.co-empty span {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 320px;
+}
+
+/* ── Footer tabela ── */
+.co-table-footer {
+  margin-top: var(--gap-md);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.co-table-footer .btn {
+  gap: 8px;
+  font-size: 13px;
+}
+
+.co-table-footer .btn svg {
+  width: 16px; height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* ── Modal ── */
+.co-modal {
+  max-width: 480px;
+}
+
+.co-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+  padding: var(--gap-lg) var(--gap-xl);
+}
+
+.co-modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-md);
+}
+
+/* Input com prefixo R$ */
+.input-prefix-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-prefix {
+  position: absolute;
+  left: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.input-suffix {
+  position: absolute;
+  right: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.input-with-prefix {
+  padding-left: 36px !important;
+}
+
+.input-with-suffix {
+  padding-right: 40px !important;
+}
+
+/* Sugestões de itens */
+.co-sugestoes {
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  background: var(--dark-surface);
+  border: 0.5px solid var(--dark-border-md);
+  border-radius: var(--radius-sm);
+  z-index: 10;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.co-sugestao-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.co-sugestao-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+}
+
+/* Wrapper relativo para o campo de nome */
+.form-group {
+  position: relative;
+}
+
+/* Display calculado (somente leitura) */
+.co-calc-display {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  background: rgba(255,255,255,0.02);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Preview custo/KM */
+.co-custo-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(79,195,161,0.06);
+  border: 0.5px solid rgba(79,195,161,0.18);
+  border-radius: var(--radius-sm);
+}
+
+.co-custo-preview-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.co-custo-preview-valor {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--teal);
+  font-family: var(--font-display);
+}
+
+/* Botão danger */
+.btn-danger {
+  background: var(--coral);
+  color: #fff;
+  border: none;
+}
+
+.btn-danger:hover {
+  filter: brightness(0.9);
+}
+
+/* ── Responsivo ── */
+@media (max-width: 1023px) {
+  .co-resumo {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .co-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .co-veiculo-select {
+    width: 100%;
+  }
+
+  /* Esconde tabela, mostra cards */
+  .co-table-wrap { display: none; }
+  .co-info-msg { display: none; }
+  .co-cards-mobile { display: flex; }
+
+  .co-table-footer {
+    justify-content: stretch;
+  }
+
+  .co-table-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .co-modal-row {
+    grid-template-columns: 1fr;
+  }
+
+  .co-banner-plano {
+    flex-wrap: wrap;
+  }
+
+  .co-banner-plano .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .co-tab {
+    font-size: 11px;
+    padding: 6px 4px;
+  }
+
+  .co-card-valor-grande {
+    font-size: 26px;
+  }
+}
