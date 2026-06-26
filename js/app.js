@@ -649,7 +649,7 @@ export function renderNav(paginaAtual, perfil, { onNavigate, paginasProntas, onL
       <span class="logo-drive">Drive</span><span>Finance</span><i class="dot" aria-hidden="true"></i>
     </a>
     <nav class="sidebar-nav">${itensHtml}</nav>
-    <div class="sidebar-footer home-sidebar-footer">
+    <div class="sidebar-footer">
       <div class="sidebar-plan${planoInfo.admin ? ' is-admin' : ''}" id="sidebar-plan">${planoInfo.label}</div>
       <div class="sidebar-user">
         <div class="user-avatar" id="sidebar-avatar">${iniciais}</div>
