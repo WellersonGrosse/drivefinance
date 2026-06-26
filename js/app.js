@@ -645,7 +645,7 @@ export function renderNav(paginaAtual, perfil, { onNavigate, paginasProntas, onL
 
   // ── Sidebar ──
   sidebar.innerHTML = `
-    <a class="sidebar-logo home-logo" href="home.html" aria-label="DriveFinance — Início">
+    <a class="sidebar-logo" href="home.html" aria-label="DriveFinance — Início">
       <span class="logo-drive">Drive</span><span>Finance</span><i class="dot" aria-hidden="true"></i>
     </a>
     <nav class="sidebar-nav">${itensHtml}</nav>
