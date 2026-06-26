@@ -217,6 +217,17 @@ input, select, textarea { font-family: var(--font); }
   flex: 0 0 auto;
 }
 
+/* SVGs da navegação são centralizados aqui para manter
+   sidebar e topbar idênticas em todas as páginas. */
+.sidebar svg,
+.topbar svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .nav-lock {
   width: 7px;
   height: 7px;

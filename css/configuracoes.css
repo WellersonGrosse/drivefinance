@@ -37,73 +37,9 @@
   color: var(--text-muted);
 }
 
-/* ── Nav separator ───────────────────────────────────────── */
-.nav-separator {
-  height: 0.5px;
-  background: var(--dark-border);
-  margin: var(--gap-sm) var(--gap-sm);
-}
-
-/* ── SVG nos nav-items ───────────────────────────────────── */
-.nav-svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* ── Sidebar user copy ───────────────────────────────────── */
-.user-copy {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.user-copy strong {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.user-copy span {
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sidebar-plan {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-bottom: var(--gap-sm);
-  text-transform: capitalize;
-}
-
-/* ── Topbar logo ─────────────────────────────────────────── */
-/* dot, topbar-logo, topbar-avatar — estilos globais em style.css */
-.logo-drive { color: var(--roxo); }
-.topbar-logo {
-  flex: 1;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text-primary);
-  text-align: center;
-}
-.topbar-menu svg {
-  width: 22px; height: 22px;
-  fill: none;
-  stroke: var(--text-primary);
-  stroke-width: 2;
-  stroke-linecap: round;
-}
+/* ── Navegação compartilhada ──────────────────────────────── */
+/* Sidebar, rodapé do usuário, logout e topbar usam exclusivamente
+   os estilos globais definidos em style.css. */
 
 /* ── Page header ─────────────────────────────────────────── */
 .page-header { margin-bottom: var(--gap-xl); }
