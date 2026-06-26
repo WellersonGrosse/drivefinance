@@ -142,7 +142,9 @@ async function salvarPessoal() {
       data_nascimento: document.getElementById('input-nascimento').value
     });
     _perfil = { ..._perfil, nome };
-    renderNav('configuracoes.html', _perfil);
+    renderNav('configuracoes.html', _perfil, {
+      onLogout: () => { document.getElementById('modal-logout').hidden = false; }
+    });
     toast('Perfil pessoal salvo!', 'sucesso');
   } catch (e) {
     console.error(e);
