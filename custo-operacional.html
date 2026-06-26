@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F0F1A" />
+  <title>DriveFinance — Custo Operacional</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/custo-operacional.css" />
+</head>
+<body>
+
+  <div class="loading-screen" id="loading-screen">
+    <div class="loading-brand">
+      <div class="loading-logo"><span>Drive</span><strong>Finance</strong><i></i></div>
+      <div class="spinner"></div>
+      <p>Calculando desgastes...</p>
+    </div>
+  </div>
+
+  <div class="app-layout" id="co-app" hidden>
+
+    <aside class="sidebar" id="sidebar" aria-label="Navegação principal"></aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <header class="topbar" id="topbar"></header>
+
+    <main class="main-content co-main">
+      <div class="co-shell">
+
+        <!-- ── Banner plano bloqueado ── -->
+        <div class="co-banner-plano" id="co-banner-plano" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2Zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4Z"/></svg>
+          <div>
+            <strong>Recurso do Plano Pro</strong>
+            <span>Faça upgrade para calcular o custo real de desgaste do seu veículo.</span>
+          </div>
+          <a href="landing.html#planos" class="btn btn-primary btn-sm">Conhecer planos</a>
+        </div>
+
+        <!-- ── Header ── -->
+        <header class="co-header fade-up">
+          <div class="co-header-text">
+            <h1>Custo operacional</h1>
+            <p class="co-subtitle">Calcule o desgaste real do seu veículo por KM rodado</p>
+          </div>
+
+          <!-- Seletor de veículo — visível só com mais de 1 veículo -->
+          <div class="co-veiculo-select" id="co-veiculo-select" hidden>
+            <label class="form-label" for="select-veiculo">Veículo</label>
+            <select class="select co-select-veiculo" id="select-veiculo"></select>
+          </div>
+        </header>
+
+        <!-- ── Cards de resumo ── -->
+        <section class="co-resumo fade-up-delay-1" aria-label="Resumo de custo">
+
+          <div class="co-card-custo-km">
+            <p class="co-card-label">Custo total por KM</p>
+            <p class="co-card-valor-grande" id="custo-por-km">R$ 0,000</p>
+            <p class="co-card-hint" id="custo-km-hint">Adicione itens para calcular</p>
+          </div>
+
+          <div class="co-card-periodo">
+            <div class="co-periodo-tabs" role="tablist" aria-label="Período de custo">
+              <button class="co-tab ativo" role="tab" data-periodo="mensal" aria-selected="true">Mensal</button>
+              <button class="co-tab" role="tab" data-periodo="semestral" aria-selected="false">6 meses</button>
+              <button class="co-tab" role="tab" data-periodo="anual" aria-selected="false">12 meses</button>
+              <button class="co-tab" role="tab" data-periodo="total" aria-selected="false">Desde o início</button>
+            </div>
+            <div class="co-periodo-valor">
+              <p class="co-card-label" id="periodo-label">Custo no mês atual</p>
+              <p class="co-card-valor-grande" id="periodo-valor">—</p>
+              <p class="co-card-hint" id="periodo-hint">Registre corridas para ver o custo</p>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ── Tabela de itens ── -->
+        <section class="co-tabela-section fade-up-delay-2">
+
+          <div class="co-info-msg" id="co-info-msg">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <span>Para cálculos mais precisos, use sempre os valores mais recentes de cada item.</span>
+          </div>
+
+          <!-- Desktop: tabela -->
+          <div class="co-table-wrap" id="co-table-wrap">
+            <table class="co-table" id="co-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th class="text-right">Qtd</th>
+                  <th class="text-right">Valor unit.</th>
+                  <th class="text-right">Total</th>
+                  <th class="text-right">Vida útil</th>
+                  <th class="text-right">Custo/KM</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="co-tbody">
+                <!-- preenchido pelo JS -->
+              </tbody>
+              <tfoot id="co-tfoot">
+                <tr>
+                  <td colspan="5" class="co-tfoot-label">Custo total por KM</td>
+                  <td class="text-right co-tfoot-valor" id="tfoot-custo-km">R$ 0,000</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Mobile: cards -->
+          <div class="co-cards-mobile" id="co-cards-mobile"></div>
+
+          <!-- Estado vazio -->
+          <div class="co-empty" id="co-empty" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.7 6.3 3-3a6 6 0 0 1-7.2 7.2l-6.9 6.9a2.1 2.1 0 1 0 3 3l6.9-6.9a6 6 0 0 1 7.2-7.2l-3 3Z"/></svg>
+            <p>Nenhum item cadastrado ainda.</p>
+            <span>Adicione peças e serviços para calcular o custo por KM do seu veículo.</span>
+            <button class="btn btn-primary" id="btn-empty-add">Adicionar primeiro item</button>
+          </div>
+
+          <!-- Botão adicionar (visível quando há itens) -->
+          <div class="co-table-footer" id="co-table-footer" hidden>
+            <button class="btn btn-secondary" id="btn-add-item">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Adicionar item
+            </button>
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ── Modal adicionar/editar item ── -->
+  <div class="modal-overlay" id="modal-item" hidden>
+    <div class="modal modal-sm co-modal" role="dialog" aria-modal="true" aria-labelledby="modal-item-titulo">
+
+      <div class="modal-header">
+        <h2 id="modal-item-titulo">Adicionar item</h2>
+        <button class="modal-close" id="modal-item-fechar" aria-label="Fechar">
+          <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body co-modal-body">
+
+        <div class="form-group">
+          <label class="form-label" for="item-nome">Item</label>
+          <input type="text" class="input" id="item-nome" placeholder="Ex: Troca de óleo, Pneu, Velas..." autocomplete="off" />
+          <div class="co-sugestoes" id="co-sugestoes" hidden></div>
+        </div>
+
+        <div class="co-modal-row">
+          <div class="form-group">
+            <label class="form-label" for="item-qtd">Quantidade</label>
+            <input type="number" class="input" id="item-qtd" placeholder="0" min="0.1" step="0.1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="item-unidade">Unidade</label>
+            <select class="select" id="item-unidade">
+              <option value="un">un</option>
+              <option value="L">L</option>
+              <option value="kg">kg</option>
+              <option value="m">m</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="co-modal-row">
+          <div class="form-group">
+            <label class="form-label" for="item-valor-unit">Valor unitário</label>
+            <div class="input-prefix-wrap">
+              <span class="input-prefix">R$</span>
+              <input type="number" class="input input-with-prefix" id="item-valor-unit" placeholder="0,00" min="0" step="0.01" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total</label>
+            <div class="co-calc-display" id="item-total-display">R$ 0,00</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="item-vida-util">Vida útil (KM)</label>
+          <div class="input-prefix-wrap">
+            <input type="number" class="input input-with-suffix" id="item-vida-util" placeholder="Ex: 5000" min="1" step="100" />
+            <span class="input-suffix">KM</span>
+          </div>
+        </div>
+
+        <div class="co-custo-preview" id="co-custo-preview">
+          <span class="co-custo-preview-label">Custo por KM</span>
+          <span class="co-custo-preview-valor" id="item-custo-km-preview">—</span>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-item-cancelar">Cancelar</button>
+        <button class="btn btn-primary" id="modal-item-salvar">Salvar item</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal confirmar exclusão -->
+  <div class="modal-overlay" id="modal-deletar" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2>Remover item</h2>
+        <button class="modal-close" id="modal-deletar-fechar" aria-label="Fechar">
+          <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="modal-deletar-msg">Tem certeza que deseja remover este item?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-deletar-cancelar">Cancelar</button>
+        <button class="btn btn-danger" id="modal-deletar-confirmar">Remover</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/custo-operacional.js"></script>
+</body>
+</html>
