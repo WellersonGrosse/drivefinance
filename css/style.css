@@ -702,9 +702,97 @@ textarea {
 .fade-up-delay-3 { animation-delay: 0.15s; opacity: 0; animation-fill-mode: forwards; animation-name: fadeUp; animation-duration: 0.4s; }
 .fade-up-delay-4 { animation-delay: 0.20s; opacity: 0; animation-fill-mode: forwards; animation-name: fadeUp; animation-duration: 0.4s; }
 
+/* Remove setinhas nativas de input[type=number] em todos os browsers */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
+
 /* ─────────────────────────────────────────────
-   EMPTY STATE
+   MODAL — global (todas as páginas)
 ───────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--gap-lg);
+}
+
+.modal {
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border-md);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  scrollbar-width: thin;
+  scrollbar-color: var(--dark-border-md) transparent;
+}
+
+.modal-sm { max-width: 400px; }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gap-xl) var(--gap-xl) 0;
+}
+
+.modal-header h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+  display: flex;
+}
+
+.modal-close:hover { color: var(--text-primary); }
+
+.modal-close svg {
+  width: 18px; height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.modal-body > p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+  padding: var(--gap-lg) var(--gap-xl);
+}
+
+.modal-footer {
+  display: flex;
+  gap: var(--gap-sm);
+  justify-content: flex-end;
+  padding: var(--gap-sm) var(--gap-xl) var(--gap-xl);
+}
+
+@media (max-width: 768px) {
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal { border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 92vh; }
+}
 .empty-state {
   display: flex;
   flex-direction: column;
