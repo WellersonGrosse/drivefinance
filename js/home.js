@@ -15,8 +15,8 @@ import {
   getVeiculos,
   formatReal,
   saudacao,
-  logout,
-  toast
+  toast,
+  renderNav
 } from './app.js';
 
 const PAGINAS_PRONTAS = new Set(['home.html', 'admin.html', 'configuracoes.html']);
@@ -159,28 +159,6 @@ function setStatusMeta(percent, meta, totalDespesas) {
   element.classList.add('badge-pago');
 }
 
-function atualizarAcessos(perfil) {
-  const modulos = new Set(perfil?.modulos_ativos || []);
-  const admin = String(perfil?.role || '').toLowerCase() === 'admin';
-
-  document.querySelectorAll('.module-link').forEach((button) => {
-    const modulo = button.dataset.module;
-    const publico = button.dataset.publicModule === 'true';
-    const alias = modulo?.replaceAll('-', '_');
-    const permitido = admin || publico || modulos.has(modulo) || modulos.has(alias);
-
-    button.classList.toggle('is-locked', !permitido);
-    button.dataset.allowed = permitido ? 'true' : 'false';
-
-    if (!permitido) {
-      button.setAttribute('aria-label', `${button.textContent.trim()} — disponível em outro plano`);
-    }
-  });
-
-  $('admin-link').hidden = !admin;
-  if (admin) $('admin-link').dataset.allowed = 'true';
-}
-
 function atualizarChecklist({ perfil, veiculos, despesas, lancamentosMes }) {
   const checks = {
     profile: numberValue(perfil?.salario_liquido) > 0,
@@ -264,7 +242,6 @@ function renderResumo({
   $('month-balance').classList.toggle('teal-text', saldoMes >= 0);
   $('month-balance').classList.toggle('coral-text', saldoMes < 0);
 
-  atualizarAcessos(perfil);
   atualizarChecklist({ perfil, veiculos, despesas, lancamentosMes });
 }
 
@@ -341,6 +318,8 @@ async function carregarHome({ silencioso = false } = {}) {
       getVeiculos(state.user.uid)
     ]);
 
+    renderNav('home.html', state.perfil, { paginasProntas: PAGINAS_PRONTAS });
+
     renderResumo({
       perfil: state.perfil,
       metaDia,
@@ -363,65 +342,10 @@ async function carregarHome({ silencioso = false } = {}) {
   }
 }
 
-function abrirMenu() {
-  $('sidebar').classList.add('aberta');
-  $('sidebar-overlay').classList.add('visivel');
-  $('sidebar-overlay').setAttribute('aria-hidden', 'false');
-  $('btn-menu').setAttribute('aria-expanded', 'true');
-  document.body.classList.add('menu-open');
-}
-
-function fecharMenu() {
-  $('sidebar').classList.remove('aberta');
-  $('sidebar-overlay').classList.remove('visivel');
-  $('sidebar-overlay').setAttribute('aria-hidden', 'true');
-  $('btn-menu').setAttribute('aria-expanded', 'false');
-  document.body.classList.remove('menu-open');
-}
-
-function handleModuleNavigation(button) {
-  if (button.dataset.allowed !== 'true') {
-    toast('Este módulo não está disponível no seu plano atual.', 'aviso');
-    return;
-  }
-
-  const page = button.dataset.page;
-  if (!PAGINAS_PRONTAS.has(page)) {
-    toast('Este módulo será liberado nas próximas etapas do projeto.', 'info');
-    fecharMenu();
-    return;
-  }
-
-  window.location.href = page;
-}
 
 function bindEvents() {
-  $('btn-menu').addEventListener('click', abrirMenu);
-  $('sidebar-overlay').addEventListener('click', fecharMenu);
-  $('topbar-avatar').addEventListener('click', abrirMenu);
   $('btn-refresh').addEventListener('click', () => carregarHome({ silencioso: true }));
   $('btn-retry').addEventListener('click', () => carregarHome({ silencioso: true }));
-
-  $('btn-logout').addEventListener('click', async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('[DriveFinance/Logout]', error);
-      toast('Não foi possível sair agora. Tente novamente.', 'erro');
-    }
-  });
-
-  document.querySelectorAll('.module-link').forEach((button) => {
-    button.addEventListener('click', () => handleModuleNavigation(button));
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') fecharMenu();
-  });
-
-  window.addEventListener('resize', () => {
-    if (window.innerWidth >= 1024) fecharMenu();
-  });
 }
 
 bindEvents();

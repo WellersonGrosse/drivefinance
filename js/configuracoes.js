@@ -7,8 +7,9 @@ import {
   getPerfil, updatePerfil,
   getConfig, saveConfig,
   getVeiculos, addVeiculo, updateVeiculo, deleteVeiculo,
-  logout, isAdmin,
-  formatData, toast
+  logout,
+  formatData, toast,
+  renderNav
 } from './app.js';
 
 import { auth, db } from './firebase-config.js';
@@ -54,8 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]);
 
   preencherConta();
-  preencherSidebar();
-  configurarSidebar();
+  renderNav('configuracoes.html', _perfil);
   configurarTabs();
   configurarPessoal();
   configurarProfissional();
@@ -94,35 +94,6 @@ async function carregarVeiculos() {
     ? lista
     : Object.entries(lista || {}).map(([id, d]) => ({ id, ...d }));
   renderCarrossel();
-}
-
-// ─── Sidebar ──────────────────────────────────────────────────────────────────
-async function preencherSidebar() {
-  const iniciais = iniciarDeNome(_perfil?.nome || '');
-  document.getElementById('sidebar-avatar').textContent = iniciais;
-  document.getElementById('sidebar-name').textContent = _perfil?.nome || 'Usuário';
-  document.getElementById('sidebar-email').textContent = _perfil?.email || '';
-  document.getElementById('sidebar-plan').textContent =
-    'Plano ' + formatarPlano(_perfil?.plano);
-  document.getElementById('topbar-avatar').textContent = iniciais;
-
-  // Admin link
-  const adminOk = await isAdmin(_uid).catch(() => false);
-  if (adminOk) document.getElementById('admin-link').hidden = false;
-}
-
-function configurarSidebar() {
-  const btn = document.getElementById('btn-menu');
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  btn?.addEventListener('click', () => {
-    sidebar.classList.toggle('aberta');
-    overlay.classList.toggle('visivel');
-  });
-  overlay?.addEventListener('click', () => {
-    sidebar.classList.remove('aberta');
-    overlay.classList.remove('visivel');
-  });
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
@@ -169,7 +140,7 @@ async function salvarPessoal() {
       data_nascimento: document.getElementById('input-nascimento').value
     });
     _perfil = { ..._perfil, nome };
-    preencherSidebar();
+    renderNav('configuracoes.html', _perfil);
     toast('Perfil pessoal salvo!', 'sucesso');
   } catch (e) {
     console.error(e);

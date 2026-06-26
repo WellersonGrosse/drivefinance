@@ -510,3 +510,219 @@ export function toast(mensagem, tipo = "info") {
     setTimeout(() => el.remove(), 300);
   }, 3000);
 }
+
+// ─────────────────────────────────────────────
+// NAV — renderização centralizada do menu lateral
+// ─────────────────────────────────────────────
+
+const NAV_ITEMS = [
+  {
+    module: 'home',
+    page: 'home.html',
+    label: 'Início',
+    publicModule: true,
+    svg: '<path d="M3 10.8 12 3l9 7.8V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>'
+  },
+  {
+    module: 'dashboard',
+    page: 'dashboard.html',
+    label: 'Dashboard',
+    svg: '<path d="M4 13h6V4H4Zm10 7h6V11h-6ZM4 20h6v-3H4Zm10-13h6V4h-6Z"/>'
+  },
+  {
+    module: 'lancamentos',
+    page: 'lancamentos.html',
+    label: 'Lançamentos',
+    svg: '<path d="M4 4h16v16H4zM8 12h8M12 8v8"/>'
+  },
+  {
+    module: 'despesas',
+    page: 'despesas.html',
+    label: 'Despesas',
+    svg: '<path d="M4 7h16v13H4zM7 7V4h10v3M8 12h8"/>'
+  },
+  {
+    module: 'custo_operacional',
+    page: 'custo-operacional.html',
+    label: 'Custo operacional',
+    svg: '<path d="m14.7 6.3 3-3a6 6 0 0 1-7.2 7.2l-6.9 6.9a2.1 2.1 0 1 0 3 3l6.9-6.9a6 6 0 0 1 7.2-7.2l-3 3Z"/>'
+  },
+  {
+    module: 'historico',
+    page: 'historico.html',
+    label: 'Histórico',
+    svg: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/>'
+  },
+  { separator: true },
+  {
+    module: 'configuracoes',
+    page: 'configuracoes.html',
+    label: 'Configurações',
+    publicModule: true,
+    svg: '<path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1H21v4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>'
+  },
+  {
+    module: 'admin',
+    page: 'admin.html',
+    label: 'Administração',
+    adminOnly: true,
+    svg: '<path d="M12 3 4 6v5c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6Z"/><path d="M9 12l2 2 4-4"/>'
+  }
+];
+
+function _navIniciais(nome = '', email = '') {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length >= 2) return `${partes[0][0]}${partes.at(-1)[0]}`.toUpperCase();
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+  return email.slice(0, 2).toUpperCase() || 'DF';
+}
+
+function _navInfoPlano(perfil = {}) {
+  const role = String(perfil.role || 'user').toLowerCase();
+  if (role === 'admin') return { label: 'Administrador • acesso total', admin: true };
+  const plano = String(perfil.plano || 'trial').toLowerCase();
+  if (plano === 'trial') {
+    const dias = diasRestantesTrial(perfil);
+    return { label: dias === 0 ? 'Trial expirado' : `Trial • ${dias} dias restantes`, admin: false };
+  }
+  const nomes = { basico: 'Plano Básico', pro: 'Plano Pro', completo: 'Plano Completo' };
+  return { label: nomes[plano] || `Plano ${plano}`, admin: false };
+}
+
+/**
+ * Injeta sidebar + overlay + topbar na página e configura todos os eventos do menu.
+ *
+ * @param {string} paginaAtual  - nome do arquivo da página atual, ex: 'home.html'
+ * @param {object} perfil       - objeto do perfil vindo do Firestore
+ * @param {object} [opts]
+ * @param {Function} [opts.onNavigate]  - callback chamado antes de navegar (pode retornar false para cancelar)
+ * @param {Set<string>} [opts.paginasProntas] - Set de páginas já implementadas
+ */
+export function renderNav(paginaAtual, perfil, { onNavigate, paginasProntas } = {}) {
+  const sidebar  = document.getElementById('sidebar');
+  const overlay  = document.getElementById('sidebar-overlay');
+  const topbar   = document.getElementById('topbar');
+
+  if (!sidebar || !overlay || !topbar) {
+    console.warn('[DriveFinance/renderNav] Placeholders não encontrados.');
+    return;
+  }
+
+  const isAdmin   = String(perfil?.role || '').toLowerCase() === 'admin';
+  const modulos   = new Set(perfil?.modulos_ativos || []);
+  const iniciais  = _navIniciais(perfil?.nome || '', perfil?.email || '');
+  const planoInfo = _navInfoPlano(perfil);
+  const nome      = perfil?.nome || 'Usuário DriveFinance';
+  const email     = perfil?.email || '';
+
+  // ── Itens do nav ──
+  const itensHtml = NAV_ITEMS.map(item => {
+    if (item.separator) return '<div class="nav-separator"></div>';
+
+    if (item.adminOnly && !isAdmin) return '';
+
+    const isAtivo    = paginaAtual === item.page;
+    const isPublico  = item.publicModule === true;
+    const permitido  = isAdmin || isPublico || modulos.has(item.module);
+    const lockedAttr = permitido ? '' : 'data-locked="true"';
+    const ativoClass = isAtivo ? ' ativo' : '';
+    const ariaAtual  = isAtivo ? ' aria-current="page"' : '';
+
+    return `
+      <button class="nav-item module-link${ativoClass}"
+              type="button"
+              data-module="${item.module}"
+              data-page="${item.page}"
+              data-allowed="${permitido}"
+              data-public-module="${isPublico}"
+              ${lockedAttr}
+              ${ariaAtual}>
+        <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true">${item.svg}</svg>
+        <span>${item.label}</span>
+        ${!permitido ? '<span class="nav-lock" aria-hidden="true"></span>' : ''}
+      </button>`;
+  }).join('');
+
+  // ── Sidebar ──
+  sidebar.innerHTML = `
+    <a class="sidebar-logo home-logo" href="home.html" aria-label="DriveFinance — Início">
+      <span class="logo-drive">Drive</span><span>Finance</span><i class="dot" aria-hidden="true"></i>
+    </a>
+    <nav class="sidebar-nav">${itensHtml}</nav>
+    <div class="sidebar-footer home-sidebar-footer">
+      <div class="sidebar-plan${planoInfo.admin ? ' is-admin' : ''}" id="sidebar-plan">${planoInfo.label}</div>
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebar-avatar">${iniciais}</div>
+        <div class="user-copy">
+          <strong id="sidebar-name">${nome}</strong>
+          <span id="sidebar-email">${email}</span>
+        </div>
+        <button class="logout-btn" id="btn-logout" type="button" aria-label="Sair da conta" title="Sair da conta">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg>
+        </button>
+      </div>
+    </div>`;
+
+  // ── Overlay ──
+  overlay.setAttribute('aria-hidden', 'true');
+
+  // ── Topbar ──
+  topbar.innerHTML = `
+    <button class="topbar-menu" id="btn-menu" type="button" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="topbar-logo" href="home.html">
+      <span class="logo-drive">Drive</span><span>Finance</span><i class="dot" aria-hidden="true"></i>
+    </a>
+    <button class="topbar-avatar" id="topbar-avatar" type="button" aria-label="Abrir menu do usuário">${iniciais}</button>`;
+
+  // ── Eventos ──
+  function abrirMenu() {
+    sidebar.classList.add('aberta');
+    overlay.classList.add('visivel');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.getElementById('btn-menu')?.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('menu-open');
+  }
+
+  function fecharMenu() {
+    sidebar.classList.remove('aberta');
+    overlay.classList.remove('visivel');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.getElementById('btn-menu')?.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('menu-open');
+  }
+
+  document.getElementById('btn-menu')?.addEventListener('click', abrirMenu);
+  document.getElementById('topbar-avatar')?.addEventListener('click', abrirMenu);
+  overlay.addEventListener('click', fecharMenu);
+
+  document.getElementById('btn-logout')?.addEventListener('click', async () => {
+    try { await logout(); } catch { toast('Não foi possível sair agora. Tente novamente.', 'erro'); }
+  });
+
+  document.querySelectorAll('.nav-item.module-link').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const permitido = btn.dataset.allowed === 'true';
+      const page = btn.dataset.page;
+
+      if (!permitido) {
+        toast('Este módulo não está disponível no seu plano atual.', 'aviso');
+        return;
+      }
+
+      if (onNavigate && onNavigate(page) === false) return;
+
+      if (paginasProntas && !paginasProntas.has(page)) {
+        toast('Este módulo será liberado nas próximas etapas do projeto.', 'info');
+        fecharMenu();
+        return;
+      }
+
+      window.location.href = page;
+    });
+  });
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharMenu(); });
+  window.addEventListener('resize', () => { if (window.innerWidth >= 1024) fecharMenu(); });
+}
