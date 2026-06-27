@@ -762,14 +762,10 @@
   flex-shrink: 0;
 }
 
-.co-btn-referencias:hover {
-  color: var(--text-primary);
-}
+.co-btn-referencias:hover { color: var(--text-primary); }
 
 /* Modal */
-.co-modal-ref {
-  max-width: 560px;
-}
+.co-modal-ref { max-width: 580px; }
 
 .co-ref-subtitulo {
   font-size: 12px;
@@ -777,22 +773,14 @@
   margin-top: 2px;
 }
 
-.co-ref-body {
-  padding: var(--gap-lg) var(--gap-xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-md);
-}
-
-/* Banner upgrade */
+/* Banner upgrade — fica fora do body, no topo do modal */
 .co-ref-upgrade {
   display: flex;
   align-items: center;
   gap: var(--gap-md);
-  padding: 10px 14px;
+  padding: 10px var(--gap-xl);
   background: rgba(123,94,167,0.1);
-  border: 0.5px solid rgba(123,94,167,0.25);
-  border-radius: var(--radius-sm);
+  border-bottom: 0.5px solid rgba(123,94,167,0.2);
   font-size: 12px;
   color: var(--text-muted);
 }
@@ -806,16 +794,20 @@
   stroke-linecap: round;
 }
 
-.co-ref-upgrade span {
-  flex: 1;
+.co-ref-upgrade span { flex: 1; }
+
+/* Body do modal */
+.co-ref-body {
+  padding: 0;
+  max-height: 65vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dark-border-md) transparent;
 }
 
-/* Tabela */
+/* Tabela desktop */
 .co-ref-table-wrap {
-  background: var(--dark-card);
-  border: 0.5px solid var(--dark-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+  display: block;
 }
 
 .co-ref-table {
@@ -829,10 +821,13 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: .05em;
-  padding: 10px 14px;
+  padding: 10px 16px;
   text-align: left;
   border-bottom: 0.5px solid var(--dark-border);
-  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--dark-card);
+  z-index: 1;
 }
 
 .co-ref-table tbody tr {
@@ -840,27 +835,37 @@
   transition: background var(--transition);
 }
 
-.co-ref-table tbody tr:last-child {
-  border-bottom: none;
-}
+.co-ref-table tbody tr:last-child { border-bottom: none; }
 
-.co-ref-table tbody tr:hover:not(.co-ref-row-bloqueada) {
+.co-ref-table tbody tr:hover:not(.co-ref-row-bloqueada):not(.co-ref-categoria-header) {
   background: rgba(255,255,255,0.02);
 }
 
 .co-ref-table td {
-  padding: 12px 14px;
+  padding: 11px 16px;
   font-size: 13px;
   color: var(--text-primary);
   vertical-align: middle;
 }
 
-.co-ref-td-nome {
-  font-weight: 500;
+.co-ref-td-nome { font-weight: 500; }
+.co-ref-td-muted { color: var(--text-muted); }
+
+/* ── Separador de categoria (desktop) ── */
+.co-ref-categoria-header td {
+  padding: 10px 16px 6px !important;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--roxo);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  background: rgba(123,94,167,0.06);
+  border-top: 0.5px solid rgba(123,94,167,0.15) !important;
+  border-bottom: none !important;
 }
 
-.co-ref-td-muted {
-  color: var(--text-muted);
+.co-ref-categoria-header:first-child td {
+  border-top: none !important;
 }
 
 /* Linha bloqueada */
@@ -872,10 +877,10 @@
 
 .co-ref-row-bloqueada td {
   filter: blur(4px);
-  opacity: 0.4;
+  opacity: 0.35;
 }
 
-.co-ref-row-bloqueada .co-ref-lock {
+.co-ref-lock {
   position: absolute;
   inset: 0;
   display: flex;
@@ -889,16 +894,16 @@
 .co-ref-lock-icon {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: rgba(0,0,0,0.5);
+  gap: 5px;
+  padding: 3px 10px;
+  background: rgba(0,0,0,0.55);
   border-radius: 20px;
   font-size: 11px;
   color: var(--text-muted);
 }
 
 .co-ref-lock-icon svg {
-  width: 12px; height: 12px;
+  width: 11px; height: 11px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -906,13 +911,13 @@
   flex-shrink: 0;
 }
 
-/* Botão usar */
+/* Botão copiar */
 .co-btn-usar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 7px 12px;
+  padding: 6px 12px;
   font-size: 12px;
   font-weight: 500;
   background: rgba(79,195,161,0.1);
@@ -931,7 +936,7 @@
 }
 
 .co-btn-usar svg {
-  width: 13px; height: 13px;
+  width: 12px; height: 12px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -940,13 +945,12 @@
   flex-shrink: 0;
 }
 
-/* Botão usar bloqueado */
 .co-btn-usar-bloqueado {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 7px 12px;
+  padding: 6px 12px;
   font-size: 12px;
   font-weight: 500;
   background: transparent;
@@ -966,7 +970,7 @@
 }
 
 .co-btn-usar-bloqueado svg {
-  width: 13px; height: 13px;
+  width: 12px; height: 12px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -974,111 +978,108 @@
   flex-shrink: 0;
 }
 
-/* Empty state */
-.co-ref-empty {
+/* ── Mobile: cards ── */
+.co-ref-cards-mobile {
+  display: none;
+  flex-direction: column;
+}
+
+/* Grupo de categoria mobile */
+.co-ref-categoria-grupo {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 32px;
-  text-align: center;
 }
 
-.co-ref-empty p {
+.co-ref-categoria-titulo-mobile {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--roxo);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 12px 16px 6px;
+  background: rgba(123,94,167,0.06);
+  border-top: 0.5px solid rgba(123,94,167,0.15);
+  border-bottom: 0.5px solid rgba(123,94,167,0.1);
+}
+
+.co-ref-categoria-grupo:first-child .co-ref-categoria-titulo-mobile {
+  border-top: none;
+}
+
+.co-ref-card {
+  border-bottom: 0.5px solid var(--dark-border);
+  padding: var(--gap-md) var(--gap-lg);
+}
+
+.co-ref-card-bloqueada {
+  filter: blur(3px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.3;
+}
+
+.co-ref-card-header {
+  margin-bottom: 8px;
+}
+
+.co-ref-card-nome {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-secondary);
-  margin: 0;
+  color: var(--text-primary);
 }
 
-.co-ref-empty span {
-  font-size: 12px;
+.co-ref-card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.co-ref-card-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.co-ref-card-row span:first-child {
+  font-size: 10px;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 
+.co-ref-card-row span:last-child {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.co-ref-card-footer {
+  padding-top: 10px;
+  border-top: 0.5px solid var(--dark-border);
+}
+
+.co-ref-card-footer .co-btn-usar,
+.co-ref-card-footer .co-btn-usar-bloqueado {
+  width: 100%;
+  justify-content: center;
+  padding: 10px;
+  font-size: 13px;
+}
+
+/* ── Responsivo ── */
 @media (max-width: 768px) {
-  .co-modal-ref {
-    max-width: 100%;
+  .co-modal-ref { max-width: 100%; }
+
+  .co-ref-table-wrap { display: none; }
+  .co-ref-cards-mobile { display: flex; }
+
+  .co-ref-upgrade {
+    padding: 10px var(--gap-lg);
+    flex-wrap: wrap;
   }
 
-  .co-ref-body {
-    padding: var(--gap-md) var(--gap-lg);
-  }
-
-  /* No mobile, esconde tabela e mostra cards de referência */
-  .co-ref-table-wrap {
-    display: none;
-  }
-
-  .co-ref-cards-mobile {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap-sm);
-  }
-
-  .co-ref-card {
-    background: var(--dark-card);
-    border: 0.5px solid var(--dark-border);
-    border-radius: var(--radius-md);
-    padding: var(--gap-md) var(--gap-lg);
-  }
-
-  .co-ref-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-
-  .co-ref-card-nome {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .co-ref-card-body {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-
-  .co-ref-card-row {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .co-ref-card-row span:first-child {
-    font-size: 10px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: .04em;
-  }
-
-  .co-ref-card-row span:last-child {
-    font-size: 13px;
-    color: var(--text-secondary);
-  }
-
-  .co-ref-card-footer {
-    border-top: 0.5px solid var(--dark-border);
-    padding-top: 10px;
-  }
-
-  .co-ref-card-footer .co-btn-usar,
-  .co-ref-card-footer .co-btn-usar-bloqueado {
+  .co-ref-upgrade .btn {
     width: 100%;
     justify-content: center;
-    padding: 10px;
-    font-size: 13px;
-  }
-
-  /* Card bloqueado */
-  .co-ref-card-bloqueada {
-    filter: blur(4px);
-    pointer-events: none;
-    user-select: none;
-    opacity: 0.35;
   }
 }
