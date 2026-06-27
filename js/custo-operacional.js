@@ -488,30 +488,30 @@ async function abrirModalReferencias() {
   }
 
   if (!itens.length) {
-    bodyEl.innerHTML = \`
-      <div class="co-ref-upgrade" style="display:flex">\${upgradeEl?.outerHTML || ''}
+    bodyEl.innerHTML = `
+      <div class="co-ref-upgrade" style="display:flex">${upgradeEl?.outerHTML || ''}
         <p style="color:var(--text-muted);font-size:13px;text-align:center;width:100%;padding:24px 0">
           Nenhuma referência cadastrada ainda.
         </p>
-      </div>\`;
+      </div>`;
     return;
   }
 
   function criarBtnCopiar(item) {
     if (copiarLiberado) {
-      return \`<button class="co-btn-usar"
-        data-ref-nome="\${item.nome}"
-        data-ref-qtd="\${item.qtd ?? 1}"
-        data-ref-unidade="\${item.unidade ?? 'un'}"
-        data-ref-vida="\${item.vida_util_km ?? 0}">
+      return `<button class="co-btn-usar"
+        data-ref-nome="${item.nome}"
+        data-ref-qtd="${item.qtd ?? 1}"
+        data-ref-unidade="${item.unidade ?? 'un'}"
+        data-ref-vida="${item.vida_util_km ?? 0}">
         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         <span>Copiar para meus itens</span>
-      </button>\`;
+      </button>`;
     }
-    return \`<button class="co-btn-usar-bloqueado" data-bloqueado="true">
+    return `<button class="co-btn-usar-bloqueado" data-bloqueado="true">
       <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <span>Copiar para meus itens</span>
-    </button>\`;
+    </button>`;
   }
 
   // ── Ordena categorias ──
@@ -523,15 +523,15 @@ async function abrirModalReferencias() {
   // ── Desktop: tabela agrupada por categoria ──
   const tabelaHtml = categoriasOrdenadas.map(cat => {
     const itensCat = grupos[cat];
-    const headerRow = \`
+    const headerRow = `
       <tr class="co-ref-categoria-header">
-        <td colspan="4" class="co-ref-categoria-label">\${cat}</td>
-      </tr>\`;
+        <td colspan="4" class="co-ref-categoria-label">${cat}</td>
+      </tr>`;
 
     const rows = itensCat.map(item => {
       const bloqueada = !isAdmin && item._globalIdx >= linhasVisiveis;
       if (bloqueada) {
-        return \`
+        return `
           <tr class="co-ref-row-bloqueada" aria-hidden="true">
             <td class="co-ref-td-nome">████████████</td>
             <td class="text-right co-ref-td-muted">— un</td>
@@ -544,15 +544,15 @@ async function abrirModalReferencias() {
                 </span>
               </div>
             </td>
-          </tr>\`;
+          </tr>`;
       }
-      return \`
+      return `
         <tr>
-          <td class="co-ref-td-nome">\${item.nome}</td>
-          <td class="text-right co-ref-td-muted">\${item.qtd ?? 1} \${item.unidade ?? 'un'}</td>
-          <td class="text-right co-ref-td-muted">\${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</td>
-          <td style="text-align:right">\${criarBtnCopiar(item)}</td>
-        </tr>\`;
+          <td class="co-ref-td-nome">${item.nome}</td>
+          <td class="text-right co-ref-td-muted">${item.qtd ?? 1} ${item.unidade ?? 'un'}</td>
+          <td class="text-right co-ref-td-muted">${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</td>
+          <td style="text-align:right">${criarBtnCopiar(item)}</td>
+        </tr>`;
     }).join('');
 
     return headerRow + rows;
@@ -563,33 +563,33 @@ async function abrirModalReferencias() {
     const itensCat = grupos[cat];
     const cards = itensCat.map(item => {
       const bloqueada = !isAdmin && item._globalIdx >= linhasVisiveis;
-      return \`
-        <div class="co-ref-card\${bloqueada ? ' co-ref-card-bloqueada' : ''}">
+      return `
+        <div class="co-ref-card${bloqueada ? ' co-ref-card-bloqueada' : ''}">
           <div class="co-ref-card-header">
-            <span class="co-ref-card-nome">\${item.nome}</span>
+            <span class="co-ref-card-nome">${item.nome}</span>
           </div>
           <div class="co-ref-card-body">
             <div class="co-ref-card-row">
               <span>Quantidade</span>
-              <span>\${item.qtd ?? 1} \${item.unidade ?? 'un'}</span>
+              <span>${item.qtd ?? 1} ${item.unidade ?? 'un'}</span>
             </div>
             <div class="co-ref-card-row">
               <span>Vida útil</span>
-              <span>\${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</span>
+              <span>${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</span>
             </div>
           </div>
-          \${!bloqueada ? \`<div class="co-ref-card-footer">\${criarBtnCopiar(item)}</div>\` : ''}
-        </div>\`;
+          ${!bloqueada ? `<div class="co-ref-card-footer">${criarBtnCopiar(item)}</div>` : ''}
+        </div>`;
     }).join('');
 
-    return \`
+    return `
       <div class="co-ref-categoria-grupo">
-        <div class="co-ref-categoria-titulo-mobile">\${cat}</div>
-        \${cards}
-      </div>\`;
+        <div class="co-ref-categoria-titulo-mobile">${cat}</div>
+        ${cards}
+      </div>`;
   }).join('');
 
-  bodyEl.innerHTML = \`
+  bodyEl.innerHTML = `
     <div class="co-ref-table-wrap">
       <table class="co-ref-table">
         <thead>
@@ -600,11 +600,11 @@ async function abrirModalReferencias() {
             <th></th>
           </tr>
         </thead>
-        <tbody>\${tabelaHtml}</tbody>
+        <tbody>${tabelaHtml}</tbody>
       </table>
     </div>
-    <div class="co-ref-cards-mobile">\${cardsHtml}</div>
-  \`;
+    <div class="co-ref-cards-mobile">${cardsHtml}</div>
+  `;
 
   // Eventos — copiar
   modal.querySelectorAll('.co-btn-usar[data-ref-nome]').forEach(btn => {
