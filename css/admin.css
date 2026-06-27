@@ -1109,3 +1109,19 @@ th.col-trial {
   width: 70px;
   text-align: right;
 }
+
+/* ─────────────────────────────────────────────
+   Correção visual dos selects — referências de manutenção
+   Mantém o campo fechado no tema escuro e torna as opções
+   legíveis no menu nativo do navegador.
+───────────────────────────────────────────── */
+
+#ref-itens-container select.input-tabela {
+  color-scheme: dark;
+}
+
+#ref-itens-container select.input-tabela option,
+#ref-itens-container select.input-tabela optgroup {
+  background-color: #ffffff;
+  color: #1a1a2e;
+}
