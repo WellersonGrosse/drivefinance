@@ -29,7 +29,7 @@ let _veiculoAtual = null;
 let _itens = [];
 let _editandoId = null;
 let _deletandoId = null;
-let _referencias = null; // { itens: [], acesso: {} } — carregado do Firestore
+let _referencias = null; // cache de config_global/referencias_manutencao
 
 const PAGINAS_PRONTAS = new Set(['home.html', 'admin.html', 'configuracoes.html', 'custo-operacional.html']);
 
@@ -425,15 +425,14 @@ async function confirmarDeletar() {
 
 // ─── Referências de manutenção ────────────────────────────────────────────────
 
-// Hierarquia de planos para comparação de acesso
 const HIERARQUIA_PLANOS = { trial: 0, basico: 1, pro: 2, completo: 3 };
 
-function planoAtingePlanominimo(planoUsuario, planoMinimo) {
+function planoAtingePlanoMinimo(planoUsuario, planoMinimo) {
   return (HIERARQUIA_PLANOS[planoUsuario] ?? 0) >= (HIERARQUIA_PLANOS[planoMinimo] ?? 99);
 }
 
 async function carregarReferencias() {
-  if (_referencias) return _referencias; // cache
+  if (_referencias) return _referencias;
   try {
     const snap = await getDoc(doc(db, 'config_global', 'referencias_manutencao'));
     _referencias = snap.exists() ? snap.data() : { itens: [], acesso: {} };
@@ -445,13 +444,12 @@ async function carregarReferencias() {
 
 async function abrirModalReferencias() {
   const modal = $('modal-referencias');
-  const tbody = $('co-ref-tbody');
-  const empty = $('co-ref-empty');
-  const tableWrap = modal.querySelector('.co-ref-table-wrap');
   const upgradeEl = $('co-ref-upgrade');
+  const bodyEl = modal?.querySelector('.co-ref-body');
+  if (!modal || !bodyEl) return;
 
   // Estado de carregamento
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">Carregando...</td></tr>';
+  bodyEl.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-muted);font-size:13px">Carregando...</div>';
   modal.hidden = false;
 
   const ref = await carregarReferencias();
@@ -460,110 +458,153 @@ async function abrirModalReferencias() {
 
   const planoUsuario = _perfil?.plano || 'trial';
   const isAdmin = _perfil?.role === 'admin';
-
-  // Configuração de acesso do plano do usuário
-  const configPlano = acesso[planoUsuario] || { linhas_visiveis: 3, plano_minimo_usar: 'basico' };
+  const configPlano = acesso[planoUsuario] || { linhas_visiveis: 3, copiar_liberado: false };
   const linhasVisiveis = isAdmin ? 9999 : (configPlano.linhas_visiveis ?? 3);
-  const planoMinimoUsar = configPlano.plano_minimo_usar || 'basico';
-  // Lê copiar_liberado do Firestore (novo campo) — fallback para hierarquia de planos
-  const copiarLiberado = configPlano.copiar_liberado ?? planoAtingePlanominimo(planoUsuario, planoMinimoUsar ?? 'pro');
-  const podeUsar = isAdmin || copiarLiberado;
-
+  const copiarLiberado = isAdmin || (configPlano.copiar_liberado ?? false);
   const temBloqueadas = !isAdmin && itens.length > linhasVisiveis;
 
-  // Banner de upgrade
+  // ── Agrupa itens por categoria ──
+  const grupos = {};
+  const ORDEM_CATEGORIAS = [
+    'Motor e Lubrificação', 'Arrefecimento', 'Freios',
+    'Suspensão e Direção', 'Pneus', 'Filtros',
+    'Elétrica', 'Transmissão', 'Limpeza e Visibilidade'
+  ];
+
+  itens.forEach((item, idx) => {
+    const cat = item.categoria || 'Outros';
+    if (!grupos[cat]) grupos[cat] = [];
+    grupos[cat].push({ ...item, _globalIdx: idx });
+  });
+
+  // Banner upgrade
   if (upgradeEl) {
     upgradeEl.hidden = !temBloqueadas;
     if (temBloqueadas) {
       const bloqueadas = itens.length - linhasVisiveis;
       $('co-ref-upgrade-texto').textContent =
-        `${bloqueadas} item${bloqueadas > 1 ? 's' : ''} oculto${bloqueadas > 1 ? 's' : ''} — faça upgrade para ver tudo`;
+        `${bloqueadas} item${bloqueadas > 1 ? 'ns' : ''} oculto${bloqueadas > 1 ? 's' : ''} — faça upgrade para ver tudo`;
     }
   }
 
   if (!itens.length) {
-    tbody.innerHTML = '';
-    if (tableWrap) tableWrap.hidden = true;
-    if (empty) empty.hidden = false;
+    bodyEl.innerHTML = \`
+      <div class="co-ref-upgrade" style="display:flex">\${upgradeEl?.outerHTML || ''}
+        <p style="color:var(--text-muted);font-size:13px;text-align:center;width:100%;padding:24px 0">
+          Nenhuma referência cadastrada ainda.
+        </p>
+      </div>\`;
     return;
   }
 
-  if (tableWrap) tableWrap.hidden = false;
-  if (empty) empty.hidden = true;
-
-  // Função auxiliar para criar o botão (reutilizada em tabela e cards mobile)
   function criarBtnCopiar(item) {
-    if (podeUsar) {
-      return `<button class="co-btn-usar"
-        data-ref-nome="${item.nome}"
-        data-ref-qtd="${item.qtd ?? 1}"
-        data-ref-unidade="${item.unidade ?? 'un'}"
-        data-ref-vida="${item.vida_util_km ?? 0}">
+    if (copiarLiberado) {
+      return \`<button class="co-btn-usar"
+        data-ref-nome="\${item.nome}"
+        data-ref-qtd="\${item.qtd ?? 1}"
+        data-ref-unidade="\${item.unidade ?? 'un'}"
+        data-ref-vida="\${item.vida_util_km ?? 0}">
         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         <span>Copiar para meus itens</span>
-      </button>`;
+      </button>\`;
     }
-    return `<button class="co-btn-usar-bloqueado" data-bloqueado="true">
+    return \`<button class="co-btn-usar-bloqueado" data-bloqueado="true">
       <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <span>Copiar para meus itens</span>
-    </button>`;
+    </button>\`;
   }
 
-  // ── Desktop: tabela ──
-  tbody.innerHTML = itens.map((item, idx) => {
-    const bloqueada = !isAdmin && idx >= linhasVisiveis;
-    if (bloqueada) {
-      return `
-        <tr class="co-ref-row-bloqueada" aria-hidden="true">
-          <td class="co-ref-td-nome">████████████</td>
-          <td class="text-right co-ref-td-muted">— un</td>
-          <td class="text-right co-ref-td-muted">—— KM</td>
-          <td></td>
-          <div class="co-ref-lock" aria-label="Conteúdo bloqueado">
-            <span class="co-ref-lock-icon">
-              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Upgrade necessário
-            </span>
-          </div>
-        </tr>`;
-    }
-    return `
-      <tr>
-        <td class="co-ref-td-nome">${item.nome}</td>
-        <td class="text-right co-ref-td-muted">${item.qtd ?? 1} ${item.unidade ?? 'un'}</td>
-        <td class="text-right co-ref-td-muted">${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</td>
-        <td style="text-align:right">${criarBtnCopiar(item)}</td>
-      </tr>`;
+  // ── Ordena categorias ──
+  const categoriasOrdenadas = [
+    ...ORDEM_CATEGORIAS.filter(c => grupos[c]),
+    ...Object.keys(grupos).filter(c => !ORDEM_CATEGORIAS.includes(c))
+  ];
+
+  // ── Desktop: tabela agrupada por categoria ──
+  const tabelaHtml = categoriasOrdenadas.map(cat => {
+    const itensCat = grupos[cat];
+    const headerRow = \`
+      <tr class="co-ref-categoria-header">
+        <td colspan="4" class="co-ref-categoria-label">\${cat}</td>
+      </tr>\`;
+
+    const rows = itensCat.map(item => {
+      const bloqueada = !isAdmin && item._globalIdx >= linhasVisiveis;
+      if (bloqueada) {
+        return \`
+          <tr class="co-ref-row-bloqueada" aria-hidden="true">
+            <td class="co-ref-td-nome">████████████</td>
+            <td class="text-right co-ref-td-muted">— un</td>
+            <td class="text-right co-ref-td-muted">—— KM</td>
+            <td>
+              <div class="co-ref-lock">
+                <span class="co-ref-lock-icon">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Upgrade
+                </span>
+              </div>
+            </td>
+          </tr>\`;
+      }
+      return \`
+        <tr>
+          <td class="co-ref-td-nome">\${item.nome}</td>
+          <td class="text-right co-ref-td-muted">\${item.qtd ?? 1} \${item.unidade ?? 'un'}</td>
+          <td class="text-right co-ref-td-muted">\${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</td>
+          <td style="text-align:right">\${criarBtnCopiar(item)}</td>
+        </tr>\`;
+    }).join('');
+
+    return headerRow + rows;
   }).join('');
 
-  // ── Mobile: cards ──
-  const cardsWrap = modal.querySelector('.co-ref-cards-mobile') || (() => {
-    const el = document.createElement('div');
-    el.className = 'co-ref-cards-mobile';
-    modal.querySelector('.co-ref-body').appendChild(el);
-    return el;
-  })();
+  // ── Mobile: cards agrupados por categoria ──
+  const cardsHtml = categoriasOrdenadas.map(cat => {
+    const itensCat = grupos[cat];
+    const cards = itensCat.map(item => {
+      const bloqueada = !isAdmin && item._globalIdx >= linhasVisiveis;
+      return \`
+        <div class="co-ref-card\${bloqueada ? ' co-ref-card-bloqueada' : ''}">
+          <div class="co-ref-card-header">
+            <span class="co-ref-card-nome">\${item.nome}</span>
+          </div>
+          <div class="co-ref-card-body">
+            <div class="co-ref-card-row">
+              <span>Quantidade</span>
+              <span>\${item.qtd ?? 1} \${item.unidade ?? 'un'}</span>
+            </div>
+            <div class="co-ref-card-row">
+              <span>Vida útil</span>
+              <span>\${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</span>
+            </div>
+          </div>
+          \${!bloqueada ? \`<div class="co-ref-card-footer">\${criarBtnCopiar(item)}</div>\` : ''}
+        </div>\`;
+    }).join('');
 
-  cardsWrap.innerHTML = itens.map((item, idx) => {
-    const bloqueada = !isAdmin && idx >= linhasVisiveis;
-    return `
-      <div class="co-ref-card${bloqueada ? ' co-ref-card-bloqueada' : ''}">
-        <div class="co-ref-card-header">
-          <span class="co-ref-card-nome">${item.nome}</span>
-        </div>
-        <div class="co-ref-card-body">
-          <div class="co-ref-card-row">
-            <span>Quantidade</span>
-            <span>${item.qtd ?? 1} ${item.unidade ?? 'un'}</span>
-          </div>
-          <div class="co-ref-card-row">
-            <span>Vida útil</span>
-            <span>${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</span>
-          </div>
-        </div>
-        ${!bloqueada ? `<div class="co-ref-card-footer">${criarBtnCopiar(item)}</div>` : ''}
-      </div>`;
+    return \`
+      <div class="co-ref-categoria-grupo">
+        <div class="co-ref-categoria-titulo-mobile">\${cat}</div>
+        \${cards}
+      </div>\`;
   }).join('');
+
+  bodyEl.innerHTML = \`
+    <div class="co-ref-table-wrap">
+      <table class="co-ref-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th class="text-right">Qtd típica</th>
+            <th class="text-right">Vida útil</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>\${tabelaHtml}</tbody>
+      </table>
+    </div>
+    <div class="co-ref-cards-mobile">\${cardsHtml}</div>
+  \`;
 
   // Eventos — copiar
   modal.querySelectorAll('.co-btn-usar[data-ref-nome]').forEach(btn => {
@@ -579,7 +620,7 @@ async function abrirModalReferencias() {
     });
   });
 
-  // Toast nos botões bloqueados
+  // Toast nos bloqueados
   modal.querySelectorAll('.co-btn-usar-bloqueado[data-bloqueado]').forEach(btn => {
     btn.addEventListener('click', () => {
       toast('Disponível a partir do Plano Pro. Faça upgrade para usar esta função.', 'aviso');
@@ -652,17 +693,15 @@ function bindEvents() {
     $('item-valor-unit').focus();
   });
 
-  // Botão abrir referências
+  // Modal deletar
+  // Botão referências
   $('btn-referencias')?.addEventListener('click', abrirModalReferencias);
-
-  // Modal referências — fechar
   $('modal-ref-fechar')?.addEventListener('click', () => { $('modal-referencias').hidden = true; });
   $('modal-ref-fechar-2')?.addEventListener('click', () => { $('modal-referencias').hidden = true; });
   $('modal-referencias')?.addEventListener('click', e => {
     if (e.target === $('modal-referencias')) $('modal-referencias').hidden = true;
   });
 
-  // Modal deletar
   $('modal-deletar-fechar').addEventListener('click', () => { $('modal-deletar').hidden = true; _deletandoId = null; });
   $('modal-deletar-cancelar').addEventListener('click', () => { $('modal-deletar').hidden = true; _deletandoId = null; });
   $('modal-deletar-confirmar').addEventListener('click', confirmarDeletar);
@@ -676,7 +715,7 @@ function bindEvents() {
     if (e.key === 'Escape') {
       fecharModal();
       $('modal-deletar').hidden = true;
-      $('modal-referencias').hidden = true;
+      if ($('modal-referencias')) $('modal-referencias').hidden = true;
     }
   });
 }

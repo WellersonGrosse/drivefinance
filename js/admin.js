@@ -1129,10 +1129,21 @@ function renderRefItens() {
 
   const UNIDADES = ['un', 'L', 'kg', 'm'];
 
+  const CATEGORIAS = [
+    'Motor e Lubrificação', 'Arrefecimento', 'Freios',
+    'Suspensão e Direção', 'Pneus', 'Filtros',
+    'Elétrica', 'Transmissão', 'Limpeza e Visibilidade', 'Outros'
+  ];
+
   const rows = refState.itens.map((item, i) => `
     <tr data-idx="${i}">
       <td><input class="input-tabela" value="${item.nome || ''}"
         oninput="refItemUpdate(${i},'nome',this.value)" placeholder="Nome do item" /></td>
+      <td class="col-valor">
+        <select class="input-tabela" style="min-width:160px" onchange="refItemUpdate(${i},'categoria',this.value)">
+          ${CATEGORIAS.map(c => `<option value="${c}" ${(item.categoria||'Outros') === c ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </td>
       <td class="col-valor">
         <input class="input-tabela" type="number" value="${item.qtd ?? 1}"
           min="0.1" step="0.1" style="width:60px"
@@ -1158,6 +1169,7 @@ function renderRefItens() {
       <thead>
         <tr>
           <th style="width:auto">Item</th>
+          <th class="col-valor">Categoria</th>
           <th class="col-valor">Qtd típica</th>
           <th class="col-valor">Unidade</th>
           <th class="col-valor">Vida útil (KM)</th>
@@ -1195,8 +1207,10 @@ window.refItemAdicionar = refItemAdicionar;
 async function salvarItensRef() {
   const itens = refState.itens
     .filter(i => i.nome?.trim())
-    .map(({ nome, qtd, unidade, vida_util_km }) => ({
-      nome: nome.trim(), qtd: Number(qtd) || 1, unidade: unidade || 'un', vida_util_km: Number(vida_util_km) || 0
+    .map(({ nome, qtd, unidade, vida_util_km, categoria }) => ({
+      nome: nome.trim(), qtd: Number(qtd) || 1, unidade: unidade || 'un',
+      vida_util_km: Number(vida_util_km) || 0,
+      categoria: categoria || 'Outros'
     }));
 
   try {
