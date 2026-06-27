@@ -558,18 +558,12 @@ async function salvarAcessoPlano() {
     atualizado_em: serverTimestamp()
   };
 
-  if (novoPlano === 'trial') {
-    // Trial não tem data de expiração — é controlado por trial_inicio + trial_dias
-    dados.plano_expira_em = null;
-  } else {
-    // Plano pago: preserva a expiração vigente se ainda está no futuro.
-    // Só zera se não havia expiração — o admin deve usar "Adicionar dias" para definir uma.
-    const expiraAtual = toDate(u.plano_expira_em);
-    if (expiraAtual && expiraAtual > new Date()) {
-      dados.plano_expira_em = u.plano_expira_em; // mantém a data atual
-    }
-    // Se não há expiração vigente, não grava plano_expira_em aqui —
-    // o admin deve usar "Adicionar dias" para definir uma data válida.
+  // Sempre preserva plano_expira_em vigente ao trocar de plano, inclusive para trial.
+  // Isso garante que voltar de trial para plano pago não perde a data de expiração anterior.
+  // Trial usa trial_inicio para controle de acesso — manter plano_expira_em não causa conflito.
+  const expiraAtual = toDate(u.plano_expira_em);
+  if (expiraAtual && expiraAtual > new Date()) {
+    dados.plano_expira_em = u.plano_expira_em;
   }
 
   // Atualiza modulos_ativos de acordo com o plano escolhido (inclusive trial)
