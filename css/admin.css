@@ -1095,3 +1095,17 @@ th.col-trial {
     justify-content: center;
   }
 }
+
+/* ─────────────────────────────────────────────
+   Referências de manutenção — admin
+───────────────────────────────────────────── */
+
+#ref-itens-container .input-tabela[type="number"] {
+  width: 80px;
+  text-align: right;
+}
+
+#ref-acesso-container .input-tabela[type="number"] {
+  width: 70px;
+  text-align: right;
+}
