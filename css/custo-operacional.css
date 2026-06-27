@@ -908,11 +908,12 @@
 
 /* Botão usar */
 .co-btn-usar {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  font-size: 11px;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 12px;
   font-weight: 500;
   background: rgba(79,195,161,0.1);
   border: 0.5px solid rgba(79,195,161,0.25);
@@ -920,8 +921,8 @@
   color: var(--teal);
   cursor: pointer;
   transition: all var(--transition);
-  white-space: nowrap;
   font-family: var(--font);
+  white-space: nowrap;
 }
 
 .co-btn-usar:hover {
@@ -930,38 +931,47 @@
 }
 
 .co-btn-usar svg {
-  width: 12px; height: 12px;
+  width: 13px; height: 13px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+  flex-shrink: 0;
 }
 
 /* Botão usar bloqueado */
 .co-btn-usar-bloqueado {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  font-size: 11px;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 12px;
   font-weight: 500;
   background: transparent;
   border: 0.5px solid var(--dark-border);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  cursor: not-allowed;
-  white-space: nowrap;
+  cursor: pointer;
   font-family: var(--font);
-  opacity: 0.5;
+  opacity: 0.6;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+
+.co-btn-usar-bloqueado:hover {
+  opacity: 0.9;
+  border-color: var(--dark-border-md);
 }
 
 .co-btn-usar-bloqueado svg {
-  width: 12px; height: 12px;
+  width: 13px; height: 13px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
+  flex-shrink: 0;
 }
 
 /* Empty state */
@@ -993,5 +1003,82 @@
 
   .co-ref-body {
     padding: var(--gap-md) var(--gap-lg);
+  }
+
+  /* No mobile, esconde tabela e mostra cards de referência */
+  .co-ref-table-wrap {
+    display: none;
+  }
+
+  .co-ref-cards-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+  }
+
+  .co-ref-card {
+    background: var(--dark-card);
+    border: 0.5px solid var(--dark-border);
+    border-radius: var(--radius-md);
+    padding: var(--gap-md) var(--gap-lg);
+  }
+
+  .co-ref-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .co-ref-card-nome {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .co-ref-card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .co-ref-card-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .co-ref-card-row span:first-child {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .co-ref-card-row span:last-child {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .co-ref-card-footer {
+    border-top: 0.5px solid var(--dark-border);
+    padding-top: 10px;
+  }
+
+  .co-ref-card-footer .co-btn-usar,
+  .co-ref-card-footer .co-btn-usar-bloqueado {
+    width: 100%;
+    justify-content: center;
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  /* Card bloqueado */
+  .co-ref-card-bloqueada {
+    filter: blur(4px);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.35;
   }
 }
