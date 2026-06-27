@@ -465,7 +465,9 @@ async function abrirModalReferencias() {
   const configPlano = acesso[planoUsuario] || { linhas_visiveis: 3, plano_minimo_usar: 'basico' };
   const linhasVisiveis = isAdmin ? 9999 : (configPlano.linhas_visiveis ?? 3);
   const planoMinimoUsar = configPlano.plano_minimo_usar || 'basico';
-  const podeUsar = isAdmin || planoAtingePlanominimo(planoUsuario, planoMinimoUsar);
+  // Lê copiar_liberado do Firestore (novo campo) — fallback para hierarquia de planos
+  const copiarLiberado = configPlano.copiar_liberado ?? planoAtingePlanominimo(planoUsuario, planoMinimoUsar ?? 'pro');
+  const podeUsar = isAdmin || copiarLiberado;
 
   const temBloqueadas = !isAdmin && itens.length > linhasVisiveis;
 
@@ -489,11 +491,28 @@ async function abrirModalReferencias() {
   if (tableWrap) tableWrap.hidden = false;
   if (empty) empty.hidden = true;
 
+  // Função auxiliar para criar o botão (reutilizada em tabela e cards mobile)
+  function criarBtnCopiar(item) {
+    if (podeUsar) {
+      return `<button class="co-btn-usar"
+        data-ref-nome="${item.nome}"
+        data-ref-qtd="${item.qtd ?? 1}"
+        data-ref-unidade="${item.unidade ?? 'un'}"
+        data-ref-vida="${item.vida_util_km ?? 0}">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Copiar para meus itens</span>
+      </button>`;
+    }
+    return `<button class="co-btn-usar-bloqueado" data-bloqueado="true">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>Copiar para meus itens</span>
+    </button>`;
+  }
+
+  // ── Desktop: tabela ──
   tbody.innerHTML = itens.map((item, idx) => {
     const bloqueada = !isAdmin && idx >= linhasVisiveis;
-
     if (bloqueada) {
-      // Linha com blur — conteúdo fictício para manter a aparência
       return `
         <tr class="co-ref-row-bloqueada" aria-hidden="true">
           <td class="co-ref-td-nome">████████████</td>
@@ -508,28 +527,46 @@ async function abrirModalReferencias() {
           </div>
         </tr>`;
     }
-
-    const btnUsar = podeUsar
-      ? `<button class="co-btn-usar" data-ref-nome="${item.nome}" data-ref-qtd="${item.qtd ?? 1}" data-ref-unidade="${item.unidade ?? 'un'}" data-ref-vida="${item.vida_util_km ?? 0}">
-           <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-           Usar
-         </button>`
-      : `<button class="co-btn-usar-bloqueado" title="Disponível a partir do plano ${planoMinimoUsar}">
-           <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-           Usar
-         </button>`;
-
     return `
       <tr>
         <td class="co-ref-td-nome">${item.nome}</td>
         <td class="text-right co-ref-td-muted">${item.qtd ?? 1} ${item.unidade ?? 'un'}</td>
         <td class="text-right co-ref-td-muted">${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</td>
-        <td style="text-align:right">${btnUsar}</td>
+        <td style="text-align:right">${criarBtnCopiar(item)}</td>
       </tr>`;
   }).join('');
 
-  // Evento nos botões "Usar" — delega no tbody
-  tbody.querySelectorAll('.co-btn-usar[data-ref-nome]').forEach(btn => {
+  // ── Mobile: cards ──
+  const cardsWrap = modal.querySelector('.co-ref-cards-mobile') || (() => {
+    const el = document.createElement('div');
+    el.className = 'co-ref-cards-mobile';
+    modal.querySelector('.co-ref-body').appendChild(el);
+    return el;
+  })();
+
+  cardsWrap.innerHTML = itens.map((item, idx) => {
+    const bloqueada = !isAdmin && idx >= linhasVisiveis;
+    return `
+      <div class="co-ref-card${bloqueada ? ' co-ref-card-bloqueada' : ''}">
+        <div class="co-ref-card-header">
+          <span class="co-ref-card-nome">${item.nome}</span>
+        </div>
+        <div class="co-ref-card-body">
+          <div class="co-ref-card-row">
+            <span>Quantidade</span>
+            <span>${item.qtd ?? 1} ${item.unidade ?? 'un'}</span>
+          </div>
+          <div class="co-ref-card-row">
+            <span>Vida útil</span>
+            <span>${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</span>
+          </div>
+        </div>
+        ${!bloqueada ? `<div class="co-ref-card-footer">${criarBtnCopiar(item)}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  // Eventos — copiar
+  modal.querySelectorAll('.co-btn-usar[data-ref-nome]').forEach(btn => {
     btn.addEventListener('click', () => {
       const { refNome, refQtd, refUnidade, refVida } = btn.dataset;
       modal.hidden = true;
@@ -539,6 +576,13 @@ async function abrirModalReferencias() {
         unidade:      refUnidade || 'un',
         vida_util_km: Number(refVida) || 0
       });
+    });
+  });
+
+  // Toast nos botões bloqueados
+  modal.querySelectorAll('.co-btn-usar-bloqueado[data-bloqueado]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      toast('Disponível a partir do Plano Pro. Faça upgrade para usar esta função.', 'aviso');
     });
   });
 }
