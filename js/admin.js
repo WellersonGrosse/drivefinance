@@ -559,7 +559,17 @@ async function salvarAcessoPlano() {
   };
 
   if (novoPlano === 'trial') {
+    // Trial não tem data de expiração — é controlado por trial_inicio + trial_dias
     dados.plano_expira_em = null;
+  } else {
+    // Plano pago: preserva a expiração vigente se ainda está no futuro.
+    // Só zera se não havia expiração — o admin deve usar "Adicionar dias" para definir uma.
+    const expiraAtual = toDate(u.plano_expira_em);
+    if (expiraAtual && expiraAtual > new Date()) {
+      dados.plano_expira_em = u.plano_expira_em; // mantém a data atual
+    }
+    // Se não há expiração vigente, não grava plano_expira_em aqui —
+    // o admin deve usar "Adicionar dias" para definir uma data válida.
   }
 
   // Atualiza modulos_ativos de acordo com o plano escolhido (inclusive trial)
