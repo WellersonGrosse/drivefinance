@@ -61,6 +61,10 @@
             <p class="co-card-label">Custo total por KM</p>
             <p class="co-card-valor-grande" id="custo-por-km">R$ 0,000</p>
             <p class="co-card-hint" id="custo-km-hint">Adicione itens para calcular</p>
+            <button class="btn btn-secondary co-btn-referencias" id="btn-referencias">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+              Ver referências
+            </button>
           </div>
 
           <div class="co-card-periodo">
@@ -227,6 +231,61 @@
         <button class="btn btn-secondary" id="modal-deletar-cancelar">Cancelar</button>
         <button class="btn btn-danger" id="modal-deletar-confirmar">Remover</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal referências de manutenção -->
+  <div class="modal-overlay" id="modal-referencias" hidden>
+    <div class="modal co-modal-ref" role="dialog" aria-modal="true" aria-labelledby="modal-ref-titulo">
+
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-ref-titulo">Referências de manutenção</h2>
+          <p class="co-ref-subtitulo">Valores sugeridos de vida útil para itens comuns</p>
+        </div>
+        <button class="modal-close" id="modal-ref-fechar" aria-label="Fechar">
+          <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body co-ref-body">
+
+        <!-- Banner de upgrade — visível quando há linhas bloqueadas -->
+        <div class="co-ref-upgrade" id="co-ref-upgrade" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2Zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4Z"/></svg>
+          <span id="co-ref-upgrade-texto">Faça upgrade para ver todos os itens</span>
+          <a href="landing.html#planos" class="btn btn-primary btn-sm">Ver planos</a>
+        </div>
+
+        <!-- Tabela de referências -->
+        <div class="co-ref-table-wrap">
+          <table class="co-ref-table" id="co-ref-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th class="text-right">Qtd típica</th>
+                <th class="text-right">Vida útil</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="co-ref-tbody">
+              <!-- preenchido pelo JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Estado vazio -->
+        <div class="co-ref-empty" id="co-ref-empty" hidden>
+          <p>Nenhuma referência cadastrada ainda.</p>
+          <span>O administrador pode adicionar referências no painel admin.</span>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-ref-fechar-2">Fechar</button>
+      </div>
+
     </div>
   </div>
 

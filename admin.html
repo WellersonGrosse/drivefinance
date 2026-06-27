@@ -40,6 +40,9 @@
       <button class="nav-item" data-section="planos" onclick="navegarSecao('planos')">
         <span class="nav-icon">📦</span> Planos
       </button>
+      <button class="nav-item" data-section="referencias" onclick="navegarSecao('referencias')">
+        <span class="nav-icon">🔧</span> Referências
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -194,6 +197,44 @@
           </div>
           <div class="plano-bloco-body" id="acesso-temporario-container">
             <div class="empty-state"><div class="empty-state-icon">⏱️</div><p>Carregando...</p></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── SEÇÃO: Referências ── -->
+    <section id="section-referencias" class="admin-section" hidden>
+      <h1 class="page-title">Referências de manutenção</h1>
+      <p class="page-subtitle">Gerencie a lista de referências exibida no Custo Operacional e defina o nível de acesso por plano.</p>
+
+      <div class="planos-blocos fade-up">
+
+        <!-- Bloco 1: Itens -->
+        <div class="plano-bloco">
+          <div class="plano-bloco-header">
+            <div>
+              <h2 class="plano-bloco-titulo">Itens de referência</h2>
+              <p class="plano-bloco-sub">Nome, quantidade típica, unidade e vida útil sugerida em KM.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvarItensRef()">Salvar itens</button>
+          </div>
+          <div class="plano-bloco-body" id="ref-itens-container">
+            <div class="empty-state"><div class="empty-state-icon">🔧</div><p>Carregando...</p></div>
+          </div>
+        </div>
+
+        <!-- Bloco 2: Acesso por plano -->
+        <div class="plano-bloco">
+          <div class="plano-bloco-header">
+            <div>
+              <h2 class="plano-bloco-titulo">Acesso por plano</h2>
+              <p class="plano-bloco-sub">Quantas linhas cada plano visualiza e a partir de qual plano o botão "Usar" é liberado.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="salvarAcessoRef()">Salvar acesso</button>
+          </div>
+          <div class="plano-bloco-body" id="ref-acesso-container">
+            <div class="empty-state"><div class="empty-state-icon">🔒</div><p>Carregando...</p></div>
           </div>
         </div>
 
