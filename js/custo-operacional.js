@@ -19,7 +19,7 @@ import {
 } from './app.js';
 
 import { db } from './firebase-config.js';
-import { collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { collection, getDocs, getDoc, doc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ─── Estado ────────────────────────────────────────────────────────────────────
 let _uid = null;
@@ -29,6 +29,7 @@ let _veiculoAtual = null;
 let _itens = [];
 let _editandoId = null;
 let _deletandoId = null;
+let _referencias = null; // { itens: [], acesso: {} } — carregado do Firestore
 
 const PAGINAS_PRONTAS = new Set(['home.html', 'admin.html', 'configuracoes.html', 'custo-operacional.html']);
 
@@ -422,6 +423,126 @@ async function confirmarDeletar() {
   }
 }
 
+// ─── Referências de manutenção ────────────────────────────────────────────────
+
+// Hierarquia de planos para comparação de acesso
+const HIERARQUIA_PLANOS = { trial: 0, basico: 1, pro: 2, completo: 3 };
+
+function planoAtingePlanominimo(planoUsuario, planoMinimo) {
+  return (HIERARQUIA_PLANOS[planoUsuario] ?? 0) >= (HIERARQUIA_PLANOS[planoMinimo] ?? 99);
+}
+
+async function carregarReferencias() {
+  if (_referencias) return _referencias; // cache
+  try {
+    const snap = await getDoc(doc(db, 'config_global', 'referencias_manutencao'));
+    _referencias = snap.exists() ? snap.data() : { itens: [], acesso: {} };
+  } catch {
+    _referencias = { itens: [], acesso: {} };
+  }
+  return _referencias;
+}
+
+async function abrirModalReferencias() {
+  const modal = $('modal-referencias');
+  const tbody = $('co-ref-tbody');
+  const empty = $('co-ref-empty');
+  const tableWrap = modal.querySelector('.co-ref-table-wrap');
+  const upgradeEl = $('co-ref-upgrade');
+
+  // Estado de carregamento
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">Carregando...</td></tr>';
+  modal.hidden = false;
+
+  const ref = await carregarReferencias();
+  const itens = ref.itens || [];
+  const acesso = ref.acesso || {};
+
+  const planoUsuario = _perfil?.plano || 'trial';
+  const isAdmin = _perfil?.role === 'admin';
+
+  // Configuração de acesso do plano do usuário
+  const configPlano = acesso[planoUsuario] || { linhas_visiveis: 3, plano_minimo_usar: 'basico' };
+  const linhasVisiveis = isAdmin ? 9999 : (configPlano.linhas_visiveis ?? 3);
+  const planoMinimoUsar = configPlano.plano_minimo_usar || 'basico';
+  const podeUsar = isAdmin || planoAtingePlanominimo(planoUsuario, planoMinimoUsar);
+
+  const temBloqueadas = !isAdmin && itens.length > linhasVisiveis;
+
+  // Banner de upgrade
+  if (upgradeEl) {
+    upgradeEl.hidden = !temBloqueadas;
+    if (temBloqueadas) {
+      const bloqueadas = itens.length - linhasVisiveis;
+      $('co-ref-upgrade-texto').textContent =
+        `${bloqueadas} item${bloqueadas > 1 ? 's' : ''} oculto${bloqueadas > 1 ? 's' : ''} — faça upgrade para ver tudo`;
+    }
+  }
+
+  if (!itens.length) {
+    tbody.innerHTML = '';
+    if (tableWrap) tableWrap.hidden = true;
+    if (empty) empty.hidden = false;
+    return;
+  }
+
+  if (tableWrap) tableWrap.hidden = false;
+  if (empty) empty.hidden = true;
+
+  tbody.innerHTML = itens.map((item, idx) => {
+    const bloqueada = !isAdmin && idx >= linhasVisiveis;
+
+    if (bloqueada) {
+      // Linha com blur — conteúdo fictício para manter a aparência
+      return `
+        <tr class="co-ref-row-bloqueada" aria-hidden="true">
+          <td class="co-ref-td-nome">████████████</td>
+          <td class="text-right co-ref-td-muted">— un</td>
+          <td class="text-right co-ref-td-muted">—— KM</td>
+          <td></td>
+          <div class="co-ref-lock" aria-label="Conteúdo bloqueado">
+            <span class="co-ref-lock-icon">
+              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Upgrade necessário
+            </span>
+          </div>
+        </tr>`;
+    }
+
+    const btnUsar = podeUsar
+      ? `<button class="co-btn-usar" data-ref-nome="${item.nome}" data-ref-qtd="${item.qtd ?? 1}" data-ref-unidade="${item.unidade ?? 'un'}" data-ref-vida="${item.vida_util_km ?? 0}">
+           <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+           Usar
+         </button>`
+      : `<button class="co-btn-usar-bloqueado" title="Disponível a partir do plano ${planoMinimoUsar}">
+           <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+           Usar
+         </button>`;
+
+    return `
+      <tr>
+        <td class="co-ref-td-nome">${item.nome}</td>
+        <td class="text-right co-ref-td-muted">${item.qtd ?? 1} ${item.unidade ?? 'un'}</td>
+        <td class="text-right co-ref-td-muted">${new Intl.NumberFormat('pt-BR').format(item.vida_util_km ?? 0)} KM</td>
+        <td style="text-align:right">${btnUsar}</td>
+      </tr>`;
+  }).join('');
+
+  // Evento nos botões "Usar" — delega no tbody
+  tbody.querySelectorAll('.co-btn-usar[data-ref-nome]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const { refNome, refQtd, refUnidade, refVida } = btn.dataset;
+      modal.hidden = true;
+      abrirModal({
+        nome:         refNome,
+        qtd:          Number(refQtd) || 1,
+        unidade:      refUnidade || 'un',
+        vida_util_km: Number(refVida) || 0
+      });
+    });
+  });
+}
+
 // ─── Eventos ──────────────────────────────────────────────────────────────────
 function bindEvents() {
   // Tabs de período
@@ -487,6 +608,16 @@ function bindEvents() {
     $('item-valor-unit').focus();
   });
 
+  // Botão abrir referências
+  $('btn-referencias')?.addEventListener('click', abrirModalReferencias);
+
+  // Modal referências — fechar
+  $('modal-ref-fechar')?.addEventListener('click', () => { $('modal-referencias').hidden = true; });
+  $('modal-ref-fechar-2')?.addEventListener('click', () => { $('modal-referencias').hidden = true; });
+  $('modal-referencias')?.addEventListener('click', e => {
+    if (e.target === $('modal-referencias')) $('modal-referencias').hidden = true;
+  });
+
   // Modal deletar
   $('modal-deletar-fechar').addEventListener('click', () => { $('modal-deletar').hidden = true; _deletandoId = null; });
   $('modal-deletar-cancelar').addEventListener('click', () => { $('modal-deletar').hidden = true; _deletandoId = null; });
@@ -501,6 +632,7 @@ function bindEvents() {
     if (e.key === 'Escape') {
       fecharModal();
       $('modal-deletar').hidden = true;
+      $('modal-referencias').hidden = true;
     }
   });
 }

@@ -206,6 +206,7 @@ function navegarSecao(id) {
   if (id === 'visao-geral') renderVisaoGeral();
   if (id === 'usuarios')    renderUsuarios();
   if (id === 'planos')      { renderPlanos(); renderAcessoTemporario(); }
+  if (id === 'referencias') renderReferencias();
 }
 
 window.navegarSecao = navegarSecao;
@@ -1140,6 +1141,196 @@ function fecharMenu() {
   $('btn-menu')?.setAttribute('aria-expanded', 'false');
   document.body.classList.remove('menu-open');
 }
+
+// ─────────────────────────────────────────────
+// REFERÊNCIAS DE MANUTENÇÃO
+// ─────────────────────────────────────────────
+
+const IDS_PLANOS_REF = ['trial', 'basico', 'pro', 'completo'];
+const LABELS_PLANOS_REF = { trial: 'Trial', basico: 'Básico', pro: 'Pro', completo: 'Completo' };
+
+let refState = {
+  itens: [],    // [{ id, nome, qtd, unidade, vida_util_km }]
+  acesso: {}    // { trial: { linhas_visiveis, plano_minimo_usar }, ... }
+};
+
+async function carregarReferencias() {
+  try {
+    const snap = await getDoc(doc(db, 'config_global', 'referencias_manutencao'));
+    if (snap.exists()) {
+      const dados = snap.data();
+      refState.itens  = (dados.itens  || []).map((item, i) => ({ ...item, _idx: i }));
+      refState.acesso = dados.acesso || {};
+    }
+  } catch (e) {
+    console.error('[Admin] Erro ao carregar referências:', e);
+  }
+}
+
+function renderReferencias() {
+  carregarReferencias().then(() => {
+    renderRefItens();
+    renderRefAcesso();
+  });
+}
+window.renderReferencias = renderReferencias;
+
+// ── Bloco 1: Itens ──────────────────────────
+
+function renderRefItens() {
+  const c = $('ref-itens-container');
+  if (!c) return;
+
+  const UNIDADES = ['un', 'L', 'kg', 'm'];
+
+  const rows = refState.itens.map((item, i) => `
+    <tr data-idx="${i}">
+      <td><input class="input-tabela" value="${item.nome || ''}"
+        oninput="refItemUpdate(${i},'nome',this.value)" placeholder="Nome do item" /></td>
+      <td class="col-valor">
+        <input class="input-tabela" type="number" value="${item.qtd ?? 1}"
+          min="0.1" step="0.1" style="width:60px"
+          oninput="refItemUpdate(${i},'qtd',parseFloat(this.value)||1)" />
+      </td>
+      <td class="col-valor">
+        <select class="input-tabela" onchange="refItemUpdate(${i},'unidade',this.value)">
+          ${UNIDADES.map(u => `<option value="${u}" ${item.unidade === u ? 'selected' : ''}>${u}</option>`).join('')}
+        </select>
+      </td>
+      <td class="col-valor">
+        <input class="input-tabela" type="number" value="${item.vida_util_km ?? 0}"
+          min="0" step="100"
+          oninput="refItemUpdate(${i},'vida_util_km',parseInt(this.value)||0)" />
+      </td>
+      <td class="col-toggle-centro">
+        <button class="cell-toggle-btn inativo" onclick="refItemRemover(${i})" title="Remover">✕</button>
+      </td>
+    </tr>`).join('');
+
+  c.innerHTML = `
+    <table class="planos-tabela">
+      <thead>
+        <tr>
+          <th style="width:auto">Item</th>
+          <th class="col-valor">Qtd típica</th>
+          <th class="col-valor">Unidade</th>
+          <th class="col-valor">Vida útil (KM)</th>
+          <th class="col-toggle-centro">Remover</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="padding: var(--gap-md) var(--gap-xl) var(--gap-lg); display:flex; justify-content:flex-start">
+      <button class="btn btn-secondary btn-sm" onclick="refItemAdicionar()">
+        + Adicionar item
+      </button>
+    </div>`;
+}
+
+function refItemUpdate(idx, campo, valor) {
+  if (refState.itens[idx]) refState.itens[idx][campo] = valor;
+}
+window.refItemUpdate = refItemUpdate;
+
+function refItemRemover(idx) {
+  refState.itens.splice(idx, 1);
+  renderRefItens();
+}
+window.refItemRemover = refItemRemover;
+
+function refItemAdicionar() {
+  refState.itens.push({ nome: '', qtd: 1, unidade: 'un', vida_util_km: 5000 });
+  renderRefItens();
+  // Foca no último campo nome
+  setTimeout(() => {
+    const inputs = $('ref-itens-container')?.querySelectorAll('input.input-tabela');
+    inputs?.[inputs.length - 3]?.focus();
+  }, 50);
+}
+window.refItemAdicionar = refItemAdicionar;
+
+async function salvarItensRef() {
+  const itens = refState.itens
+    .filter(i => i.nome?.trim())
+    .map(({ nome, qtd, unidade, vida_util_km }) => ({ nome: nome.trim(), qtd: Number(qtd) || 1, unidade: unidade || 'un', vida_util_km: Number(vida_util_km) || 0 }));
+
+  try {
+    await setDoc(doc(db, 'config_global', 'referencias_manutencao'),
+      { itens },
+      { merge: true }
+    );
+    refState.itens = itens.map((item, i) => ({ ...item, _idx: i }));
+    toast('Itens de referência salvos.', 'sucesso');
+    renderRefItens();
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao salvar itens.', 'erro');
+  }
+}
+window.salvarItensRef = salvarItensRef;
+
+// ── Bloco 2: Acesso por plano ────────────────
+
+function renderRefAcesso() {
+  const c = $('ref-acesso-container');
+  if (!c) return;
+
+  const rows = IDS_PLANOS_REF.map(id => {
+    const cfg = refState.acesso[id] || { linhas_visiveis: 3, plano_minimo_usar: 'basico' };
+    const opcoesPlano = IDS_PLANOS_REF.map(p =>
+      `<option value="${p}" ${cfg.plano_minimo_usar === p ? 'selected' : ''}>${LABELS_PLANOS_REF[p]}</option>`
+    ).join('');
+
+    return `<tr>
+      <td><strong>${LABELS_PLANOS_REF[id]}</strong></td>
+      <td class="col-valor">
+        <input class="input-tabela" type="number" value="${cfg.linhas_visiveis ?? 3}"
+          min="0" max="999" step="1" style="width:70px"
+          oninput="refAcessoUpdate('${id}','linhas_visiveis',parseInt(this.value)||0)" />
+      </td>
+      <td class="col-valor">
+        <select class="input-tabela" onchange="refAcessoUpdate('${id}','plano_minimo_usar',this.value)">
+          ${opcoesPlano}
+        </select>
+      </td>
+    </tr>`;
+  }).join('');
+
+  c.innerHTML = `
+    <table class="planos-tabela">
+      <thead>
+        <tr>
+          <th style="width:auto">Plano</th>
+          <th class="col-valor">Linhas visíveis</th>
+          <th class="col-valor">Plano mínimo p/ usar</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="padding: var(--gap-sm) var(--gap-xl); font-size:11px; color:var(--text-muted)">
+      💡 "Linhas visíveis" = quantas linhas o plano vê sem blur. Use 999 para liberar todas.
+    </div>`;
+}
+
+function refAcessoUpdate(plano, campo, valor) {
+  if (!refState.acesso[plano]) refState.acesso[plano] = {};
+  refState.acesso[plano][campo] = valor;
+}
+window.refAcessoUpdate = refAcessoUpdate;
+
+async function salvarAcessoRef() {
+  try {
+    await setDoc(doc(db, 'config_global', 'referencias_manutencao'),
+      { acesso: refState.acesso },
+      { merge: true }
+    );
+    toast('Acesso por plano salvo.', 'sucesso');
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao salvar acesso.', 'erro');
+  }
+}
+window.salvarAcessoRef = salvarAcessoRef;
 
 // ─────────────────────────────────────────────
 // ACESSO TEMPORÁRIO EM LOTE
