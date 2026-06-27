@@ -75,6 +75,8 @@ const FEATURES_PADRAO = [
 ];
 
 const IDS_PLANOS = ['basico', 'pro', 'completo'];
+// Trial aparece apenas na tabela de módulos — não tem preço nem features na landing
+const IDS_PLANOS_MODULOS = ['trial', 'basico', 'pro', 'completo'];
 
 const POR_PAGINA = 15;
 
@@ -203,7 +205,7 @@ function navegarSecao(id) {
 
   if (id === 'visao-geral') renderVisaoGeral();
   if (id === 'usuarios')    renderUsuarios();
-  if (id === 'planos')      renderPlanos();
+  if (id === 'planos')      { renderPlanos(); renderAcessoTemporario(); }
 }
 
 window.navegarSecao = navegarSecao;
@@ -235,6 +237,7 @@ async function carregarPlanos() {
       state.planos = dados;
     } else {
       state.planos = {
+        trial:    { id: 'trial',    modulos: [...TODOS_MODULOS] },
         basico:   { id: 'basico',   nome: 'Básico',   mensal: 15.90, anual: 99.90,  trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico'] },
         pro:      { id: 'pro',      nome: 'Pro',       mensal: 25.90, anual: 169.90, trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico','dashboard','custo_operacional'] },
         completo: { id: 'completo', nome: 'Completo',  mensal: 35.90, anual: 229.90, trial_dias: 15, destaque: false, modulos: ['home','lancamentos','despesas','historico','dashboard','custo_operacional','relatorios'] },
@@ -559,7 +562,8 @@ async function salvarAcessoPlano() {
     dados.plano_expira_em = null;
   }
 
-  if (novoRole !== 'admin' && novoPlano !== 'trial') {
+  // Atualiza modulos_ativos de acordo com o plano escolhido (inclusive trial)
+  if (novoRole !== 'admin') {
     dados.modulos_ativos = state.planos[novoPlano]?.modulos || u.modulos_ativos;
   }
 
@@ -701,11 +705,12 @@ async function carregarLog(uid) {
 let tabelaState = {
   configuracoes: {},  // { basico: {nome, mensal, anual, destaque, trial_dias}, ... }
   features: [],       // [{ text, basico, pro, completo }, ...]
-  modulos: {}         // { basico: ['home', ...], pro: [...], completo: [...] }
+  modulos: {}         // { trial: [...], basico: ['home', ...], pro: [...], completo: [...] }
 };
 
 function renderPlanos() {
-  // Clona estado atual do Firestore para edição local
+  // Clona estado atual do Firestore para edição local (trial só tem módulos, sem preço)
+  tabelaState.modulos['trial'] = [...(state.planos.trial?.modulos || [...TODOS_MODULOS])];
   IDS_PLANOS.forEach(id => {
     const p = state.planos[id] || {};
     tabelaState.configuracoes[id] = {
@@ -957,9 +962,11 @@ function renderModulosTabela() {
   const c = $('planos-modulos-container');
   if (!c) return;
 
-  const nomesHeader = IDS_PLANOS.map(id =>
-    `<th class="col-plano-mini">${tabelaState.configuracoes[id].nome || id}</th>`
-  ).join('');
+  // Trial usa label fixo; os outros usam o nome configurado
+  const nomesHeader = IDS_PLANOS_MODULOS.map(id => {
+    const label = id === 'trial' ? 'Trial' : (tabelaState.configuracoes[id]?.nome || id);
+    return `<th class="col-plano-mini${id === 'trial' ? ' col-trial' : ''}">${label}</th>`;
+  }).join('');
 
   // IDs que são sub-módulos — não renderizam como linha principal
   const todosFilhos = new Set(Object.values(MODULOS_FILHOS).flat());
@@ -970,9 +977,10 @@ function renderModulosTabela() {
       const filhos = MODULOS_FILHOS[m] || [];
       const temFilhos = filhos.length > 0;
 
-      const toggles = IDS_PLANOS.map(id => {
-        const ativo = tabelaState.modulos[id].includes(m);
-        return `<td class="col-toggle-centro">
+      const toggles = IDS_PLANOS_MODULOS.map(id => {
+        const lista = tabelaState.modulos[id] || [];
+        const ativo = lista.includes(m);
+        return `<td class="col-toggle-centro${id === 'trial' ? ' col-trial' : ''}">
           <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}"
             onclick="moduloToggle('${id}','${m}')">${ativo ? '✓' : '○'}</button>
         </td>`;
@@ -989,15 +997,15 @@ function renderModulosTabela() {
       </tr>`;
 
       const linhasFilhos = filhos.map(f => {
-        const togglesFilho = IDS_PLANOS.map(id => {
-          const ativo = tabelaState.modulos[id].includes(f);
-          return `<td class="col-toggle-centro">
+        const togglesFilho = IDS_PLANOS_MODULOS.map(id => {
+          const lista = tabelaState.modulos[id] || [];
+          const ativo = lista.includes(f);
+          return `<td class="col-toggle-centro${id === 'trial' ? ' col-trial' : ''}">
             <button class="cell-toggle-btn ${ativo ? 'ativo' : 'inativo'}"
               onclick="moduloToggle('${id}','${f}')">${ativo ? '✓' : '○'}</button>
           </td>`;
         }).join('');
 
-        // Extrai só o nome após o " — " para exibir indentado
         const labelFilho = (MODULOS_LABELS[f] || f).replace(/^[^—]*—\s*/, '');
 
         return `<tr data-modulo="${f}" class="modulo-filho modulo-filho-de-${m}" hidden>
@@ -1026,51 +1034,20 @@ function renderModulosTabela() {
     </div>
   `;
 }
-
-function moduloToggle(id, modulo) {
-  const idx = tabelaState.modulos[id].indexOf(modulo);
-  if (idx === -1) tabelaState.modulos[id].push(modulo);
-  else tabelaState.modulos[id].splice(idx, 1);
-
-  // Preserva quais pais estão expandidos antes de re-renderizar
-  const tabela = $('planos-modulos-container');
-  const expandidos = new Set();
-  tabela?.querySelectorAll('.modulo-expandir[aria-expanded="true"]').forEach(btn => {
-    const pai = btn.closest('tr')?.dataset.modulo;
-    if (pai) expandidos.add(pai);
-  });
-
-  renderModulosTabela();
-
-  // Restaura o estado de expansão
-  expandidos.forEach(pai => {
-    const container = $('planos-modulos-container');
-    const filhos = container?.querySelectorAll(`.modulo-filho-de-${pai}`);
-    const btn = container?.querySelector(`tr[data-modulo="${pai}"] .modulo-expandir`);
-    filhos?.forEach(f => { f.hidden = false; });
-    btn?.setAttribute('aria-expanded', 'true');
-  });
-}
-window.moduloToggle = moduloToggle;
-
-function moduloExpandir(pai) {
-  const tabela = $('planos-modulos-container');
-  if (!tabela) return;
-  const filhos = tabela.querySelectorAll(`.modulo-filho-de-${pai}`);
-  const btn = tabela.querySelector(`tr[data-modulo="${pai}"] .modulo-expandir`);
-  const expandido = btn?.getAttribute('aria-expanded') === 'true';
-  filhos.forEach(f => { f.hidden = expandido; });
-  if (btn) btn.setAttribute('aria-expanded', String(!expandido));
-}
 window.moduloExpandir = moduloExpandir;
 
 async function salvarModulosPlanos() {
   const atualizacao = {};
-  IDS_PLANOS.forEach(id => {
-    atualizacao[id] = {
-      ...(state.planos[id] || {}),
-      modulos: tabelaState.modulos[id]
-    };
+  // Salva trial junto com os demais planos
+  IDS_PLANOS_MODULOS.forEach(id => {
+    if (id === 'trial') {
+      atualizacao.trial = { id: 'trial', modulos: tabelaState.modulos.trial || [] };
+    } else {
+      atualizacao[id] = {
+        ...(state.planos[id] || {}),
+        modulos: tabelaState.modulos[id]
+      };
+    }
   });
 
   // Persiste lista master para que módulos extras sobrevivam entre sessões
@@ -1081,7 +1058,10 @@ async function salvarModulosPlanos() {
       { ...state.planos, ...atualizacao, modulos_sistema: modulosSistema },
       { merge: true }
     );
-    IDS_PLANOS.forEach(id => { state.planos[id].modulos = tabelaState.modulos[id]; });
+    IDS_PLANOS_MODULOS.forEach(id => {
+      if (!state.planos[id]) state.planos[id] = { id };
+      state.planos[id].modulos = tabelaState.modulos[id] || [];
+    });
     state.planos.modulos_sistema = modulosSistema;
     toast('Módulos salvos.', 'sucesso');
   } catch (e) {
@@ -1118,6 +1098,151 @@ function fecharMenu() {
   $('btn-menu')?.setAttribute('aria-expanded', 'false');
   document.body.classList.remove('menu-open');
 }
+
+// ─────────────────────────────────────────────
+// ACESSO TEMPORÁRIO EM LOTE
+// ─────────────────────────────────────────────
+
+function renderAcessoTemporario() {
+  const c = $('acesso-temporario-container');
+  if (!c) return;
+
+  const opcoesModulos = TODOS_MODULOS.map(id =>
+    `<option value="${id}">${MODULOS_LABELS[id] || id}</option>`
+  ).join('');
+
+  const opcoesPlanos = IDS_PLANOS_MODULOS.map(id => {
+    const label = id === 'trial' ? 'Trial' : (state.planos[id]?.nome || id);
+    return `<option value="${id}">${label}</option>`;
+  }).join('');
+
+  c.innerHTML = `
+    <div class="acesso-temp-form">
+      <div class="acesso-temp-row">
+        <div class="form-group">
+          <label class="form-label">Módulo a liberar</label>
+          <select class="select" id="at-modulo">${opcoesModulos}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duração (dias)</label>
+          <input type="number" class="input" id="at-dias" min="1" max="365" value="7" placeholder="Ex: 7" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Planos elegíveis</label>
+        <div class="acesso-temp-planos">
+          ${IDS_PLANOS_MODULOS.map(id => {
+            const label = id === 'trial' ? 'Trial' : (state.planos[id]?.nome || id);
+            return `<label class="acesso-temp-plano-label">
+              <input type="checkbox" value="${id}" id="at-plano-${id}" />
+              ${label}
+            </label>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="acesso-temp-preview" id="at-preview" hidden>
+        <span id="at-preview-texto"></span>
+      </div>
+      <div class="acesso-temp-footer">
+        <button class="btn btn-secondary" onclick="previewAcessoTemporario()">Visualizar impacto</button>
+        <button class="btn btn-primary" id="at-btn-aplicar" onclick="aplicarAcessoTemporario()" disabled>Aplicar acesso temporário</button>
+      </div>
+    </div>
+  `;
+}
+window.renderAcessoTemporario = renderAcessoTemporario;
+
+function previewAcessoTemporario() {
+  const modulo  = $('at-modulo')?.value;
+  const dias    = parseInt($('at-dias')?.value) || 0;
+  const planos  = IDS_PLANOS_MODULOS.filter(id => $(`at-plano-${id}`)?.checked);
+
+  if (!modulo || dias < 1 || planos.length === 0) {
+    toast('Selecione módulo, duração e pelo menos um plano.', 'aviso');
+    return;
+  }
+
+  const afetados = state.usuarios.filter(u =>
+    u.role !== 'admin' && planos.includes(u.plano)
+  );
+
+  const preview = $('at-preview');
+  const texto   = $('at-preview-texto');
+  const btnAplicar = $('at-btn-aplicar');
+
+  if (preview && texto) {
+    const labelModulo = MODULOS_LABELS[modulo] || modulo;
+    const labelsPlanos = planos.map(id => id === 'trial' ? 'Trial' : (state.planos[id]?.nome || id)).join(', ');
+    texto.textContent = `${afetados.length} usuário(s) dos planos [${labelsPlanos}] receberão acesso ao módulo "${labelModulo}" por ${dias} dia(s).`;
+    preview.hidden = false;
+  }
+
+  if (btnAplicar) btnAplicar.disabled = afetados.length === 0;
+}
+window.previewAcessoTemporario = previewAcessoTemporario;
+
+async function aplicarAcessoTemporario() {
+  const modulo = $('at-modulo')?.value;
+  const dias   = parseInt($('at-dias')?.value) || 0;
+  const planos = IDS_PLANOS_MODULOS.filter(id => $(`at-plano-${id}`)?.checked);
+
+  if (!modulo || dias < 1 || planos.length === 0) {
+    toast('Preencha todos os campos antes de aplicar.', 'aviso');
+    return;
+  }
+
+  const afetados = state.usuarios.filter(u =>
+    u.role !== 'admin' && planos.includes(u.plano)
+  );
+
+  if (afetados.length === 0) {
+    toast('Nenhum usuário encontrado para os planos selecionados.', 'aviso');
+    return;
+  }
+
+  const expira = new Date();
+  expira.setDate(expira.getDate() + dias);
+  const expira_em = Timestamp.fromDate(expira);
+
+  const btn = $('at-btn-aplicar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Aplicando...'; }
+
+  let sucessos = 0;
+  let erros = 0;
+
+  for (const u of afetados) {
+    try {
+      // Mantém temporários existentes, substitui ou adiciona o módulo atual
+      const existentes = (u.modulos_temporarios || []).filter(t => t.modulo !== modulo);
+      const novosTemporarios = [...existentes, { modulo, expira_em }];
+
+      await updateDoc(doc(db, 'users', u.uid), {
+        modulos_temporarios: novosTemporarios,
+        atualizado_em: serverTimestamp()
+      });
+
+      u.modulos_temporarios = novosTemporarios;
+      sucessos++;
+    } catch (e) {
+      console.error(`[Admin] Erro ao aplicar acesso temporário para ${u.uid}:`, e);
+      erros++;
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Aplicar acesso temporário'; }
+
+  if (erros === 0) {
+    toast(`Acesso temporário aplicado para ${sucessos} usuário(s).`, 'sucesso');
+  } else {
+    toast(`Aplicado para ${sucessos} usuário(s). ${erros} erro(s).`, 'aviso');
+  }
+
+  // Limpa o preview
+  const preview = $('at-preview');
+  if (preview) preview.hidden = true;
+  if (btn) btn.disabled = true;
+}
+window.aplicarAcessoTemporario = aplicarAcessoTemporario;
 
 // ─────────────────────────────────────────────
 // EVENTOS

@@ -65,22 +65,38 @@ export function exigirLogin() {
 // PERFIL DO USUÁRIO
 // ─────────────────────────────────────────────
 
+// Busca os módulos configurados para o plano trial no Firestore.
+// Fallback: todos os módulos conhecidos, para que novos usuários
+// tenham acesso completo caso o admin ainda não tenha configurado o trial.
+async function getModulosTrialFirestore() {
+  try {
+    const snap = await getDoc(doc(db, "config_global", "planos"));
+    if (snap.exists()) {
+      const modulos = snap.data()?.trial?.modulos;
+      if (Array.isArray(modulos) && modulos.length > 0) return modulos;
+    }
+  } catch { /* silencioso — fallback abaixo */ }
+  // Fallback: acesso completo (trial = tudo liberado por padrão)
+  return [
+    "home", "lancamentos", "despesas", "historico",
+    "dashboard", "custo_operacional", "relatorios",
+    "configuracoes", "configuracoes_sugestao_salario"
+  ];
+}
+
 // Cria perfil inicial no Firestore ao cadastrar.
 // Campos protegidos (role, plano, modulos_ativos, trial_inicio) são
 // definidos aqui e bloqueados para alteração pelo usuário via regras.
 // telefone e data_nascimento são opcionais — enviados apenas se presentes.
 async function criarPerfilUsuario(uid, nome, email, { telefone, data_nascimento } = {}) {
+  const modulos_ativos = await getModulosTrialFirestore();
+
   const perfil = {
     nome,
     email,
     role: "user",
     plano: "trial",
-    modulos_ativos: [
-      "home",
-      "lancamentos",
-      "despesas",
-      "historico"
-    ],
+    modulos_ativos,
     salario_liquido: 0,
     trial_inicio: serverTimestamp(),
     criado_em: serverTimestamp()
@@ -205,12 +221,52 @@ export async function verificarAcesso(uid) {
   return { permitido: false, motivo: "plano_expirado", perfil };
 }
 
-// Verifica se usuário tem acesso a um módulo específico
+// Verifica se algum módulo temporário ainda está vigente.
+// Remove silenciosamente os expirados do perfil no Firestore
+// na próxima vez que o usuário abre o app (sem Cloud Functions).
+function checarModuloTemporario(perfil, modulo) {
+  const temporarios = perfil.modulos_temporarios;
+  if (!Array.isArray(temporarios) || temporarios.length === 0) return false;
+  const agora = Date.now();
+  return temporarios.some(t => {
+    if (t.modulo !== modulo) return false;
+    const expira = t.expira_em?.seconds
+      ? t.expira_em.seconds * 1000
+      : new Date(t.expira_em).getTime();
+    return agora < expira;
+  });
+}
+
+// Limpa modulos_temporarios expirados do Firestore de forma assíncrona.
+// Chamado sem await — não bloqueia o fluxo principal.
+function limparTemporariosExpirados(uid, perfil) {
+  const temporarios = perfil.modulos_temporarios;
+  if (!Array.isArray(temporarios) || temporarios.length === 0) return;
+  const agora = Date.now();
+  const vigentes = temporarios.filter(t => {
+    const expira = t.expira_em?.seconds
+      ? t.expira_em.seconds * 1000
+      : new Date(t.expira_em).getTime();
+    return agora < expira;
+  });
+  if (vigentes.length !== temporarios.length) {
+    updateDoc(doc(db, "users", uid), { modulos_temporarios: vigentes }).catch(() => {});
+  }
+}
+
+// Verifica se usuário tem acesso a um módulo específico.
+// Checa modulos_ativos + modulos_temporarios vigentes.
 export async function temAcesso(uid, modulo) {
   const { permitido, perfil } = await verificarAcesso(uid);
   if (!permitido || !perfil) return false;
   if (perfil.role === "admin") return true;
-  return perfil.modulos_ativos?.includes(modulo) ?? false;
+  if (perfil.modulos_ativos?.includes(modulo)) return true;
+  const temTemporario = checarModuloTemporario(perfil, modulo);
+  if (temTemporario) {
+    limparTemporariosExpirados(uid, perfil); // limpeza assíncrona sem bloquear
+    return true;
+  }
+  return false;
 }
 
 // Verifica se usuário é admin
