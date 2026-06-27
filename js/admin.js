@@ -1034,6 +1034,44 @@ function renderModulosTabela() {
     </div>
   `;
 }
+
+function moduloToggle(id, modulo) {
+  const lista = tabelaState.modulos[id] || [];
+  const idx = lista.indexOf(modulo);
+  if (idx === -1) lista.push(modulo);
+  else lista.splice(idx, 1);
+  tabelaState.modulos[id] = lista;
+
+  // Preserva quais pais estão expandidos antes de re-renderizar
+  const tabela = $('planos-modulos-container');
+  const expandidos = new Set();
+  tabela?.querySelectorAll('.modulo-expandir[aria-expanded="true"]').forEach(btn => {
+    const pai = btn.closest('tr')?.dataset.modulo;
+    if (pai) expandidos.add(pai);
+  });
+
+  renderModulosTabela();
+
+  // Restaura o estado de expansão
+  expandidos.forEach(pai => {
+    const container = $('planos-modulos-container');
+    const filhos = container?.querySelectorAll(`.modulo-filho-de-${pai}`);
+    const btn = container?.querySelector(`tr[data-modulo="${pai}"] .modulo-expandir`);
+    filhos?.forEach(f => { f.hidden = false; });
+    btn?.setAttribute('aria-expanded', 'true');
+  });
+}
+window.moduloToggle = moduloToggle;
+
+function moduloExpandir(pai) {
+  const tabela = $('planos-modulos-container');
+  if (!tabela) return;
+  const filhos = tabela.querySelectorAll(`.modulo-filho-de-${pai}`);
+  const btn = tabela.querySelector(`tr[data-modulo="${pai}"] .modulo-expandir`);
+  const expandido = btn?.getAttribute('aria-expanded') === 'true';
+  filhos.forEach(f => { f.hidden = expandido; });
+  if (btn) btn.setAttribute('aria-expanded', String(!expandido));
+}
 window.moduloExpandir = moduloExpandir;
 
 async function salvarModulosPlanos() {
