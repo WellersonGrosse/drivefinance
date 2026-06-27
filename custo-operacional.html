@@ -241,45 +241,23 @@
       <div class="modal-header">
         <div>
           <h2 id="modal-ref-titulo">Referências de manutenção</h2>
-          <p class="co-ref-subtitulo">Valores sugeridos de vida útil para itens comuns</p>
+          <p class="co-ref-subtitulo">Valores sugeridos de vida útil — uso severo (cidade/app)</p>
         </div>
         <button class="modal-close" id="modal-ref-fechar" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
 
+      <!-- Banner upgrade -->
+      <div class="co-ref-upgrade" id="co-ref-upgrade" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2Zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4Z"/></svg>
+        <span id="co-ref-upgrade-texto">Faça upgrade para ver todos os itens</span>
+        <a href="landing.html#planos" class="btn btn-primary btn-sm">Ver planos</a>
+      </div>
+
+      <!-- Conteúdo dinâmico (tabela desktop + cards mobile) -->
       <div class="modal-body co-ref-body">
-
-        <!-- Banner de upgrade — visível quando há linhas bloqueadas -->
-        <div class="co-ref-upgrade" id="co-ref-upgrade" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2Zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4Z"/></svg>
-          <span id="co-ref-upgrade-texto">Faça upgrade para ver todos os itens</span>
-          <a href="landing.html#planos" class="btn btn-primary btn-sm">Ver planos</a>
-        </div>
-
-        <!-- Tabela de referências -->
-        <div class="co-ref-table-wrap">
-          <table class="co-ref-table" id="co-ref-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th class="text-right">Qtd típica</th>
-                <th class="text-right">Vida útil</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="co-ref-tbody">
-              <!-- preenchido pelo JS -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Estado vazio -->
-        <div class="co-ref-empty" id="co-ref-empty" hidden>
-          <p>Nenhuma referência cadastrada ainda.</p>
-          <span>O administrador pode adicionar referências no painel admin.</span>
-        </div>
-
+        <!-- preenchido pelo JS -->
       </div>
 
       <div class="modal-footer">
