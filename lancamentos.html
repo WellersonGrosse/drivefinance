@@ -25,199 +25,190 @@
           <p class="page-subtitle">Registre suas corridas e ganhos do dia</p>
         </div>
         <div class="page-header-right">
-          <div class="veiculo-selector-wrap">
-            <label class="sr-only" for="select-veiculo">Veículo</label>
-            <select class="select select-veiculo" id="select-veiculo">
-              <option value="">Carregando veículos...</option>
-            </select>
-          </div>
+          <label class="sr-only" for="select-veiculo">Veículo</label>
+          <select class="select select-veiculo" id="select-veiculo">
+            <option value="">Carregando...</option>
+          </select>
         </div>
       </div>
 
-      <!-- Layout principal: calendário + conteúdo do dia -->
-      <div class="lancamentos-layout">
+      <!-- Linha 1: calendário + card do dia -->
+      <div class="row-topo">
 
-        <!-- Coluna esquerda: mini calendário -->
-        <aside class="calendario-panel">
-          <div class="calendario-header">
-            <button class="btn-mes-nav" id="btn-cal-anterior" type="button" aria-label="Mês anterior">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        <div class="cal-panel">
+          <div class="cal-header">
+            <button class="btn-cal-nav" id="btn-cal-anterior" type="button" aria-label="Mês anterior">
+              <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
-            <span class="mes-label" id="cal-mes-label">junho 2026</span>
-            <button class="btn-mes-nav" id="btn-cal-proximo" type="button" aria-label="Próximo mês">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            <span class="cal-mes-label" id="cal-mes-label"></span>
+            <button class="btn-cal-nav" id="btn-cal-proximo" type="button" aria-label="Próximo mês">
+              <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
             </button>
           </div>
-
-          <div class="calendario-semanas" aria-hidden="true">
+          <div class="cal-semanas" aria-hidden="true">
             <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
           </div>
-
-          <div class="calendario-grid" id="calendario-grid" role="grid" aria-label="Calendário"></div>
-
-          <div class="calendario-legenda">
-            <span class="legenda-item"><span class="legenda-dot legenda-tem-lancamento"></span>Com lançamento</span>
-            <span class="legenda-item"><span class="legenda-dot legenda-hoje"></span>Hoje</span>
+          <div class="cal-grid" id="cal-grid" role="grid" aria-label="Calendário"></div>
+          <div class="cal-legenda">
+            <span class="cal-leg-item"><span class="cal-dot cal-dot-teal"></span>Com lançamento</span>
+            <span class="cal-leg-item"><span class="cal-dot cal-dot-roxo"></span>Hoje</span>
           </div>
-        </aside>
+        </div>
 
-        <!-- Coluna direita: blocos do dia selecionado -->
-        <section class="dia-panel">
-          <div class="dia-panel-header">
-            <div class="dia-panel-titulo-wrap">
-              <h2 class="dia-panel-titulo" id="dia-titulo">Carregando...</h2>
-              <span class="dia-panel-total" id="dia-total-ganhos">R$ 0,00</span>
-            </div>
-            <p class="dia-panel-sub" id="dia-subtitle">Selecione um dia para ver ou registrar lançamentos</p>
+        <div class="dia-card">
+          <div class="dia-card-top">
+            <p class="dia-card-label">Dia selecionado</p>
+            <h2 class="dia-card-titulo" id="dia-titulo">Selecione um dia</h2>
+            <p class="dia-card-sub" id="dia-sub">Clique em qualquer dia do calendário</p>
           </div>
-
-          <!-- Bloco A: Corridas de App -->
-          <div class="bloco-lancamento" data-feature="lancamentos.corridas_app">
-            <div class="bloco-header">
-              <div class="bloco-header-left">
-                <div class="bloco-icone bloco-icone-app">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
-                </div>
-                <div>
-                  <h3 class="bloco-titulo">Corridas de App</h3>
-                  <p class="bloco-sub" id="sub-corridas-app">0 corridas &bull; R$ 0,00</p>
-                </div>
-              </div>
-              <button class="btn-bloco-add" type="button" id="btn-add-corrida-app" aria-label="Adicionar corrida de app">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                Adicionar
-              </button>
-            </div>
-            <div class="bloco-lista" id="lista-corridas-app">
-              <div class="bloco-empty" id="empty-corridas-app">Nenhuma corrida registrada</div>
-            </div>
+          <div class="dia-card-bottom">
+            <p class="dia-card-label">Total ganho hoje</p>
+            <p class="dia-card-total" id="dia-total">R$ 0,00</p>
+            <p class="dia-card-total-sub" id="dia-total-sub">Nenhuma corrida registrada</p>
           </div>
-
-          <!-- Bloco B: Corridas Particulares -->
-          <div class="bloco-lancamento" data-feature="lancamentos.corridas_particular">
-            <div class="bloco-header">
-              <div class="bloco-header-left">
-                <div class="bloco-icone bloco-icone-particular">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v7a2 2 0 0 1-2 2z"/><path d="M17 21v-4H7v4M7 3v5h8"/></svg>
-                </div>
-                <div>
-                  <h3 class="bloco-titulo">Corridas Particulares</h3>
-                  <p class="bloco-sub" id="sub-corridas-particular">0 corridas &bull; R$ 0,00</p>
-                </div>
-              </div>
-              <button class="btn-bloco-add" type="button" id="btn-add-corrida-particular" aria-label="Adicionar corrida particular">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                Adicionar
-              </button>
-            </div>
-            <div class="bloco-lista" id="lista-corridas-particular">
-              <div class="bloco-empty" id="empty-corridas-particular">Nenhuma corrida registrada</div>
-            </div>
-          </div>
-
-          <!-- Bloco C: Combustível -->
-          <div class="bloco-lancamento" data-feature="lancamentos.combustivel">
-            <div class="bloco-header">
-              <div class="bloco-header-left">
-                <div class="bloco-icone bloco-icone-combustivel">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4h1a2 2 0 0 1 2 2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V10h-1V7l3 3v5.5A3.5 3.5 0 0 1 20 19h-1v3H3z"/><path d="M7 14h4"/><path d="M7 10h4"/></svg>
-                </div>
-                <div>
-                  <h3 class="bloco-titulo">Combustível</h3>
-                  <p class="bloco-sub" id="sub-combustivel">Nenhum abastecimento</p>
-                </div>
-              </div>
-              <button class="btn-bloco-add" type="button" id="btn-add-combustivel" aria-label="Registrar combustível">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                Registrar
-              </button>
-            </div>
-            <div class="bloco-lista" id="lista-combustivel">
-              <div class="bloco-empty" id="empty-combustivel">Nenhum abastecimento registrado</div>
-            </div>
-          </div>
-
-          <!-- Bloco D: KM Ocioso -->
-          <div class="bloco-lancamento" data-feature="lancamentos.km_ocioso">
-            <div class="bloco-header">
-              <div class="bloco-header-left">
-                <div class="bloco-icone bloco-icone-ocioso">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                </div>
-                <div>
-                  <h3 class="bloco-titulo">KM Ocioso</h3>
-                  <p class="bloco-sub" id="sub-km-ocioso">Nenhum KM ocioso registrado</p>
-                </div>
-              </div>
-              <label class="toggle-switch" aria-label="Ativar KM ocioso">
-                <input type="checkbox" id="toggle-km-ocioso" />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            <div class="bloco-lista" id="bloco-km-ocioso-campos" hidden>
-              <div class="km-ocioso-form">
-                <div class="form-group">
-                  <label class="form-label" for="inp-km-ocioso">KM rodado fora do trabalho</label>
-                  <input class="input" id="inp-km-ocioso" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Botão salvar -->
-          <div class="dia-panel-footer">
-            <button class="btn btn-primary btn-salvar-dia" id="btn-salvar-dia" type="button">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
-              Salvar lançamentos do dia
-            </button>
-          </div>
-        </section>
+        </div>
 
       </div>
+
+      <!-- Linha 2: 4 blocos em grid 2x2 -->
+      <div class="row-blocos">
+
+        <!-- Bloco A: Corridas de App -->
+        <div class="bloco" data-feature="lancamentos.corridas_app">
+          <div class="bloco-header">
+            <div class="bloco-icone bloco-icone-app">
+              <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+            </div>
+            <div class="bloco-info">
+              <h3 class="bloco-titulo">Corridas de App</h3>
+              <p class="bloco-sub" id="sub-app">0 plataformas &bull; R$ 0,00</p>
+            </div>
+            <button class="btn-bloco-add" id="btn-add-app" type="button">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Adicionar
+            </button>
+          </div>
+          <div class="bloco-lista" id="lista-app">
+            <p class="bloco-empty" id="empty-app">Nenhuma plataforma registrada hoje</p>
+          </div>
+        </div>
+
+        <!-- Bloco B: Corridas Particulares -->
+        <div class="bloco" data-feature="lancamentos.corridas_particular">
+          <div class="bloco-header">
+            <div class="bloco-icone bloco-icone-particular">
+              <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="bloco-info">
+              <h3 class="bloco-titulo">Corridas Particulares</h3>
+              <p class="bloco-sub" id="sub-particular">0 corridas &bull; R$ 0,00</p>
+            </div>
+            <button class="btn-bloco-add" id="btn-add-particular" type="button">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Adicionar
+            </button>
+          </div>
+          <div class="bloco-lista" id="lista-particular">
+            <p class="bloco-empty" id="empty-particular">Nenhuma corrida particular registrada</p>
+          </div>
+        </div>
+
+        <!-- Bloco C: Combustível -->
+        <div class="bloco" data-feature="lancamentos.combustível">
+          <div class="bloco-header">
+            <div class="bloco-icone bloco-icone-combustível">
+              <svg viewBox="0 0 24 24"><path d="M3 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4h1a2 2 0 0 1 2 2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V10h-1V7l3 3v5.5A3.5 3.5 0 0 1 20 19h-1v3H3z"/></svg>
+            </div>
+            <div class="bloco-info">
+              <h3 class="bloco-titulo">Combustível</h3>
+              <p class="bloco-sub" id="sub-combustível">Nenhum abastecimento</p>
+            </div>
+            <button class="btn-bloco-add" id="btn-add-combustível" type="button">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Registrar
+            </button>
+          </div>
+          <div class="bloco-lista" id="lista-combustível">
+            <p class="bloco-empty" id="empty-combustível">Nenhum abastecimento registrado</p>
+          </div>
+        </div>
+
+        <!-- Bloco D: KM Ocioso -->
+        <div class="bloco" data-feature="lancamentos.km_ocioso">
+          <div class="bloco-header">
+            <div class="bloco-icone bloco-icone-ocioso">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <div class="bloco-info">
+              <h3 class="bloco-titulo">KM Ocioso</h3>
+              <p class="bloco-sub" id="sub-km-ocioso">Nenhum KM ocioso registrado</p>
+            </div>
+            <label class="toggle-switch" aria-label="Ativar KM ocioso">
+              <input type="checkbox" id="toggle-km-ocioso" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="bloco-lista" id="bloco-km-campos" hidden>
+            <div class="km-ocioso-form">
+              <div class="form-group">
+                <label class="form-label" for="inp-km-ocioso">KM rodado fora do trabalho</label>
+                <input class="input" id="inp-km-ocioso" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="row-footer">
+        <button class="btn btn-primary btn-salvar-dia" id="btn-salvar-dia" type="button">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          Salvar lançamentos do dia
+        </button>
+      </div>
+
     </main>
   </div>
 
-
-  <!-- Modal: corrida de app -->
-  <div class="modal-overlay" id="modal-corrida-app" hidden>
-    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-corrida-app-titulo">
+  <!-- Modal: corrida de App (consolidado por plataforma) -->
+  <div class="modal-overlay" id="modal-app" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-app-titulo">
       <div class="modal-header">
-        <h2 id="modal-corrida-app-titulo">Corrida de App</h2>
-        <button class="modal-close" id="btn-fechar-corrida-app" type="button" aria-label="Fechar">
+        <h2 id="modal-app-titulo">Corrida de App</h2>
+        <button class="modal-close" id="btn-fechar-app" type="button" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="modal-body modal-form-body">
+        <p class="modal-hint">Informe o total do dia nesta plataforma, não corrida por corrida.</p>
         <div class="form-group">
           <label class="form-label" for="inp-app-plataforma">Plataforma</label>
-          <select class="select" id="inp-app-plataforma">
-            <option value="Uber">Uber</option>
-          </select>
+          <select class="select" id="inp-app-plataforma"></select>
         </div>
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="inp-app-valor">Valor recebido (R$)</label>
+            <label class="form-label" for="inp-app-valor">Total recebido (R$)</label>
             <input class="input" id="inp-app-valor" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00" />
           </div>
           <div class="form-group">
-            <label class="form-label" for="inp-app-km">KM rodado</label>
+            <label class="form-label" for="inp-app-km">Total de KM rodado</label>
             <input class="input" id="inp-app-km" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" />
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-cancelar-corrida-app" type="button">Cancelar</button>
-        <button class="btn btn-primary" id="btn-salvar-corrida-app" type="button">Salvar</button>
+        <button class="btn btn-secondary" id="btn-cancelar-app" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-app" type="button">Salvar</button>
       </div>
     </div>
   </div>
 
   <!-- Modal: corrida particular -->
-  <div class="modal-overlay" id="modal-corrida-particular" hidden>
-    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-corrida-particular-titulo">
+  <div class="modal-overlay" id="modal-particular" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-particular-titulo">
       <div class="modal-header">
-        <h2 id="modal-corrida-particular-titulo">Corrida Particular</h2>
-        <button class="modal-close" id="btn-fechar-corrida-particular" type="button" aria-label="Fechar">
+        <h2 id="modal-particular-titulo">Corrida Particular</h2>
+        <button class="modal-close" id="btn-fechar-particular" type="button" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
@@ -234,18 +225,18 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-cancelar-corrida-particular" type="button">Cancelar</button>
-        <button class="btn btn-primary" id="btn-salvar-corrida-particular" type="button">Salvar</button>
+        <button class="btn btn-secondary" id="btn-cancelar-particular" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-particular" type="button">Salvar</button>
       </div>
     </div>
   </div>
 
   <!-- Modal: combustível -->
-  <div class="modal-overlay" id="modal-combustivel" hidden>
-    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-combustivel-titulo">
+  <div class="modal-overlay" id="modal-combustível" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-combustível-titulo">
       <div class="modal-header">
-        <h2 id="modal-combustivel-titulo">Registrar combustível</h2>
-        <button class="modal-close" id="btn-fechar-combustivel" type="button" aria-label="Fechar">
+        <h2 id="modal-combustível-titulo">Registrar combustível</h2>
+        <button class="modal-close" id="btn-fechar-combustível" type="button" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
@@ -264,14 +255,14 @@
             <input class="input" id="inp-comb-ocioso" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" />
           </div>
         </div>
-        <div class="comb-total-wrap" id="comb-total-wrap">
-          <span class="comb-total-label">Total estimado:</span>
+        <div class="comb-total-wrap">
+          <span class="comb-total-label">Total estimado</span>
           <span class="comb-total-valor" id="comb-total-valor">R$ 0,00</span>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-cancelar-combustivel" type="button">Cancelar</button>
-        <button class="btn btn-primary" id="btn-salvar-combustivel" type="button">Salvar</button>
+        <button class="btn btn-secondary" id="btn-cancelar-combustível" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-combustível" type="button">Salvar</button>
       </div>
     </div>
   </div>
