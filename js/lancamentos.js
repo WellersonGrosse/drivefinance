@@ -254,7 +254,7 @@ function renderHeaderDia() {
   const totalPart = state.corridasParticular.reduce((s, c) => s + (Number(c.valor) || 0), 0);
   const totalDia = totalApp + totalPart;
 
-  $('dia-card-sub') && ($('dia-sub').textContent =
+  $('dia-sub') && ($('dia-sub').textContent =
     `${state.corridasApp.length + state.corridasParticular.length} registro(s) neste dia`);
   $('dia-total').textContent = formatReal(totalDia);
 
