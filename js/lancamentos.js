@@ -43,7 +43,7 @@ const state = {
   corridasApp: [],
   // corridas_particular: array de { valor, km }
   corridasParticular: [],
-  combustível: null,
+  combustivel: null,
   kmOcioso: 0,
   veiculoId: null,
   editando: { tipo: null, indice: null }
@@ -208,7 +208,7 @@ async function carregarDadosDia() {
     const dados = await getLancamentoDia(state.user.uid, strParaDate(state.diaSelecionado));
     state.corridasApp = Array.isArray(dados?.corridas_app) ? [...dados.corridas_app] : [];
     state.corridasParticular = Array.isArray(dados?.corridas_particular) ? [...dados.corridas_particular] : [];
-    state.combustivel = dados?.combustível || null;
+    state.combustivel = dados?.combustivel || null;
     state.kmOcioso = Number(dados?.km_ocioso) || 0;
 
     // Seleciona veiculo do lançamento ou o padrão
@@ -341,9 +341,9 @@ function renderBlocoParticular() {
 }
 
 function renderBlocoCombustivel() {
-  const lista = $('lista-combustível');
-  const empty = $('empty-combustível');
-  const sub = $('sub-combustível');
+  const lista = $('lista-combustivel');
+  const empty = $('empty-combustivel');
+  const sub = $('sub-combustivel');
 
   Array.from(lista.querySelectorAll('.item-row')).forEach(el => el.remove());
 
@@ -355,22 +355,22 @@ function renderBlocoCombustivel() {
 
   empty.hidden = true;
   const c = state.combustivel;
-  const lt = Number(c.litros_trabalho) || 0;
-  const lo = Number(c.litros_ocioso) || 0;
+  const valorAbastecido = Number(c.valor_abastecido) || 0;
   const preco = Number(c.preco_litro) || 0;
-  const total = (lt + lo) * preco;
+  const litrosTotal = Number(c.litros_total) || (preco > 0 ? valorAbastecido / preco : 0);
+  const ltOc = Number(c.litros_ocioso) || 0;
 
-  sub.textContent = `${(lt + lo).toFixed(1)}L \u2022 ${formatReal(total)}`;
+  sub.textContent = `${litrosTotal.toFixed(1)}L \u2022 ${formatReal(valorAbastecido)}`;
 
   const row = document.createElement('div');
   row.className = 'item-row';
   row.innerHTML = `
     <div>
       <div class="item-nome">Abastecimento</div>
-      <div class="item-meta">${formatReal(preco)}/L \u2022 ${lt.toFixed(1)}L trabalho${lo > 0 ? ` \u2022 ${lo.toFixed(1)}L ocioso` : ''}</div>
+      <div class="item-meta">${formatReal(preco)}/L \u2022 ${litrosTotal.toFixed(1)}L total${ltOc > 0 ? ` \u2022 ${ltOc.toFixed(1)}L ocioso` : ''}</div>
     </div>
-    <span class="item-valor item-valor-comb">${formatReal(total)}</span>
-    ${htmlIcones('combustível', 0)}`;
+    <span class="item-valor item-valor-comb">${formatReal(valorAbastecido)}</span>
+    ${htmlIcones('combustivel', 0)}`;
   lista.appendChild(row);
 }
 
@@ -513,45 +513,59 @@ function salvarParticular() {
 // ─────────────────────────────────────────────
 
 function atualizarTotalComb() {
+  const valor = Number($('inp-comb-valor').value) || 0;
   const preco = Number($('inp-comb-preco').value) || 0;
-  const lt = Number($('inp-comb-trabalho').value) || 0;
-  const lo = Number($('inp-comb-ocioso').value) || 0;
-  $('comb-total-valor').textContent = formatReal((lt + lo) * preco);
+  const litros = preco > 0 ? valor / preco : 0;
+  $('comb-total-litros').textContent = litros > 0 ? `${litros.toFixed(2)} L` : '0,0 L';
 }
 
 function abrirModalCombustivel() {
-  state.editando = { tipo: 'combustível', indice: 0 };
-  $('modal-combustível-titulo').textContent = state.combustivel ? 'Editar combustível' : 'Registrar combustível';
+  state.editando = { tipo: 'combustivel', indice: 0 };
+  $('modal-combustivel-titulo').textContent = state.combustivel ? 'Editar combustível' : 'Registrar combustível';
 
   if (state.combustivel) {
+    $('inp-comb-valor').value = state.combustivel.valor_abastecido || '';
     $('inp-comb-preco').value = state.combustivel.preco_litro || '';
-    $('inp-comb-trabalho').value = state.combustivel.litros_trabalho || '';
-    $('inp-comb-ocioso').value = state.combustivel.litros_ocioso || '';
   } else {
+    $('inp-comb-valor').value = '';
     $('inp-comb-preco').value = '';
-    $('inp-comb-trabalho').value = '';
-    $('inp-comb-ocioso').value = '';
   }
 
   atualizarTotalComb();
-  $('modal-combustível').hidden = false;
-  setTimeout(() => $('inp-comb-preco').focus(), 0);
+  $('modal-combustivel').hidden = false;
+  setTimeout(() => $('inp-comb-valor').focus(), 0);
 }
 
 function fecharModalCombustivel() {
-  $('modal-combustível').hidden = true;
+  $('modal-combustivel').hidden = true;
   state.editando = { tipo: null, indice: null };
 }
 
 function salvarCombustivel() {
+  const valorAbastecido = Number($('inp-comb-valor').value);
   const preco = Number($('inp-comb-preco').value);
-  const lt = Number($('inp-comb-trabalho').value) || 0;
-  const lo = Number($('inp-comb-ocioso').value) || 0;
 
+  if (!Number.isFinite(valorAbastecido) || valorAbastecido <= 0) { toast('Informe o valor abastecido.', 'aviso'); return; }
   if (!Number.isFinite(preco) || preco <= 0) { toast('Informe o preço do litro.', 'aviso'); return; }
-  if (lt <= 0 && lo <= 0) { toast('Informe a quantidade de litros.', 'aviso'); return; }
 
-  state.combustivel = { preco_litro: preco, litros_trabalho: lt, litros_ocioso: lo };
+  const litrosTotal = valorAbastecido / preco;
+
+  // Split proporcional: KM ocioso vs KM total do dia
+  const kmApp = state.corridasApp.reduce((s, c) => s + (Number(c.km) || 0), 0);
+  const kmPart = state.corridasParticular.reduce((s, c) => s + (Number(c.km) || 0), 0);
+  const kmTotal = kmApp + kmPart + state.kmOcioso;
+  const propOcioso = kmTotal > 0 ? state.kmOcioso / kmTotal : 0;
+
+  const litrosOcioso = litrosTotal * propOcioso;
+  const litrosTrabalho = litrosTotal - litrosOcioso;
+
+  state.combustivel = {
+    valor_abastecido: valorAbastecido,
+    preco_litro: preco,
+    litros_total: litrosTotal,
+    litros_trabalho: litrosTrabalho,
+    litros_ocioso: litrosOcioso
+  };
   fecharModalCombustivel();
   renderTudo();
 }
@@ -574,7 +588,7 @@ function confirmarExcluir() {
   const { tipo, indice } = state.editando;
   if (tipo === 'app') state.corridasApp.splice(indice, 1);
   else if (tipo === 'particular') state.corridasParticular.splice(indice, 1);
-  else if (tipo === 'combustível') state.combustivel = null;
+  else if (tipo === 'combustivel') state.combustivel = null;
   fecharModalExcluir();
   renderTudo();
   toast('Removido.', 'sucesso');
@@ -583,7 +597,7 @@ function confirmarExcluir() {
 function fecharModaisAbertos() {
   if (!$('modal-app').hidden) fecharModalApp();
   if (!$('modal-particular').hidden) fecharModalParticular();
-  if (!$('modal-combustível').hidden) fecharModalCombustivel();
+  if (!$('modal-combustivel').hidden) fecharModalCombustivel();
   if (!$('modal-excluir').hidden) fecharModalExcluir();
 }
 
@@ -607,7 +621,7 @@ async function salvarDia() {
       corridas_particular: state.corridasParticular,
       km_ocioso: state.kmOcioso
     };
-    if (state.combustivel) dados.combustível = state.combustivel;
+    if (state.combustivel) dados.combustivel = state.combustivel;
     if (state.veiculoId) dados.veiculo_id = state.veiculoId;
 
     await saveLancamentoDia(state.user.uid, dados, strParaDate(state.diaSelecionado));
@@ -683,7 +697,7 @@ function bindEvents() {
     if (!state.diaSelecionado) { toast('Selecione um dia primeiro.', 'aviso'); return; }
     abrirModalParticular();
   });
-  $('btn-add-combustível').addEventListener('click', () => {
+  $('btn-add-combustivel').addEventListener('click', () => {
     if (!state.diaSelecionado) { toast('Selecione um dia primeiro.', 'aviso'); return; }
     abrirModalCombustivel();
   });
@@ -724,10 +738,10 @@ function bindEvents() {
   $('btn-salvar-particular').addEventListener('click', salvarParticular);
 
   // Modais Combustivel
-  $('btn-fechar-combustível').addEventListener('click', fecharModalCombustivel);
-  $('btn-cancelar-combustível').addEventListener('click', fecharModalCombustivel);
-  $('btn-salvar-combustível').addEventListener('click', salvarCombustivel);
-  ['inp-comb-preco', 'inp-comb-trabalho', 'inp-comb-ocioso']
+  $('btn-fechar-combustivel').addEventListener('click', fecharModalCombustivel);
+  $('btn-cancelar-combustivel').addEventListener('click', fecharModalCombustivel);
+  $('btn-salvar-combustivel').addEventListener('click', salvarCombustivel);
+  ['inp-comb-valor', 'inp-comb-preco']
     .forEach(id => $(id).addEventListener('input', atualizarTotalComb));
 
   // Modal excluir
@@ -736,7 +750,7 @@ function bindEvents() {
   $('btn-confirmar-excluir').addEventListener('click', confirmarExcluir);
 
   // Delegacao: editar/excluir nos blocos
-  ['lista-app', 'lista-particular', 'lista-combustível'].forEach(id => {
+  ['lista-app', 'lista-particular', 'lista-combustivel'].forEach(id => {
     $(id).addEventListener('click', e => {
       const btn = e.target.closest('[data-acao]');
       if (!btn) return;
