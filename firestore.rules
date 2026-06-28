@@ -91,7 +91,6 @@ service cloud.firestore {
     }
 
     // ── Coleção users ──
-    // Admin pode listar todos os documentos (getDocs na coleção inteira)
     match /users/{uid} {
 
       allow get:    if isProprioUsuario(uid) || isAdmin();
@@ -120,7 +119,6 @@ service cloud.firestore {
 
       allow delete: if isAdmin();
 
-      // Configurações e veículos: conta ativa, sem restrição de módulo
       match /config/{document=**} {
         allow read, write: if isAdmin()
           || (
@@ -137,7 +135,15 @@ service cloud.firestore {
           );
       }
 
-      // Módulos trial/básico
+      match /grupos_despesas/{document=**} {
+        allow read, write: if isAdmin()
+          || (
+            isProprioUsuario(uid)
+            && acessoAtivo(uid)
+            && temModulo(uid, "despesas")
+          );
+      }
+
       match /despesas/{document=**} {
         allow read, write: if isAdmin()
           || (
@@ -165,7 +171,6 @@ service cloud.firestore {
           );
       }
 
-      // Módulo Pro+
       match /custo_operacional/{document=**} {
         allow read, write: if isAdmin()
           || (
@@ -175,16 +180,16 @@ service cloud.firestore {
           );
       }
 
-      // Log de alterações administrativas — somente admin escreve e lê
       match /historico_admin/{document=**} {
         allow read, write: if isAdmin();
       }
     }
 
     // ── Configuração global (planos da landing) ──
-    // Qualquer usuário autenticado lê. Somente admin escreve.
+    // Leitura pública — a landing exibe os planos sem exigir login.
+    // Escrita exclusiva para admin.
     match /config_global/{document=**} {
-      allow read:  if isLogado();
+      allow read:  if true;
       allow write: if isAdmin();
     }
   }
