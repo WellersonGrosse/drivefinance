@@ -369,33 +369,26 @@
 .icon-btn-danger:hover { background: rgba(224,92,92,.1); color: var(--coral); }
 
 /* ── KM Ocioso ── */
-.km-ocioso-form {
-  padding: 10px 14px 12px;
+.km-ocioso-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
   border-top: 0.5px solid var(--dark-border);
-  flex: 1;
 }
-.km-ocioso-form .form-group { margin: 0; }
+.km-ocioso-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.km-ocioso-input {
+  width: 100px;
+  flex-shrink: 0;
+}
 
 /* bloco-body do km nao centraliza verticalmente */
 #bloco-km-campos {
   justify-content: flex-start;
-}
-
-#bloco-km-campos .form-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0;
-}
-
-#bloco-km-campos .form-label {
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin: 0;
-}
-
-#bloco-km-campos .input {
-  max-width: 120px;
 }
 
 /* ── Toggle switch ── */
