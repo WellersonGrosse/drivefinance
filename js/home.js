@@ -19,7 +19,14 @@ import {
   renderNav
 } from './app.js';
 
-const PAGINAS_PRONTAS = new Set(['home.html', 'admin.html', 'configuracoes.html', 'custo-operacional.html', 'despesas.html']);
+const PAGINAS_PRONTAS = new Set([
+  'home.html',
+  'admin.html',
+  'configuracoes.html',
+  'custo-operacional.html',
+  'despesas.html',
+  'lancamentos.html'
+]);
 
 const state = {
   user: null,

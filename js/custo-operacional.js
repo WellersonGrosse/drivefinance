@@ -31,7 +31,14 @@ let _editandoId = null;
 let _deletandoId = null;
 let _referencias = null; // cache de config_global/referencias_manutencao
 
-const PAGINAS_PRONTAS = new Set(['home.html', 'admin.html', 'configuracoes.html', 'custo-operacional.html', 'despesas.html']);
+const PAGINAS_PRONTAS = new Set([
+  'home.html',
+  'admin.html',
+  'configuracoes.html',
+  'custo-operacional.html',
+  'despesas.html',
+  'lancamentos.html'
+]);
 
 // Sugestões por tipo de veículo (flex/gasolina/diesel)
 const SUGESTOES_ITENS = [

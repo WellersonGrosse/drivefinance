@@ -30,7 +30,8 @@ const PAGINAS_PRONTAS = new Set([
   'admin.html',
   'configuracoes.html',
   'custo-operacional.html',
-  'despesas.html'
+  'despesas.html',
+  'lancamentos.html'
 ]);
 
 const MESES = [
