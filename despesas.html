@@ -19,61 +19,70 @@
   <div class="app-layout">
     <main class="main-content" id="main-content">
 
-      <!-- Header da página -->
       <div class="page-header">
         <div class="page-header-left">
-          <h1 class="page-title" style="margin-bottom:0">Despesas</h1>
-          <p class="page-subtitle" style="margin:0">Gerencie suas obrigacoes financeiras mensais</p>
+          <h1 class="page-title page-title-despesas">Despesas</h1>
+          <p class="page-subtitle page-subtitle-despesas">Organize cartões, boletos e outras obrigações financeiras</p>
         </div>
+
         <div class="page-header-right">
-          <div class="mes-nav">
-            <button class="btn-mes-nav" id="btn-mes-anterior" aria-label="Mes anterior">
+          <div class="mes-nav" aria-label="Selecionar mês">
+            <button class="btn-mes-nav" id="btn-mes-anterior" type="button" aria-label="Mês anterior">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
             <span class="mes-label" id="mes-label">junho 2026</span>
-            <button class="btn-mes-nav" id="btn-mes-proximo" aria-label="Proximo mes">
+            <button class="btn-mes-nav" id="btn-mes-proximo" type="button" aria-label="Próximo mês">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
             </button>
           </div>
-          <button class="btn btn-primary" id="btn-adicionar">
+
+          <button class="btn btn-primary" id="btn-adicionar-grupo" type="button" data-feature="despesas.grupos.criar">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            Adicionar
+            Novo bloco
           </button>
         </div>
       </div>
 
-      <!-- Cards de resumo -->
-      <div class="grid-3 resumo-grid fade-up">
-        <div class="card resumo-card">
-          <p class="metric-label">Total Trabalho</p>
-          <p class="metric-value coral" id="total-trabalho">R$ 0,00</p>
+      <section class="resumo-grid fade-up" aria-label="Resumo das despesas" data-feature="despesas.resumo">
+        <article class="card resumo-card">
+          <div>
+            <p class="metric-label">Trabalho</p>
+            <p class="metric-value coral resumo-valor" id="total-trabalho">R$ 0,00</p>
+          </div>
           <p class="resumo-card-sub" id="count-trabalho">0 despesas</p>
-        </div>
-        <div class="card resumo-card">
-          <p class="metric-label">Total Pessoal</p>
-          <p class="metric-value" id="total-pessoal">R$ 0,00</p>
+        </article>
+
+        <article class="card resumo-card">
+          <div>
+            <p class="metric-label">Pessoal</p>
+            <p class="metric-value resumo-valor" id="total-pessoal">R$ 0,00</p>
+          </div>
           <p class="resumo-card-sub" id="count-pessoal">0 despesas</p>
-        </div>
-        <div class="card resumo-card resumo-card-total">
-          <p class="metric-label">Total do Mes</p>
-          <p class="metric-value roxo" id="total-geral">R$ 0,00</p>
-          <div class="resumo-progresso">
-            <div class="progress-wrap" style="flex:1">
-              <div class="progress-fill" id="resumo-fill" style="width:0%"></div>
+        </article>
+
+        <article class="card resumo-card resumo-card-total">
+          <div class="resumo-total-topo">
+            <div>
+              <p class="metric-label">Total do mês</p>
+              <p class="metric-value roxo resumo-valor" id="total-geral">R$ 0,00</p>
             </div>
             <span class="resumo-pago-label" id="resumo-pago-pct">0% pago</span>
           </div>
-        </div>
-      </div>
+          <div class="progress-wrap resumo-progress-wrap" aria-hidden="true">
+            <div class="progress-fill" id="resumo-fill"></div>
+          </div>
+        </article>
+      </section>
 
-      <!-- Filtros -->
-      <div class="filtros-row fade-up-delay-1">
-        <div class="filtros-chips">
-          <button class="chip chip-ativo" data-filtro="todos">Todos</button>
-          <button class="chip" data-filtro="trabalho">Trabalho</button>
-          <button class="chip" data-filtro="pessoal">Pessoal</button>
+      <section class="barra-controles fade-up-delay-1" aria-label="Filtros e ordenação" data-feature="despesas.filtros">
+        <div class="filtros-chips" role="group" aria-label="Filtrar por natureza">
+          <button class="chip chip-ativo" type="button" data-filtro="todos">Todos</button>
+          <button class="chip" type="button" data-filtro="trabalho">Trabalho</button>
+          <button class="chip" type="button" data-filtro="pessoal">Pessoal</button>
         </div>
-        <div class="filtros-right">
+
+        <div class="controles-direita">
+          <label class="sr-only" for="select-ordenar">Ordenar despesas</label>
           <select class="select select-sm" id="select-ordenar">
             <option value="vencimento">Vencimento</option>
             <option value="valor">Maior valor</option>
@@ -81,283 +90,252 @@
             <option value="status">Status</option>
           </select>
         </div>
+      </section>
+
+      <section id="grupos-grid" class="grupos-grid fade-up-delay-2" aria-live="polite"></section>
+
+      <div class="empty-state" id="empty-global" hidden>
+        <div class="empty-state-icon" aria-hidden="true">▦</div>
+        <p>Você ainda não possui blocos de despesas.</p>
+        <button class="btn btn-primary" id="btn-adicionar-grupo-empty" type="button">Criar primeiro bloco</button>
       </div>
 
-      <!-- Lista de despesas ativas -->
-      <div id="lista-despesas">
-
-        <!-- Grupo Trabalho -->
-        <div class="grupo-despesas fade-up-delay-2" id="grupo-trabalho">
-          <div class="grupo-header">
-            <div class="grupo-titulo-wrap">
-              <span class="grupo-dot dot-trabalho"></span>
-              <h2 class="grupo-titulo">Trabalho</h2>
-              <span class="grupo-badge" id="badge-trabalho">0</span>
-            </div>
-            <span class="grupo-subtotal" id="subtotal-trabalho">R$ 0,00</span>
-          </div>
-          <div class="table-wrap" id="table-trabalho">
-            <table class="despesas-table">
-              <thead>
-                <tr>
-                  <th style="width:32px"></th>
-                  <th>Nome</th>
-                  <th>Tipo</th>
-                  <th>Parcela</th>
-                  <th>Vencimento</th>
-                  <th>Valor</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="tbody-trabalho"></tbody>
-            </table>
-          </div>
-          <div class="cards-mobile" id="cards-trabalho"></div>
-          <div class="grupo-empty" id="empty-trabalho" hidden>
-            <p>Nenhuma despesa de trabalho neste mes.</p>
-          </div>
-        </div>
-
-        <!-- Grupo Pessoal -->
-        <div class="grupo-despesas fade-up-delay-3" id="grupo-pessoal">
-          <div class="grupo-header">
-            <div class="grupo-titulo-wrap">
-              <span class="grupo-dot dot-pessoal"></span>
-              <h2 class="grupo-titulo">Pessoal</h2>
-              <span class="grupo-badge" id="badge-pessoal">0</span>
-            </div>
-            <span class="grupo-subtotal" id="subtotal-pessoal">R$ 0,00</span>
-          </div>
-          <div class="table-wrap" id="table-pessoal">
-            <table class="despesas-table">
-              <thead>
-                <tr>
-                  <th style="width:32px"></th>
-                  <th>Nome</th>
-                  <th>Tipo</th>
-                  <th>Parcela</th>
-                  <th>Vencimento</th>
-                  <th>Valor</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="tbody-pessoal"></tbody>
-            </table>
-          </div>
-          <div class="cards-mobile" id="cards-pessoal"></div>
-          <div class="grupo-empty" id="empty-pessoal" hidden>
-            <p>Nenhuma despesa pessoal neste mes.</p>
-          </div>
-        </div>
-
-        <!-- Empty state global -->
-        <div class="empty-state" id="empty-global" hidden>
-          <div class="empty-state-icon">📋</div>
-          <p>Nenhuma despesa cadastrada ainda.</p>
-          <button class="btn btn-primary" id="btn-adicionar-empty">Adicionar despesa</button>
-        </div>
-
-      </div>
-
-      <!-- Secao parcelamentos encerrados -->
-      <div class="encerrados-section" id="encerrados-section" hidden>
-        <button class="encerrados-toggle" id="btn-encerrados" aria-expanded="false">
+      <section class="encerrados-section" id="encerrados-section" hidden data-feature="despesas.parcelamentos.encerrados">
+        <button class="encerrados-toggle" id="btn-encerrados" type="button" aria-expanded="false">
           <span>Parcelamentos encerrados</span>
           <span class="encerrados-count" id="count-encerrados">0</span>
           <svg class="encerrados-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-        <div class="encerrados-lista" id="encerrados-lista" hidden>
-          <div class="cards-mobile" id="cards-encerrados"></div>
-          <div class="table-wrap" id="table-encerrados">
-            <table class="despesas-table despesas-table-encerrada">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Natureza</th>
-                  <th>Parcelas</th>
-                  <th>Vencimento</th>
-                  <th>Valor</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="tbody-encerrados"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+        <div class="encerrados-lista" id="encerrados-lista" hidden></div>
+      </section>
 
     </main>
   </div>
 
-  <!-- Modal Adicionar / Editar -->
-  <div class="modal-overlay" id="modal-form" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-form-titulo">
+  <!-- Modal: criar ou editar bloco -->
+  <div class="modal-overlay" id="modal-grupo" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-grupo-titulo">
       <div class="modal-header">
-        <h2 id="modal-form-titulo">Adicionar despesa</h2>
-        <button class="modal-close" id="btn-fechar-form" aria-label="Fechar">
+        <h2 id="modal-grupo-titulo">Novo bloco</h2>
+        <button class="modal-close" id="btn-fechar-grupo" type="button" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
+
       <div class="modal-body modal-form-body">
+        <div class="form-group">
+          <label class="form-label" for="inp-grupo-nome">Nome do bloco</label>
+          <input class="input" id="inp-grupo-nome" type="text" placeholder="Ex: Cartões, Boletos, Casa..." maxlength="60" />
+        </div>
 
         <div class="form-group">
-          <label class="form-label" for="inp-nome">Nome da despesa</label>
-          <input class="input" id="inp-nome" type="text" placeholder="Ex: Cartao Nubank, Aluguel, IPVA..." maxlength="80" />
+          <label class="form-label" for="inp-grupo-estrutura">Como esse bloco funciona?</label>
+          <select class="select" id="inp-grupo-estrutura">
+            <option value="agregador">Subblocos com despesas internas</option>
+            <option value="direto">Subblocos com valor próprio</option>
+          </select>
+          <p class="form-hint" id="grupo-estrutura-hint">Ideal para cartões: o total é a soma das despesas internas.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancelar-grupo" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-grupo" type="button">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: criar ou editar subbloco -->
+  <div class="modal-overlay" id="modal-subbloco" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-subbloco-titulo">
+      <div class="modal-header">
+        <h2 id="modal-subbloco-titulo">Novo subbloco</h2>
+        <button class="modal-close" id="btn-fechar-subbloco" type="button" aria-label="Fechar">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body modal-form-body">
+        <div class="subbloco-contexto" id="subbloco-contexto"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="inp-subbloco-nome">Nome</label>
+          <input class="input" id="inp-subbloco-nome" type="text" placeholder="Ex: Nubank, Aluguel, Financiamento..." maxlength="80" />
         </div>
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="inp-natureza">Natureza</label>
-            <select class="select" id="inp-natureza">
+            <label class="form-label" for="inp-subbloco-vencimento">Vencimento (dia)</label>
+            <input class="input" id="inp-subbloco-vencimento" type="number" inputmode="numeric" min="1" max="31" placeholder="Ex: 10" />
+          </div>
+
+          <div class="form-group" id="bloco-subbloco-valor">
+            <label class="form-label" for="inp-subbloco-valor">Valor (R$)</label>
+            <input class="input" id="inp-subbloco-valor" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00" />
+          </div>
+        </div>
+
+        <div class="form-row-2" id="campos-subbloco-direto">
+          <div class="form-group">
+            <label class="form-label" for="inp-subbloco-natureza">Natureza</label>
+            <select class="select" id="inp-subbloco-natureza">
               <option value="pessoal">Pessoal</option>
               <option value="trabalho">Trabalho</option>
             </select>
           </div>
+
           <div class="form-group">
-            <label class="form-label" for="inp-tipo">Tipo</label>
-            <select class="select" id="inp-tipo">
+            <label class="form-label" for="inp-subbloco-tipo">Tipo</label>
+            <select class="select" id="inp-subbloco-tipo">
               <option value="fixa">Fixa recorrente</option>
               <option value="parcelamento">Parcelamento</option>
             </select>
           </div>
         </div>
 
-        <!-- Valor direto (aparece so quando nao ha itens) -->
-        <div class="form-row-2" id="bloco-valor">
-          <div class="form-group">
-            <label class="form-label" for="inp-valor">Valor (R$)</label>
-            <input class="input" id="inp-valor" type="number" min="0" step="0.01" placeholder="0,00" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="inp-vencimento">Vencimento (dia)</label>
-            <input class="input" id="inp-vencimento" type="number" min="1" max="31" placeholder="Ex: 10" />
-          </div>
-        </div>
-
-        <!-- Valor calculado pelos itens (aparece quando ha itens) -->
-        <div class="form-row-2" id="bloco-valor-itens" hidden>
-          <div class="form-group">
-            <label class="form-label">Valor total</label>
-            <div class="valor-calculado-wrap">
-              <span class="valor-calculado" id="valor-calculado-label">R$ 0,00</span>
-              <span class="valor-calculado-hint">calculado pelos itens</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="inp-vencimento2">Vencimento (dia)</label>
-            <input class="input" id="inp-vencimento2" type="number" min="1" max="31" placeholder="Ex: 10" />
-          </div>
-        </div>
-
-        <!-- Campos de parcelamento -->
-        <div id="campos-parcelamento" hidden>
-          <div class="form-row-3">
-            <div class="form-group">
-              <label class="form-label" for="inp-parcela-atual">Parcela inicial</label>
-              <input class="input" id="inp-parcela-atual" type="number" min="1" placeholder="1" />
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="inp-parcela-total">Total de parcelas</label>
-              <input class="input" id="inp-parcela-total" type="number" min="1" placeholder="12" />
-            </div>
-          </div>
+        <div class="campos-parcelamento" id="campos-parcelamento-subbloco" hidden>
           <div class="form-row-2">
             <div class="form-group">
-              <label class="form-label" for="inp-mes-inicio">Mes de inicio</label>
-              <select class="select" id="inp-mes-inicio">
-                <option value="1">Janeiro</option>
-                <option value="2">Fevereiro</option>
-                <option value="3">Marco</option>
-                <option value="4">Abril</option>
-                <option value="5">Maio</option>
-                <option value="6">Junho</option>
-                <option value="7">Julho</option>
-                <option value="8">Agosto</option>
-                <option value="9">Setembro</option>
-                <option value="10">Outubro</option>
-                <option value="11">Novembro</option>
-                <option value="12">Dezembro</option>
-              </select>
+              <label class="form-label" for="inp-subbloco-parcela-atual">Parcela inicial</label>
+              <input class="input" id="inp-subbloco-parcela-atual" type="number" inputmode="numeric" min="1" placeholder="1" />
             </div>
             <div class="form-group">
-              <label class="form-label" for="inp-ano-inicio">Ano de inicio</label>
-              <input class="input" id="inp-ano-inicio" type="number" min="2020" max="2099" placeholder="2026" />
+              <label class="form-label" for="inp-subbloco-parcela-total">Total de parcelas</label>
+              <input class="input" id="inp-subbloco-parcela-total" type="number" inputmode="numeric" min="1" placeholder="12" />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="inp-subbloco-mes-inicio">Mês de início</label>
+              <select class="select" id="inp-subbloco-mes-inicio"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-subbloco-ano-inicio">Ano de início</label>
+              <input class="input" id="inp-subbloco-ano-inicio" type="number" inputmode="numeric" min="2020" max="2099" />
             </div>
           </div>
         </div>
 
-        <!-- Secao de itens da despesa -->
-        <div class="itens-secao">
-          <div class="itens-secao-header">
-            <span class="form-label">Composicao da despesa</span>
-            <span class="itens-hint">opcional</span>
-          </div>
-          <p class="form-hint" style="margin-bottom: 8px">Ex: itens que compõem a fatura do cartao. O valor total sera a soma dos itens.</p>
-          <div id="itens-lista-form"></div>
-          <button class="btn-adicionar-item" id="btn-adicionar-item" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            Adicionar item
-          </button>
+        <div class="agregador-explicacao" id="agregador-explicacao" hidden>
+          <strong>O valor será calculado automaticamente.</strong>
+          <span>Depois de salvar, adicione as despesas dentro deste subbloco. Todas herdarão o vencimento informado acima.</span>
         </div>
-
-        <!-- Opcao retroativo (so aparece no modo edicao) -->
-        <div id="opcao-retroativo" hidden>
-          <div class="toggle-wrap retroativo-wrap">
-            <div>
-              <p class="form-label">Aplicar retroativamente</p>
-              <p class="form-hint">O novo valor vai atualizar meses anteriores tambem</p>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="inp-retroativo" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-
       </div>
+
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-cancelar-form">Cancelar</button>
-        <button class="btn btn-primary" id="btn-salvar-form">Salvar</button>
+        <button class="btn btn-secondary" id="btn-cancelar-subbloco" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-subbloco" type="button">Salvar</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Confirmar exclusao -->
+  <!-- Modal: criar ou editar despesa interna -->
+  <div class="modal-overlay" id="modal-item" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-item-titulo">
+      <div class="modal-header">
+        <h2 id="modal-item-titulo">Adicionar despesa</h2>
+        <button class="modal-close" id="btn-fechar-item" type="button" aria-label="Fechar">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body modal-form-body">
+        <div class="heranca-vencimento" id="item-heranca-vencimento"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="inp-item-nome">Nome da despesa</label>
+          <input class="input" id="inp-item-nome" type="text" placeholder="Ex: Combustível, Mercado, Internet..." maxlength="80" />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="inp-item-valor">Valor (R$)</label>
+            <input class="input" id="inp-item-valor" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inp-item-natureza">Natureza</label>
+            <select class="select" id="inp-item-natureza">
+              <option value="pessoal">Pessoal</option>
+              <option value="trabalho">Trabalho</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="inp-item-tipo">Tipo</label>
+          <select class="select" id="inp-item-tipo">
+            <option value="fixa">Fixa recorrente</option>
+            <option value="parcelamento">Parcelamento</option>
+          </select>
+        </div>
+
+        <div class="campos-parcelamento" id="campos-parcelamento-item" hidden>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="inp-item-parcela-atual">Parcela inicial</label>
+              <input class="input" id="inp-item-parcela-atual" type="number" inputmode="numeric" min="1" placeholder="1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-item-parcela-total">Total de parcelas</label>
+              <input class="input" id="inp-item-parcela-total" type="number" inputmode="numeric" min="1" placeholder="12" />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="inp-item-mes-inicio">Mês de início</label>
+              <select class="select" id="inp-item-mes-inicio"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-item-ano-inicio">Ano de início</label>
+              <input class="input" id="inp-item-ano-inicio" type="number" inputmode="numeric" min="2020" max="2099" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancelar-item" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-item" type="button">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: confirmação de exclusão -->
   <div class="modal-overlay" id="modal-excluir" hidden>
     <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-excluir-titulo">
       <div class="modal-header">
-        <h2 id="modal-excluir-titulo">Excluir despesa</h2>
-        <button class="modal-close" id="btn-fechar-excluir" aria-label="Fechar">
+        <h2 id="modal-excluir-titulo">Excluir</h2>
+        <button class="modal-close" id="btn-fechar-excluir" type="button" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="modal-body">
-        <p>Tem certeza que deseja excluir <strong id="excluir-nome"></strong>? Essa acao nao pode ser desfeita.</p>
+        <p id="excluir-texto">Tem certeza? Essa ação não pode ser desfeita.</p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-cancelar-excluir">Cancelar</button>
-        <button class="btn btn-coral" id="btn-confirmar-excluir">Excluir</button>
+        <button class="btn btn-secondary" id="btn-cancelar-excluir" type="button">Cancelar</button>
+        <button class="btn btn-coral" id="btn-confirmar-excluir" type="button">Excluir</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Pagar parcelamento -->
+  <!-- Modal: pagamento de parcelamento direto -->
   <div class="modal-overlay" id="modal-pagar" hidden>
     <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-pagar-titulo">
       <div class="modal-header">
         <h2 id="modal-pagar-titulo">Marcar como pago</h2>
-        <button class="modal-close" id="btn-fechar-pagar" aria-label="Fechar">
+        <button class="modal-close" id="btn-fechar-pagar" type="button" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="modal-body">
-        <p id="modal-pagar-texto">Como deseja marcar o pagamento?</p>
+        <p id="modal-pagar-texto">Como deseja registrar o pagamento?</p>
       </div>
       <div class="modal-footer pagar-footer">
-        <button class="btn btn-secondary" id="btn-pagar-mes">Somente este mes</button>
-        <button class="btn btn-teal" id="btn-pagar-total">Quitar tudo</button>
+        <button class="btn btn-secondary" id="btn-pagar-mes" type="button">Somente este mês</button>
+        <button class="btn btn-teal" id="btn-pagar-total" type="button">Quitar tudo</button>
       </div>
     </div>
   </div>
