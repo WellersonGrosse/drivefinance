@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DriveFinance - Despesas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/despesas.css" />
+</head>
+<body>
+
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <header class="topbar" id="topbar"></header>
+
+  <div class="app-layout">
+    <main class="main-content" id="main-content">
+
+      <!-- Header da página -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title" style="margin-bottom:0">Despesas</h1>
+          <p class="page-subtitle" style="margin:0">Gerencie suas obrigacoes financeiras mensais</p>
+        </div>
+        <div class="page-header-right">
+          <div class="mes-nav">
+            <button class="btn-mes-nav" id="btn-mes-anterior" aria-label="Mes anterior">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="mes-label" id="mes-label">junho 2026</span>
+            <button class="btn-mes-nav" id="btn-mes-proximo" aria-label="Proximo mes">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+          <button class="btn btn-primary" id="btn-adicionar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Adicionar
+          </button>
+        </div>
+      </div>
+
+      <!-- Cards de resumo -->
+      <div class="grid-3 resumo-grid fade-up">
+        <div class="card resumo-card">
+          <p class="metric-label">Total Trabalho</p>
+          <p class="metric-value coral" id="total-trabalho">R$ 0,00</p>
+          <p class="resumo-card-sub" id="count-trabalho">0 despesas</p>
+        </div>
+        <div class="card resumo-card">
+          <p class="metric-label">Total Pessoal</p>
+          <p class="metric-value" id="total-pessoal">R$ 0,00</p>
+          <p class="resumo-card-sub" id="count-pessoal">0 despesas</p>
+        </div>
+        <div class="card resumo-card resumo-card-total">
+          <p class="metric-label">Total do Mes</p>
+          <p class="metric-value roxo" id="total-geral">R$ 0,00</p>
+          <div class="resumo-progresso">
+            <div class="progress-wrap" style="flex:1">
+              <div class="progress-fill" id="resumo-fill" style="width:0%"></div>
+            </div>
+            <span class="resumo-pago-label" id="resumo-pago-pct">0% pago</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filtros-row fade-up-delay-1">
+        <div class="filtros-chips">
+          <button class="chip chip-ativo" data-filtro="todos">Todos</button>
+          <button class="chip" data-filtro="trabalho">Trabalho</button>
+          <button class="chip" data-filtro="pessoal">Pessoal</button>
+        </div>
+        <div class="filtros-right">
+          <select class="select select-sm" id="select-ordenar">
+            <option value="vencimento">Vencimento</option>
+            <option value="valor">Maior valor</option>
+            <option value="nome">Nome A-Z</option>
+            <option value="status">Status</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Lista de despesas ativas -->
+      <div id="lista-despesas">
+
+        <!-- Grupo Trabalho -->
+        <div class="grupo-despesas fade-up-delay-2" id="grupo-trabalho">
+          <div class="grupo-header">
+            <div class="grupo-titulo-wrap">
+              <span class="grupo-dot dot-trabalho"></span>
+              <h2 class="grupo-titulo">Trabalho</h2>
+              <span class="grupo-badge" id="badge-trabalho">0</span>
+            </div>
+            <span class="grupo-subtotal" id="subtotal-trabalho">R$ 0,00</span>
+          </div>
+
+          <!-- Tabela desktop -->
+          <div class="table-wrap" id="table-trabalho">
+            <table class="despesas-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Parcela</th>
+                  <th>Vencimento</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-trabalho"></tbody>
+            </table>
+          </div>
+
+          <!-- Cards mobile -->
+          <div class="cards-mobile" id="cards-trabalho"></div>
+
+          <!-- Empty state do grupo -->
+          <div class="grupo-empty" id="empty-trabalho" hidden>
+            <p>Nenhuma despesa de trabalho neste mes.</p>
+          </div>
+        </div>
+
+        <!-- Grupo Pessoal -->
+        <div class="grupo-despesas fade-up-delay-3" id="grupo-pessoal">
+          <div class="grupo-header">
+            <div class="grupo-titulo-wrap">
+              <span class="grupo-dot dot-pessoal"></span>
+              <h2 class="grupo-titulo">Pessoal</h2>
+              <span class="grupo-badge" id="badge-pessoal">0</span>
+            </div>
+            <span class="grupo-subtotal" id="subtotal-pessoal">R$ 0,00</span>
+          </div>
+
+          <!-- Tabela desktop -->
+          <div class="table-wrap" id="table-pessoal">
+            <table class="despesas-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Parcela</th>
+                  <th>Vencimento</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-pessoal"></tbody>
+            </table>
+          </div>
+
+          <!-- Cards mobile -->
+          <div class="cards-mobile" id="cards-pessoal"></div>
+
+          <!-- Empty state do grupo -->
+          <div class="grupo-empty" id="empty-pessoal" hidden>
+            <p>Nenhuma despesa pessoal neste mes.</p>
+          </div>
+        </div>
+
+        <!-- Empty state global -->
+        <div class="empty-state" id="empty-global" hidden>
+          <div class="empty-state-icon">📋</div>
+          <p>Nenhuma despesa cadastrada ainda.</p>
+          <button class="btn btn-primary" id="btn-adicionar-empty">Adicionar despesa</button>
+        </div>
+
+      </div>
+
+      <!-- Secao parcelamentos encerrados -->
+      <div class="encerrados-section" id="encerrados-section" hidden>
+        <button class="encerrados-toggle" id="btn-encerrados" aria-expanded="false">
+          <span>Parcelamentos encerrados</span>
+          <span class="encerrados-count" id="count-encerrados">0</span>
+          <svg class="encerrados-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="encerrados-lista" id="encerrados-lista" hidden>
+          <!-- cards mobile -->
+          <div class="cards-mobile" id="cards-encerrados"></div>
+          <!-- tabela desktop -->
+          <div class="table-wrap" id="table-encerrados">
+            <table class="despesas-table despesas-table-encerrada">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Natureza</th>
+                  <th>Parcelas</th>
+                  <th>Vencimento</th>
+                  <th>Valor</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-encerrados"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal Adicionar / Editar -->
+  <div class="modal-overlay" id="modal-form" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-form-titulo">
+      <div class="modal-header">
+        <h2 id="modal-form-titulo">Adicionar despesa</h2>
+        <button class="modal-close" id="btn-fechar-form" aria-label="Fechar">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body modal-form-body">
+
+        <div class="form-group">
+          <label class="form-label" for="inp-nome">Nome da despesa</label>
+          <input class="input" id="inp-nome" type="text" placeholder="Ex: Cartao Nubank, Aluguel, IPVA..." maxlength="80" />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="inp-natureza">Natureza</label>
+            <select class="select" id="inp-natureza">
+              <option value="pessoal">Pessoal</option>
+              <option value="trabalho">Trabalho</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inp-tipo">Tipo</label>
+            <select class="select" id="inp-tipo">
+              <option value="fixa">Fixa recorrente</option>
+              <option value="parcelamento">Parcelamento</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="inp-valor">Valor (R$)</label>
+            <input class="input" id="inp-valor" type="number" min="0" step="0.01" placeholder="0,00" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inp-vencimento">Vencimento (dia)</label>
+            <input class="input" id="inp-vencimento" type="number" min="1" max="31" placeholder="Ex: 10" />
+          </div>
+        </div>
+
+        <!-- Campos de parcelamento (so aparecem quando tipo = parcelamento) -->
+        <div id="campos-parcelamento" hidden>
+          <div class="form-row-3">
+            <div class="form-group">
+              <label class="form-label" for="inp-parcela-atual">Parcela inicial</label>
+              <input class="input" id="inp-parcela-atual" type="number" min="1" placeholder="1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-parcela-total">Total de parcelas</label>
+              <input class="input" id="inp-parcela-total" type="number" min="1" placeholder="12" />
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="inp-mes-inicio">Mes de inicio</label>
+              <select class="select" id="inp-mes-inicio">
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Marco</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-ano-inicio">Ano de inicio</label>
+              <input class="input" id="inp-ano-inicio" type="number" min="2020" max="2099" placeholder="2026" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Opcao retroativo (so aparece no modo edicao) -->
+        <div id="opcao-retroativo" hidden>
+          <div class="toggle-wrap retroativo-wrap">
+            <div>
+              <p class="form-label">Aplicar retroativamente</p>
+              <p class="form-hint">O novo valor vai atualizar meses anteriores tambem</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="inp-retroativo" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancelar-form">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-form">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Confirmar exclusao -->
+  <div class="modal-overlay" id="modal-excluir" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-excluir-titulo">
+      <div class="modal-header">
+        <h2 id="modal-excluir-titulo">Excluir despesa</h2>
+        <button class="modal-close" id="btn-fechar-excluir" aria-label="Fechar">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Tem certeza que deseja excluir <strong id="excluir-nome"></strong>? Essa acao nao pode ser desfeita.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancelar-excluir">Cancelar</button>
+        <button class="btn btn-coral" id="btn-confirmar-excluir">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Pagar parcelamento -->
+  <div class="modal-overlay" id="modal-pagar" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-pagar-titulo">
+      <div class="modal-header">
+        <h2 id="modal-pagar-titulo">Marcar como pago</h2>
+        <button class="modal-close" id="btn-fechar-pagar" aria-label="Fechar">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="modal-pagar-texto">Como deseja marcar o pagamento?</p>
+      </div>
+      <div class="modal-footer pagar-footer">
+        <button class="btn btn-secondary" id="btn-pagar-mes">Somente este mes</button>
+        <button class="btn btn-teal" id="btn-pagar-total">Quitar tudo</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/despesas.js"></script>
+</body>
+</html>
