@@ -360,7 +360,7 @@
   background: var(--dark-card);
   border: 0.5px solid var(--dark-border);
   border-radius: var(--radius-md);
-  padding: var(--gap-md) var(--gap-lg);
+  padding: var(--gap-md) var(--gap-lg) var(--gap-lg);
 }
 
 .co-card-item-header {
@@ -735,6 +735,51 @@
   .co-card-valor-grande {
     font-size: 26px;
   }
+}
+
+/* ─────────────────────────────────────────────
+   Agrupamento por categoria — lista principal
+───────────────────────────────────────────── */
+
+/* Desktop: linha separadora de categoria na tabela */
+.co-tr-categoria {
+  background: rgba(123,94,167,0.05) !important;
+  border-top: 0.5px solid rgba(123,94,167,0.15) !important;
+}
+
+.co-tr-categoria:first-child {
+  border-top: none !important;
+}
+
+.co-tr-categoria td {
+  padding: 8px 16px 5px !important;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--roxo);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+/* Mobile: título de categoria entre grupos de cards */
+.co-cards-categoria-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.co-cards-categoria-titulo {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--roxo);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 12px 0 4px;
+  border-bottom: 0.5px solid rgba(123,94,167,0.2);
+  margin-bottom: 2px;
+}
+
+.co-cards-categoria-grupo:first-child .co-cards-categoria-titulo {
+  padding-top: 4px;
 }
 
 /* ─────────────────────────────────────────────
