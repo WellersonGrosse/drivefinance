@@ -370,10 +370,16 @@
 
 /* ── KM Ocioso ── */
 .km-ocioso-form {
-  padding: 8px 14px;
+  padding: 10px 14px 12px;
   border-top: 0.5px solid var(--dark-border);
+  flex: 1;
 }
 .km-ocioso-form .form-group { margin: 0; }
+
+/* bloco-body do km nao centraliza verticalmente */
+#bloco-km-campos {
+  justify-content: flex-start;
+}
 
 /* ── Toggle switch ── */
 .toggle-switch {
