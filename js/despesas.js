@@ -164,6 +164,13 @@ function calcularParcelaAtual(entidade, mesRef) {
 }
 
 function entidadeAtivaNoMes(entidade, mesRef) {
+  if (entidade.tipo === 'unica') {
+    if (!entidade.mes_inicio || !entidade.ano_inicio) return true;
+    return (
+      mesRef.getFullYear() === Number(entidade.ano_inicio) &&
+      (mesRef.getMonth() + 1) === Number(entidade.mes_inicio)
+    );
+  }
   if (entidade.tipo !== 'parcelamento') return true;
   return calcularParcelaAtual(entidade, mesRef) !== null;
 }
@@ -269,6 +276,9 @@ function htmlTipo(entidade, mesRef) {
   if (entidade.tipo === 'parcelamento') {
     const parcela = labelParcela(entidade, mesRef);
     return `<span class="tipo-badge tipo-parcelamento">Parcelamento${parcela ? ` ${escapeHtml(parcela)}` : ''}</span>`;
+  }
+  if (entidade.tipo === 'unica') {
+    return '<span class="tipo-badge tipo-unica">Única</span>';
   }
   return '<span class="tipo-badge tipo-fixa">Fixa</span>';
 }
@@ -626,6 +636,8 @@ function preencherSelectMeses() {
   const options = MESES.map((mes, index) => `<option value="${index + 1}">${mes}</option>`).join('');
   $('inp-subbloco-mes-inicio').innerHTML = options;
   $('inp-item-mes-inicio').innerHTML = options;
+  $('inp-subbloco-mes-unica').innerHTML = options;
+  $('inp-item-mes-unica').innerHTML = options;
 }
 
 async function garantirEstruturaInicial() {
@@ -908,12 +920,15 @@ function criarCategoriaDoLancamento() {
 function atualizarCamposSubbloco() {
   const grupo = grupoPorId(state.grupoSubblocoId);
   const agregador = grupo?.estrutura === 'agregador';
+  const tipo = $('inp-subbloco-tipo').value;
 
   $('bloco-subbloco-valor').hidden = agregador;
   $('campos-subbloco-direto').hidden = agregador;
   $('agregador-explicacao').hidden = !agregador;
-  $('campos-parcelamento-subbloco').hidden = agregador
-    || $('inp-subbloco-tipo').value !== 'parcelamento';
+  $('campos-parcelamento-subbloco').hidden = agregador || tipo !== 'parcelamento';
+
+  // Para unica: mostra campos de mes/ano de inicio sem parcelas
+  $('bloco-subbloco-mes-inicio').hidden = agregador || (tipo !== 'unica' && tipo !== 'parcelamento');
 }
 
 function resetarSubblocoForm() {
@@ -927,6 +942,8 @@ function resetarSubblocoForm() {
   $('inp-subbloco-parcela-total').value = '';
   $('inp-subbloco-mes-inicio').value = String(agora.getMonth() + 1);
   $('inp-subbloco-ano-inicio').value = String(agora.getFullYear());
+  $('inp-subbloco-mes-unica').value = String(agora.getMonth() + 1);
+  $('inp-subbloco-ano-unica').value = String(agora.getFullYear());
 }
 
 function abrirModalSubbloco(grupoId, despesa = null) {
@@ -970,6 +987,8 @@ function abrirModalSubbloco(grupoId, despesa = null) {
       $('inp-subbloco-parcela-total').value = despesa.parcela_total || '';
       $('inp-subbloco-mes-inicio').value = String(despesa.mes_inicio || new Date().getMonth() + 1);
       $('inp-subbloco-ano-inicio').value = String(despesa.ano_inicio || new Date().getFullYear());
+      $('inp-subbloco-mes-unica').value = String(despesa.mes_inicio || new Date().getMonth() + 1);
+      $('inp-subbloco-ano-unica').value = String(despesa.ano_inicio || new Date().getFullYear());
     }
   }
 
@@ -1062,6 +1081,16 @@ async function salvarSubbloco() {
       if (!parcelamento) return;
       Object.assign(dados, parcelamento);
     }
+
+    if (tipo === 'unica') {
+      const mesUnica = Number($('inp-subbloco-mes-unica').value);
+      const anoUnica = Number($('inp-subbloco-ano-unica').value);
+      if (!mesUnica || !anoUnica) {
+        toast('Informe o mês e o ano da despesa.', 'aviso');
+        return;
+      }
+      Object.assign(dados, { mes_inicio: mesUnica, ano_inicio: anoUnica });
+    }
   }
 
   const btn = $('btn-salvar-subbloco');
@@ -1114,7 +1143,10 @@ function resetarItemForm() {
   $('inp-item-parcela-total').value = '';
   $('inp-item-mes-inicio').value = String(agora.getMonth() + 1);
   $('inp-item-ano-inicio').value = String(agora.getFullYear());
+  $('inp-item-mes-unica').value = String(agora.getMonth() + 1);
+  $('inp-item-ano-unica').value = String(agora.getFullYear());
   $('campos-parcelamento-item').hidden = true;
+  $('bloco-item-mes-inicio').hidden = true;
 }
 
 function abrirModalItem(despesa, item = null) {
@@ -1143,7 +1175,10 @@ function abrirModalItem(despesa, item = null) {
     $('inp-item-parcela-total').value = item.parcela_total || '';
     $('inp-item-mes-inicio').value = String(item.mes_inicio || new Date().getMonth() + 1);
     $('inp-item-ano-inicio').value = String(item.ano_inicio || new Date().getFullYear());
+    $('inp-item-mes-unica').value = String(item.mes_inicio || new Date().getMonth() + 1);
+    $('inp-item-ano-unica').value = String(item.ano_inicio || new Date().getFullYear());
     $('campos-parcelamento-item').hidden = item.tipo !== 'parcelamento';
+    $('bloco-item-mes-inicio').hidden = item.tipo !== 'unica';
   }
 
   $('modal-item').hidden = false;
@@ -1186,6 +1221,16 @@ async function salvarItem() {
     const parcelamento = validarParcelamento('item');
     if (!parcelamento) return;
     Object.assign(item, parcelamento);
+  }
+
+  if (tipo === 'unica') {
+    const mesUnica = Number($('inp-item-mes-unica').value);
+    const anoUnica = Number($('inp-item-ano-unica').value);
+    if (!mesUnica || !anoUnica) {
+      toast('Informe o mês e o ano da despesa.', 'aviso');
+      return;
+    }
+    Object.assign(item, { mes_inicio: mesUnica, ano_inicio: anoUnica });
   }
 
   const itens = itensNormalizados(despesa);
@@ -1415,7 +1460,9 @@ function bindEvents() {
   $('btn-salvar-subbloco').addEventListener('click', salvarSubbloco);
 
   $('inp-item-tipo').addEventListener('change', event => {
-    $('campos-parcelamento-item').hidden = event.target.value !== 'parcelamento';
+    const tipo = event.target.value;
+    $('campos-parcelamento-item').hidden = tipo !== 'parcelamento';
+    $('bloco-item-mes-inicio').hidden = tipo !== 'unica' && tipo !== 'parcelamento';
   });
   $('btn-fechar-item').addEventListener('click', fecharModalItem);
   $('btn-cancelar-item').addEventListener('click', fecharModalItem);
