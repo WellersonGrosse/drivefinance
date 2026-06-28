@@ -326,6 +326,7 @@ function abrirModal(item = null) {
 
   $('modal-item-titulo').textContent = item ? 'Editar item' : 'Adicionar item';
   $('item-nome').value = item?.nome || '';
+  $('item-categoria').value = item?.categoria || 'Outros';
   $('item-qtd').value = item?.qtd || '';
   $('item-unidade').value = item?.unidade || 'un';
   $('item-valor-unit').value = item?.valor_unitario || '';
@@ -350,7 +351,7 @@ function atualizarCalcModal() {
   const custoKm = vida > 0 ? total / vida : 0;
 
   $('item-total-display').textContent = formatReal(total);
-  $('item-custo-km-preview').textContent = custoKm > 0 ? formatCustoKm(custoKm) : '—';
+  $('item-custo-km-preview').textContent = formatCustoKm(custoKm);
 }
 
 function renderSugestoes(texto) {
@@ -388,8 +389,10 @@ async function salvarItem() {
   btn.textContent = 'Salvando...';
 
   try {
+    const categoria = $('item-categoria').value || 'Outros';
     const dados = {
       nome,
+      categoria,
       qtd,
       unidade,
       valor_unitario: valorUnitario,
