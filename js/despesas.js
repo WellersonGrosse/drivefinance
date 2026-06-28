@@ -52,6 +52,9 @@ const state = {
   itemEdicao: null,
   excluir: null,
   pagarId: null,
+  lancamentoGrupoId: null,
+  reabrirLancamentoAposGrupo: false,
+  criarDespesaAposSubbloco: false,
   expandidos: new Set()
 };
 
@@ -69,6 +72,52 @@ function escapeHtml(valor = '') {
 function gerarIdLocal() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function textoChave(valor = '') {
+  return String(valor)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function termosGrupo(grupo = {}) {
+  const nome = textoChave(grupo.nome || '');
+
+  if (nome.includes('cart')) {
+    return { singular: 'cartão', plural: 'cartões', artigo: 'o', artigoPlural: 'os' };
+  }
+  if (nome.includes('boleto')) {
+    return { singular: 'boleto', plural: 'boletos', artigo: 'o', artigoPlural: 'os' };
+  }
+  if (nome.includes('financi')) {
+    return { singular: 'financiamento', plural: 'financiamentos', artigo: 'o', artigoPlural: 'os' };
+  }
+  if (nome.includes('assinatura')) {
+    return { singular: 'assinatura', plural: 'assinaturas', artigo: 'a', artigoPlural: 'as' };
+  }
+  if (nome.includes('emprest')) {
+    return { singular: 'empréstimo', plural: 'empréstimos', artigo: 'o', artigoPlural: 'os' };
+  }
+  if (nome.includes('conta')) {
+    return { singular: 'conta', plural: 'contas', artigo: 'a', artigoPlural: 'as' };
+  }
+
+  return grupo.estrutura === 'agregador'
+    ? { singular: 'conta', plural: 'contas', artigo: 'a', artigoPlural: 'as' }
+    : { singular: 'despesa', plural: 'despesas', artigo: 'a', artigoPlural: 'as' };
+}
+
+function capitalizar(valor = '') {
+  return valor ? valor.charAt(0).toUpperCase() + valor.slice(1) : '';
+}
+
+function novoPara(termos) {
+  return termos.artigo === 'a' ? 'nova' : 'novo';
+}
+
+function primeiroPara(termos) {
+  return termos.artigo === 'a' ? 'primeira' : 'primeiro';
 }
 
 function anoMesStr(date) {
@@ -332,7 +381,7 @@ function renderSubblocoAgregador(despesa, mesRef, filtro) {
         ${itensVisiveis.length > 0
           ? itensVisiveis.map(item => renderItemRow(despesa, item, mesRef)).join('')
           : '<p class="item-lista-vazia">Nenhuma despesa neste filtro e mês.</p>'}
-        <button class="item-add-inline" type="button" data-acao="adicionar-item" data-id="${despesa.id}" data-feature="despesas.itens.criar">+ Adicionar despesa</button>
+        <button class="item-add-inline" type="button" data-acao="adicionar-item" data-id="${despesa.id}" data-feature="despesas.itens.criar">+ Lançar despesa</button>
       </div>
     </article>`;
 }
@@ -386,9 +435,14 @@ function renderGrupo(grupo, mesRef) {
     0
   );
 
+  const termos = termosGrupo(grupo);
   const descricaoEstrutura = grupo.estrutura === 'agregador'
     ? 'Total calculado pelas despesas internas'
-    : 'Cada subbloco possui valor próprio';
+    : `Cada ${termos.singular} possui valor próprio`;
+
+  const vazio = state.filtro === 'todos'
+    ? `Nenhum ${termos.singular} cadastrado.`
+    : 'Nenhuma despesa encontrada neste filtro.';
 
   return `
     <section class="grupo-card" data-grupo-id="${grupo.id}">
@@ -414,13 +468,13 @@ function renderGrupo(grupo, mesRef) {
               : renderSubblocoDireto(despesa, mesRef)).join('')
             : `
               <div class="grupo-empty">
-                <span>${state.filtro === 'todos' ? 'Nenhum subbloco cadastrado.' : 'Nenhuma despesa encontrada neste filtro.'}</span>
+                <span>${escapeHtml(vazio)}</span>
               </div>`}
         </div>
 
         <button class="grupo-add-btn" type="button" data-acao="adicionar-subbloco" data-id="${grupo.id}" data-feature="despesas.subblocos.criar">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          Adicionar subbloco
+          ${capitalizar(novoPara(termos))} ${escapeHtml(termos.singular)}
         </button>
       </div>
     </section>`;
@@ -504,9 +558,10 @@ function obterEncerrados() {
     if (estruturaDespesa(despesa) === 'direto') {
       if (parcelamentoEncerrado(despesa, mesRef)
           && (state.filtro === 'todos' || despesa.natureza === state.filtro)) {
+        const grupo = grupoPorId(despesa.grupo_id);
         encerrados.push({
           nome: despesa.nome,
-          contexto: 'Subbloco',
+          contexto: capitalizar(termosGrupo(grupo).singular),
           valor: Number(despesa.valor) || 0,
           natureza: despesa.natureza
         });
@@ -650,26 +705,27 @@ async function recarregarDados() {
 }
 
 /* ─────────────────────────────────────────────
-   Modal de grupo
+   Modal de categoria
 ───────────────────────────────────────────── */
 
 function atualizarHintEstruturaGrupo() {
   const agregador = $('inp-grupo-estrutura').value === 'agregador';
   $('grupo-estrutura-hint').textContent = agregador
-    ? 'Ideal para cartões: o total é a soma das despesas internas.'
-    : 'Ideal para boletos e contas: cada subbloco possui valor e vencimento próprios.';
+    ? 'Ideal para cartões: cada cartão reúne várias despesas e o total é calculado automaticamente.'
+    : 'Ideal para boletos e contas: cada despesa possui valor e vencimento próprios.';
 }
 
-function abrirModalGrupo(grupo = null) {
+function abrirModalGrupo(grupo = null, { reabrirLancamento = false } = {}) {
   state.grupoEdicaoId = grupo?.id || null;
-  $('modal-grupo-titulo').textContent = grupo ? 'Editar bloco' : 'Novo bloco';
+  state.reabrirLancamentoAposGrupo = !grupo && reabrirLancamento;
+  $('modal-grupo-titulo').textContent = grupo ? 'Editar categoria' : 'Nova categoria';
   $('inp-grupo-nome').value = grupo?.nome || '';
   $('inp-grupo-estrutura').value = grupo?.estrutura || 'agregador';
 
-  const possuiSubblocos = grupo
+  const possuiItens = grupo
     ? state.despesas.some(d => d.grupo_id === grupo.id)
     : false;
-  $('inp-grupo-estrutura').disabled = possuiSubblocos;
+  $('inp-grupo-estrutura').disabled = possuiItens;
 
   atualizarHintEstruturaGrupo();
   $('modal-grupo').hidden = false;
@@ -680,6 +736,7 @@ function fecharModalGrupo() {
   $('modal-grupo').hidden = true;
   $('inp-grupo-estrutura').disabled = false;
   state.grupoEdicaoId = null;
+  state.reabrirLancamentoAposGrupo = false;
 }
 
 async function salvarGrupo() {
@@ -687,7 +744,7 @@ async function salvarGrupo() {
   const estrutura = $('inp-grupo-estrutura').value;
 
   if (!nome) {
-    toast('Informe o nome do bloco.', 'aviso');
+    toast('Informe o nome da categoria.', 'aviso');
     return;
   }
 
@@ -695,24 +752,32 @@ async function salvarGrupo() {
   btn.disabled = true;
   btn.textContent = 'Salvando...';
 
+  const reabrirLancamento = state.reabrirLancamentoAposGrupo;
+  let grupoSalvoId = state.grupoEdicaoId;
+
   try {
     if (state.grupoEdicaoId) {
       await updateGrupoDespesa(state.user.uid, state.grupoEdicaoId, { nome, estrutura });
-      toast('Bloco atualizado.', 'sucesso');
+      toast('Categoria atualizada.', 'sucesso');
     } else {
-      await addGrupoDespesa(state.user.uid, {
+      const ref = await addGrupoDespesa(state.user.uid, {
         nome,
         estrutura,
         ordem: state.grupos.length + 1
       });
-      toast('Bloco criado.', 'sucesso');
+      grupoSalvoId = ref.id;
+      toast('Categoria criada.', 'sucesso');
     }
 
     fecharModalGrupo();
     await recarregarDados();
+
+    if (reabrirLancamento && grupoSalvoId) {
+      abrirModalLancamento(grupoSalvoId);
+    }
   } catch (erro) {
-    console.error('[DriveFinance/despesas/grupo]', erro);
-    toast('Não foi possível salvar o bloco.', 'erro');
+    console.error('[DriveFinance/despesas/categoria]', erro);
+    toast('Não foi possível salvar a categoria.', 'erro');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Salvar';
@@ -729,6 +794,114 @@ function grupoPorId(id) {
 
 function despesaPorId(id) {
   return state.despesas.find(despesa => despesa.id === id) || null;
+}
+
+/* ─────────────────────────────────────────────
+   Modal para lançar despesa
+───────────────────────────────────────────── */
+
+function atualizarDestinoLancamento() {
+  const grupo = grupoPorId($('inp-lancamento-grupo').value);
+  if (!grupo) return;
+
+  state.lancamentoGrupoId = grupo.id;
+  const termos = termosGrupo(grupo);
+  const agregador = grupo.estrutura === 'agregador';
+
+  $('lancamento-destino-wrap').hidden = !agregador;
+  $('lancamento-direto-info').hidden = agregador;
+
+  if (agregador) {
+    const destinos = state.despesas
+      .filter(despesa => despesa.grupo_id === grupo.id && estruturaDespesa(despesa) === 'agregador')
+      .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+
+    $('lancamento-destino-label').textContent = capitalizar(termos.singular);
+    $('inp-lancamento-destino').innerHTML = [
+      ...destinos.map(despesa => `<option value="${despesa.id}">${escapeHtml(despesa.nome)}</option>`),
+      `<option value="__novo__">+ Cadastrar ${novoPara(termos)} ${escapeHtml(termos.singular)}</option>`
+    ].join('');
+
+    $('lancamento-destino-hint').textContent = destinos.length > 0
+      ? `Escolha ${termos.artigo} ${termos.singular} que receberá a despesa ou cadastre ${termos.artigo} ${novoPara(termos)}.`
+      : `Cadastre ${termos.artigo} ${primeiroPara(termos)} ${termos.singular} desta categoria.`;
+    $('btn-continuar-lancamento').textContent = 'Continuar';
+    return;
+  }
+
+  $('lancamento-direto-info').innerHTML = `
+    <strong>${capitalizar(novoPara(termos))} ${escapeHtml(termos.singular)}</strong>
+    <span>Será cadastrado com valor, natureza e vencimento próprios dentro de ${escapeHtml(grupo.nome)}.</span>`;
+  $('btn-continuar-lancamento').textContent = `Cadastrar ${termos.singular}`;
+}
+
+function abrirModalLancamento(grupoPreferidoId = null) {
+  if (state.grupos.length === 0) {
+    toast('Crie uma categoria antes de lançar a primeira despesa.', 'aviso');
+    abrirModalGrupo(null, { reabrirLancamento: true });
+    return;
+  }
+
+  const gruposOrdenados = [...state.grupos].sort((a, b) => {
+    const ordemA = Number(a.ordem ?? 9999);
+    const ordemB = Number(b.ordem ?? 9999);
+    if (ordemA !== ordemB) return ordemA - ordemB;
+    return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+  });
+
+  $('inp-lancamento-grupo').innerHTML = gruposOrdenados
+    .map(grupo => `<option value="${grupo.id}">${escapeHtml(grupo.nome)}</option>`)
+    .join('');
+
+  const grupoInicial = grupoPreferidoId && grupoPorId(grupoPreferidoId)
+    ? grupoPreferidoId
+    : gruposOrdenados[0].id;
+
+  $('inp-lancamento-grupo').value = grupoInicial;
+  atualizarDestinoLancamento();
+  $('modal-lancamento').hidden = false;
+}
+
+function fecharModalLancamento() {
+  $('modal-lancamento').hidden = true;
+  state.lancamentoGrupoId = null;
+}
+
+function continuarLancamento() {
+  const grupo = grupoPorId(state.lancamentoGrupoId);
+  if (!grupo) {
+    toast('Selecione uma categoria.', 'aviso');
+    return;
+  }
+
+  if (grupo.estrutura === 'agregador') {
+    const destinoId = $('inp-lancamento-destino').value;
+
+    if (destinoId === '__novo__') {
+      state.criarDespesaAposSubbloco = true;
+      fecharModalLancamento();
+      abrirModalSubbloco(grupo.id);
+      return;
+    }
+
+    const destino = despesaPorId(destinoId);
+    if (!destino) {
+      toast(`Selecione ${termosGrupo(grupo).artigo} ${termosGrupo(grupo).singular}.`, 'aviso');
+      return;
+    }
+
+    fecharModalLancamento();
+    abrirModalItem(destino);
+    return;
+  }
+
+  fecharModalLancamento();
+  abrirModalSubbloco(grupo.id);
+}
+
+function criarCategoriaDoLancamento() {
+  fecharModalLancamento();
+  abrirModalGrupo(null, { reabrirLancamento: true });
 }
 
 function atualizarCamposSubbloco() {
@@ -759,16 +932,30 @@ function abrirModalSubbloco(grupoId, despesa = null) {
   const grupo = grupoPorId(grupoId);
   if (!grupo) return;
 
+  const termos = termosGrupo(grupo);
   state.grupoSubblocoId = grupoId;
   state.subblocoEdicaoId = despesa?.id || null;
   resetarSubblocoForm();
 
-  $('modal-subbloco-titulo').textContent = despesa ? 'Editar subbloco' : 'Novo subbloco';
+  $('modal-subbloco-titulo').textContent = despesa
+    ? `Editar ${termos.singular}`
+    : `${capitalizar(novoPara(termos))} ${termos.singular}`;
+  $('label-subbloco-nome').textContent = `Nome d${termos.artigo === 'a' ? 'a' : 'o'} ${termos.singular}`;
+  $('inp-subbloco-nome').placeholder = grupo.estrutura === 'agregador'
+    ? `Ex: Nubank, Inter, Itaú...`
+    : `Ex: Aluguel, Energia, Financiamento...`;
+
   $('subbloco-contexto').innerHTML = `
     <strong>${escapeHtml(grupo.nome)}</strong>
     <span>${grupo.estrutura === 'agregador'
-      ? 'O vencimento será herdado por todas as despesas internas.'
-      : 'Este subbloco terá valor, natureza e vencimento próprios.'}</span>`;
+      ? `O vencimento d${termos.artigo === 'a' ? 'a' : 'o'} ${escapeHtml(termos.singular)} será herdado por todas as despesas internas.`
+      : `Este ${escapeHtml(termos.singular)} terá valor, natureza e vencimento próprios.`}</span>`;
+
+  if (grupo.estrutura === 'agregador') {
+    $('agregador-explicacao').innerHTML = `
+      <strong>O valor será calculado automaticamente.</strong>
+      <span>Depois de salvar, lance as despesas dentro d${termos.artigo === 'a' ? 'a' : 'o'} ${escapeHtml(termos.singular)}. Todas herdarão o vencimento informado acima.</span>`;
+  }
 
   if (despesa) {
     $('inp-subbloco-nome').value = despesa.nome || '';
@@ -794,6 +981,7 @@ function fecharModalSubbloco() {
   $('modal-subbloco').hidden = true;
   state.grupoSubblocoId = null;
   state.subblocoEdicaoId = null;
+  state.criarDespesaAposSubbloco = false;
 }
 
 function validarParcelamento(prefixo) {
@@ -831,11 +1019,12 @@ async function salvarSubbloco() {
   const grupo = grupoPorId(state.grupoSubblocoId);
   if (!grupo) return;
 
+  const termos = termosGrupo(grupo);
   const nome = $('inp-subbloco-nome').value.trim();
   const vencimento = Number($('inp-subbloco-vencimento').value);
 
   if (!nome) {
-    toast('Informe o nome do subbloco.', 'aviso');
+    toast(`Informe o nome d${termos.artigo === 'a' ? 'a' : 'o'} ${termos.singular}.`, 'aviso');
     return;
   }
   if (!Number.isInteger(vencimento) || vencimento < 1 || vencimento > 31) {
@@ -878,21 +1067,32 @@ async function salvarSubbloco() {
   btn.disabled = true;
   btn.textContent = 'Salvando...';
 
+  const criarDespesaDepois = state.criarDespesaAposSubbloco
+    && !state.subblocoEdicaoId
+    && grupo.estrutura === 'agregador';
+  let novoId = null;
+
   try {
     if (state.subblocoEdicaoId) {
       await updateDespesa(state.user.uid, state.subblocoEdicaoId, dados);
-      toast('Subbloco atualizado.', 'sucesso');
+      toast(`${capitalizar(termos.singular)} atualizado.`, 'sucesso');
     } else {
       const ref = await addDespesa(state.user.uid, dados);
+      novoId = ref.id;
       if (grupo.estrutura === 'agregador') state.expandidos.add(ref.id);
-      toast('Subbloco criado.', 'sucesso');
+      toast(`${capitalizar(termos.singular)} criado.`, 'sucesso');
     }
 
     fecharModalSubbloco();
     await recarregarDados();
+
+    if (criarDespesaDepois && novoId) {
+      const destino = despesaPorId(novoId);
+      if (destino) abrirModalItem(destino);
+    }
   } catch (erro) {
-    console.error('[DriveFinance/despesas/subbloco]', erro);
-    toast('Não foi possível salvar o subbloco.', 'erro');
+    console.error('[DriveFinance/despesas/item-categoria]', erro);
+    toast(`Não foi possível salvar ${termos.artigo} ${termos.singular}.`, 'erro');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Salvar';
@@ -924,11 +1124,14 @@ function abrirModalItem(despesa, item = null) {
     itemId: item?.id || null
   };
 
+  const grupo = grupoPorId(despesa.grupo_id);
+  const termos = termosGrupo(grupo);
+
   resetarItemForm();
-  $('modal-item-titulo').textContent = item ? 'Editar despesa' : 'Adicionar despesa';
+  $('modal-item-titulo').textContent = item ? 'Editar despesa' : 'Lançar despesa';
   $('item-heranca-vencimento').innerHTML = `
-    <strong>${escapeHtml(despesa.nome)}</strong>
-    <span>Vencimento herdado: dia ${Number(despesa.vencimento_dia) || '-'}</span>`;
+    <strong>${escapeHtml(despesa.nome)} • ${escapeHtml(grupo?.nome || 'Categoria')}</strong>
+    <span>Vencimento herdado d${termos.artigo === 'a' ? 'a' : 'o'} ${escapeHtml(termos.singular)}: dia ${Number(despesa.vencimento_dia) || '-'}</span>`;
 
   if (item) {
     $('inp-item-nome').value = item.nome || '';
@@ -1038,18 +1241,18 @@ async function confirmarExcluir() {
   try {
     if (state.excluir.tipo === 'grupo') {
       await deleteGrupoDespesa(state.user.uid, state.excluir.id);
-      toast('Bloco excluído.', 'sucesso');
+      toast('Categoria excluída.', 'sucesso');
     }
 
     if (state.excluir.tipo === 'subbloco') {
       await deleteDespesa(state.user.uid, state.excluir.id);
       state.expandidos.delete(state.excluir.id);
-      toast('Subbloco excluído.', 'sucesso');
+      toast(state.excluir.mensagemSucesso || 'Item excluído.', 'sucesso');
     }
 
     if (state.excluir.tipo === 'item') {
       const despesa = despesaPorId(state.excluir.despesaId);
-      if (!despesa) throw new Error('Subbloco não encontrado.');
+      if (!despesa) throw new Error('Item da categoria não encontrado.');
       const itens = itensNormalizados(despesa)
         .filter(item => item.id !== state.excluir.itemId);
       await updateDespesa(state.user.uid, despesa.id, {
@@ -1155,6 +1358,7 @@ async function toggleStatus(id) {
 ───────────────────────────────────────────── */
 
 function fecharModaisAbertos() {
+  if (!$('modal-lancamento').hidden) fecharModalLancamento();
   if (!$('modal-grupo').hidden) fecharModalGrupo();
   if (!$('modal-subbloco').hidden) fecharModalSubbloco();
   if (!$('modal-item').hidden) fecharModalItem();
@@ -1177,6 +1381,13 @@ function bindEvents() {
 
   $('btn-adicionar-grupo').addEventListener('click', () => abrirModalGrupo());
   $('btn-adicionar-grupo-empty').addEventListener('click', () => abrirModalGrupo());
+  $('btn-lancar-despesa').addEventListener('click', () => abrirModalLancamento());
+
+  $('inp-lancamento-grupo').addEventListener('change', atualizarDestinoLancamento);
+  $('btn-fechar-lancamento').addEventListener('click', fecharModalLancamento);
+  $('btn-cancelar-lancamento').addEventListener('click', fecharModalLancamento);
+  $('btn-continuar-lancamento').addEventListener('click', continuarLancamento);
+  $('btn-lancamento-nova-categoria').addEventListener('click', criarCategoriaDoLancamento);
 
   document.querySelectorAll('[data-filtro]').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -1238,16 +1449,17 @@ function bindEvents() {
 
     if (acao === 'excluir-grupo') {
       const grupo = grupoPorId(id);
-      const possuiSubblocos = state.despesas.some(d => d.grupo_id === id);
-      if (possuiSubblocos) {
-        toast('Exclua os subblocos antes de remover este bloco.', 'aviso');
+      const termos = termosGrupo(grupo);
+      const possuiItens = state.despesas.some(d => d.grupo_id === id);
+      if (possuiItens) {
+        toast(`Exclua ${termos.artigoPlural} ${termos.plural} antes de remover esta categoria.`, 'aviso');
         return;
       }
       abrirModalExcluir({
         tipo: 'grupo',
         id,
-        titulo: 'Excluir bloco',
-        texto: `Excluir o bloco “${grupo?.nome || 'selecionado'}”? Essa ação não pode ser desfeita.`
+        titulo: 'Excluir categoria',
+        texto: `Excluir a categoria “${grupo?.nome || 'selecionada'}”? Essa ação não pode ser desfeita.`
       });
       return;
     }
@@ -1265,11 +1477,19 @@ function bindEvents() {
 
     if (acao === 'excluir-subbloco') {
       const despesa = despesaPorId(id);
+      const grupo = grupoPorId(despesa?.grupo_id);
+      const termos = termosGrupo(grupo);
+      const sufixo = grupo?.estrutura === 'agregador'
+        ? ' e todas as despesas internas'
+        : '';
+      const participio = termos.artigo === 'a' ? 'excluída' : 'excluído';
+
       abrirModalExcluir({
         tipo: 'subbloco',
         id,
-        titulo: 'Excluir subbloco',
-        texto: `Excluir “${despesa?.nome || 'este subbloco'}” e todas as despesas internas? Essa ação não pode ser desfeita.`
+        titulo: `Excluir ${termos.singular}`,
+        texto: `Excluir “${despesa?.nome || `este ${termos.singular}`}”${sufixo}? Essa ação não pode ser desfeita.`,
+        mensagemSucesso: `${capitalizar(termos.singular)} ${participio}.`
       });
       return;
     }
@@ -1295,13 +1515,15 @@ function bindEvents() {
 
     if (acao === 'excluir-item') {
       const despesa = despesaPorId(id);
+      const grupo = grupoPorId(despesa?.grupo_id);
+      const termos = termosGrupo(grupo);
       const item = itensNormalizados(despesa).find(atual => atual.id === itemId);
       abrirModalExcluir({
         tipo: 'item',
         despesaId: id,
         itemId,
         titulo: 'Excluir despesa',
-        texto: `Excluir “${item?.nome || 'esta despesa'}” do subbloco “${despesa?.nome || ''}”?`
+        texto: `Excluir “${item?.nome || 'esta despesa'}” d${termos.artigo === 'a' ? 'a' : 'o'} ${termos.singular} “${despesa?.nome || ''}”?`
       });
       return;
     }
