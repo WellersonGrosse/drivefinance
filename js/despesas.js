@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────
 // DriveFinance — despesas.js
-// Gestao de despesas e dividas mensais
+// Cadastro hierárquico de blocos, subblocos e despesas
 // ─────────────────────────────────────────────
 
 import {
@@ -10,6 +10,10 @@ import {
   addDespesa,
   updateDespesa,
   deleteDespesa,
+  getGruposDespesas,
+  addGrupoDespesa,
+  updateGrupoDespesa,
+  deleteGrupoDespesa,
   formatReal,
   toast,
   renderNav
@@ -22,28 +26,50 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const PAGINAS_PRONTAS = new Set([
-  'home.html', 'admin.html', 'configuracoes.html',
-  'custo-operacional.html', 'despesas.html'
+  'home.html',
+  'admin.html',
+  'configuracoes.html',
+  'custo-operacional.html',
+  'despesas.html'
 ]);
 
-// ── Estado ────────────────────────────────────
+const MESES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
 const state = {
   user: null,
   perfil: null,
+  grupos: [],
   despesas: [],
   filtro: 'todos',
   ordenar: 'vencimento',
   mesAtual: new Date(),
-  modoEdicao: null,
-  excluirId: null,
+  grupoEdicaoId: null,
+  subblocoEdicaoId: null,
+  grupoSubblocoId: null,
+  itemEdicao: null,
+  excluir: null,
   pagarId: null,
-  itensForm: [],        // itens editaveis no modal
-  expandidos: new Set() // ids com sublista expandida na tabela
+  expandidos: new Set()
 };
 
 const $ = (id) => document.getElementById(id);
 
-// ── Utilitarios de mes ────────────────────────
+function escapeHtml(valor = '') {
+  return String(valor)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function gerarIdLocal() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function anoMesStr(date) {
   const ano = date.getFullYear();
@@ -52,63 +78,107 @@ function anoMesStr(date) {
 }
 
 function labelMes(date) {
-  return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(date);
+  return new Intl.DateTimeFormat('pt-BR', {
+    month: 'long',
+    year: 'numeric'
+  }).format(date);
 }
 
 function avancarMes(date, delta) {
-  const d = new Date(date);
-  d.setDate(1);
-  d.setMonth(d.getMonth() + delta);
-  return d;
+  const novaData = new Date(date);
+  novaData.setDate(1);
+  novaData.setMonth(novaData.getMonth() + delta);
+  return novaData;
 }
 
-// ── Itens da despesa ─────────────────────────
-
-function somaItens(itens) {
-  if (!Array.isArray(itens) || itens.length === 0) return 0;
-  return itens.reduce((s, it) => s + (parseFloat(it.valor) || 0), 0);
+function estruturaDespesa(despesa) {
+  if (despesa.estrutura === 'agregador' || despesa.estrutura === 'direto') {
+    return despesa.estrutura;
+  }
+  return Array.isArray(despesa.itens) && despesa.itens.length > 0
+    ? 'agregador'
+    : 'direto';
 }
 
-function temItens(despesa) {
-  return Array.isArray(despesa.itens) && despesa.itens.length > 0;
+function calcularParcelaAtual(entidade, mesRef) {
+  if (entidade.tipo !== 'parcelamento') return null;
+  if (!entidade.mes_inicio || !entidade.ano_inicio || !entidade.parcela_total) return null;
+
+  const diffMeses =
+    (mesRef.getFullYear() - Number(entidade.ano_inicio)) * 12
+    + ((mesRef.getMonth() + 1) - Number(entidade.mes_inicio));
+
+  const parcela = Number(entidade.parcela_atual || 1) + diffMeses;
+  if (parcela < 1 || parcela > Number(entidade.parcela_total)) return null;
+  return parcela;
 }
 
-// ── Calculo de parcela atual ──────────────────
-
-function calcularParcelaAtual(despesa, mesRef) {
-  if (despesa.tipo !== 'parcelamento') return null;
-  if (!despesa.mes_inicio || !despesa.ano_inicio || !despesa.parcela_total) return null;
-
-  const anoRef    = mesRef.getFullYear();
-  const mesNumRef = mesRef.getMonth() + 1;
-  const diffMeses = (anoRef - despesa.ano_inicio) * 12 + (mesNumRef - despesa.mes_inicio);
-  const parcelaAtual = (despesa.parcela_atual || 1) + diffMeses;
-
-  if (parcelaAtual < 1 || parcelaAtual > despesa.parcela_total) return null;
-  return parcelaAtual;
+function entidadeAtivaNoMes(entidade, mesRef) {
+  if (entidade.tipo !== 'parcelamento') return true;
+  return calcularParcelaAtual(entidade, mesRef) !== null;
 }
 
-function despesaAtivaNoMes(despesa, mesRef) {
-  if (despesa.tipo === 'fixa') return true;
-  if (despesa.tipo !== 'parcelamento') return true;
-  return calcularParcelaAtual(despesa, mesRef) !== null;
+function parcelamentoEncerrado(entidade, mesRef) {
+  if (entidade.tipo !== 'parcelamento') return false;
+  if (!entidade.mes_inicio || !entidade.ano_inicio || !entidade.parcela_total) return false;
+
+  const diffMeses =
+    (mesRef.getFullYear() - Number(entidade.ano_inicio)) * 12
+    + ((mesRef.getMonth() + 1) - Number(entidade.mes_inicio));
+
+  return diffMeses >= Number(entidade.parcela_total);
 }
 
-function parcelamentoEncerrado(despesa, mesRef) {
-  if (despesa.tipo !== 'parcelamento') return false;
-  const anoRef    = mesRef.getFullYear();
-  const mesNumRef = mesRef.getMonth() + 1;
-
-  const statusMap  = despesa.status_mensal || {};
-  const totalPagas = Object.values(statusMap).filter(v => v === 'pago').length;
-  if (totalPagas >= (despesa.parcela_total || 1)) return true;
-
-  if (!despesa.mes_inicio || !despesa.ano_inicio || !despesa.parcela_total) return false;
-  const diffMeses = (anoRef - despesa.ano_inicio) * 12 + (mesNumRef - despesa.mes_inicio);
-  return diffMeses >= despesa.parcela_total;
+function normalizarItem(item, despesaPai = {}) {
+  return {
+    id: item.id || gerarIdLocal(),
+    nome: item.nome || 'Despesa',
+    valor: Number(item.valor) || 0,
+    natureza: item.natureza || despesaPai.natureza || 'pessoal',
+    tipo: item.tipo || despesaPai.tipo || 'fixa',
+    parcela_atual: Number(item.parcela_atual || despesaPai.parcela_atual || 1),
+    parcela_total: item.parcela_total || despesaPai.parcela_total || null,
+    mes_inicio: item.mes_inicio || despesaPai.mes_inicio || null,
+    ano_inicio: item.ano_inicio || despesaPai.ano_inicio || null
+  };
 }
 
-// ── Status mensal ─────────────────────────────
+function itensNormalizados(despesa) {
+  return Array.isArray(despesa.itens)
+    ? despesa.itens.map(item => normalizarItem(item, despesa))
+    : [];
+}
+
+function itensAtivosNoMes(despesa, mesRef, filtro = 'todos') {
+  return itensNormalizados(despesa).filter(item => {
+    const naturezaOk = filtro === 'todos' || item.natureza === filtro;
+    return naturezaOk && entidadeAtivaNoMes(item, mesRef);
+  });
+}
+
+function totalItens(itens) {
+  return itens.reduce((total, item) => total + (Number(item.valor) || 0), 0);
+}
+
+function valorDespesaNoMes(despesa, mesRef, filtro = 'todos') {
+  if (estruturaDespesa(despesa) === 'agregador') {
+    return totalItens(itensAtivosNoMes(despesa, mesRef, filtro));
+  }
+
+  if (!entidadeAtivaNoMes(despesa, mesRef)) return 0;
+  if (filtro !== 'todos' && despesa.natureza !== filtro) return 0;
+  return Number(despesa.valor) || 0;
+}
+
+function despesaVisivel(despesa, mesRef, filtro) {
+  if (estruturaDespesa(despesa) === 'agregador') {
+    if (filtro === 'todos') return true;
+    return itensAtivosNoMes(despesa, mesRef, filtro).length > 0;
+  }
+
+  return entidadeAtivaNoMes(despesa, mesRef)
+    && (filtro === 'todos' || despesa.natureza === filtro);
+}
 
 function getStatusMes(despesa, anoMes) {
   return (despesa.status_mensal || {})[anoMes] || 'pendente';
@@ -120,525 +190,896 @@ async function setStatusMensal(uid, despesaId, anoMes, status) {
 }
 
 async function quitarTudo(uid, despesa, mesRef) {
-  if (!despesa.mes_inicio || !despesa.ano_inicio || !despesa.parcela_total) return;
   const parcelaAtual = calcularParcelaAtual(despesa, mesRef);
-  if (!parcelaAtual) return;
+  if (!parcelaAtual || !despesa.parcela_total) return;
 
   const atualizacoes = {};
-  const restantes = despesa.parcela_total - parcelaAtual + 1;
-  for (let i = 0; i < restantes; i++) {
-    const am = anoMesStr(avancarMes(mesRef, i));
-    atualizacoes[`status_mensal.${am}`] = 'pago';
+  const restantes = Number(despesa.parcela_total) - parcelaAtual + 1;
+
+  for (let i = 0; i < restantes; i += 1) {
+    atualizacoes[`status_mensal.${anoMesStr(avancarMes(mesRef, i))}`] = 'pago';
   }
+
   await updateDoc(doc(db, 'users', uid, 'despesas', despesa.id), atualizacoes);
 }
 
-// ── Ordenacao ─────────────────────────────────
+function labelParcela(entidade, mesRef) {
+  if (entidade.tipo !== 'parcelamento') return '';
+  const atual = calcularParcelaAtual(entidade, mesRef);
+  if (!atual) return '';
+  return `${atual}/${entidade.parcela_total}`;
+}
 
-function ordenarDespesas(lista, criterio, mesRef) {
+function htmlNatureza(natureza) {
+  const trabalho = natureza === 'trabalho';
+  return `<span class="natureza-badge ${trabalho ? 'natureza-trabalho' : 'natureza-pessoal'}">${trabalho ? 'Trabalho' : 'Pessoal'}</span>`;
+}
+
+function htmlTipo(entidade, mesRef) {
+  if (entidade.tipo === 'parcelamento') {
+    const parcela = labelParcela(entidade, mesRef);
+    return `<span class="tipo-badge tipo-parcelamento">Parcelamento${parcela ? ` ${escapeHtml(parcela)}` : ''}</span>`;
+  }
+  return '<span class="tipo-badge tipo-fixa">Fixa</span>';
+}
+
+function htmlStatus(despesa, anoMes) {
+  const pago = getStatusMes(despesa, anoMes) === 'pago';
+  return `
+    <button class="btn-status ${pago ? 'status-pago' : 'status-pendente'}"
+            type="button"
+            data-acao="toggle-status"
+            data-id="${despesa.id}"
+            aria-label="${pago ? 'Marcar como pendente' : 'Marcar como pago'}">
+      ${pago
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Pago'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>Em aberto'}
+    </button>`;
+}
+
+function htmlIconEditar(acao, id, itemId = '') {
+  return `
+    <button class="icon-btn" type="button" data-acao="${acao}" data-id="${id}" ${itemId ? `data-item-id="${itemId}"` : ''} aria-label="Editar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+    </button>`;
+}
+
+function htmlIconExcluir(acao, id, itemId = '') {
+  return `
+    <button class="icon-btn icon-btn-danger" type="button" data-acao="${acao}" data-id="${id}" ${itemId ? `data-item-id="${itemId}"` : ''} aria-label="Excluir">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+    </button>`;
+}
+
+function ordenarSubblocos(lista, criterio, mesRef, filtro) {
   const anoMes = anoMesStr(mesRef);
   return [...lista].sort((a, b) => {
-    if (criterio === 'valor') return (b.valor || 0) - (a.valor || 0);
-    if (criterio === 'nome')  return (a.nome || '').localeCompare(b.nome || '', 'pt-BR');
-    if (criterio === 'status') {
-      const sa = getStatusMes(a, anoMes);
-      const sb = getStatusMes(b, anoMes);
-      if (sa === sb) return 0;
-      return sa === 'pendente' ? -1 : 1;
+    if (criterio === 'valor') {
+      return valorDespesaNoMes(b, mesRef, filtro) - valorDespesaNoMes(a, mesRef, filtro);
     }
-    return (a.vencimento_dia || 31) - (b.vencimento_dia || 31);
+    if (criterio === 'nome') {
+      return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    }
+    if (criterio === 'status') {
+      const aPago = getStatusMes(a, anoMes) === 'pago' ? 1 : 0;
+      const bPago = getStatusMes(b, anoMes) === 'pago' ? 1 : 0;
+      return aPago - bPago;
+    }
+    return Number(a.vencimento_dia || 31) - Number(b.vencimento_dia || 31);
   });
 }
 
-// ── HTML helpers ──────────────────────────────
-
-function htmlBtnStatus(despesa, anoMes) {
-  const pago  = getStatusMes(despesa, anoMes) === 'pago';
-  const cls   = pago ? 'status-pago' : 'status-pendente';
-  const icon  = pago
-    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>'
-    : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>';
-  const label = pago ? 'Pago' : 'Pendente';
-  return `<button class="btn-status ${cls}" data-acao="toggle-status" data-id="${despesa.id}" aria-label="Status: ${label}">${icon}${label}</button>`;
-}
-
-function htmlAcoes(despesaId) {
+function renderItemRow(despesa, item, mesRef) {
   return `
-    <div class="acoes-wrap">
-      <button class="btn-acao" data-acao="editar" data-id="${despesaId}" aria-label="Editar">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
-      </button>
-      <button class="btn-acao btn-acao-excluir" data-acao="excluir" data-id="${despesaId}" aria-label="Excluir">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-      </button>
+    <div class="item-despesa-row">
+      <div class="item-despesa-copy">
+        <span class="item-despesa-nome" title="${escapeHtml(item.nome)}">${escapeHtml(item.nome)}</span>
+        <div class="item-despesa-meta">
+          ${htmlNatureza(item.natureza)}
+          ${htmlTipo(item, mesRef)}
+        </div>
+      </div>
+      <span class="item-despesa-valor">${formatReal(item.valor)}</span>
+      <div class="item-despesa-actions">
+        ${htmlIconEditar('editar-item', despesa.id, item.id)}
+        ${htmlIconExcluir('excluir-item', despesa.id, item.id)}
+      </div>
     </div>`;
 }
 
-function htmlTipoBadge(tipo) {
-  if (tipo === 'fixa') return '<span class="td-tipo-badge td-tipo-fixa">Fixa</span>';
-  return '<span class="td-tipo-badge td-tipo-parcelamento">Parcelamento</span>';
-}
+function renderSubblocoAgregador(despesa, mesRef, filtro) {
+  const anoMes = anoMesStr(mesRef);
+  const itensVisiveis = itensAtivosNoMes(despesa, mesRef, filtro);
+  const itensTodosAtivos = itensAtivosNoMes(despesa, mesRef, 'todos');
+  const valorVisivel = totalItens(itensVisiveis);
+  const valorCompleto = totalItens(itensTodosAtivos);
+  const expandido = state.expandidos.has(despesa.id);
+  const totalLabel = filtro === 'todos'
+    ? `${itensVisiveis.length} ${itensVisiveis.length === 1 ? 'despesa' : 'despesas'}`
+    : `${itensVisiveis.length} visível${itensVisiveis.length === 1 ? '' : 'is'} • fatura ${formatReal(valorCompleto)}`;
 
-function labelParcela(despesa, mesRef) {
-  if (despesa.tipo !== 'parcelamento') return '-';
-  const parcela = calcularParcelaAtual(despesa, mesRef);
-  if (!parcela) return '-';
-  return `${parcela}/${despesa.parcela_total}`;
-}
+  return `
+    <article class="subbloco-card">
+      <div class="subbloco-main">
+        <div class="subbloco-top">
+          <div class="subbloco-identidade">
+            <span class="subbloco-nome" title="${escapeHtml(despesa.nome)}">${escapeHtml(despesa.nome || 'Sem nome')}</span>
+            <div class="subbloco-meta">
+              <span>Vence dia ${Number(despesa.vencimento_dia) || '-'}</span>
+              <span class="meta-sep"></span>
+              <span>${escapeHtml(totalLabel)}</span>
+            </div>
+          </div>
+          <div class="subbloco-valor-wrap">
+            <span class="subbloco-valor">${formatReal(valorVisivel)}</span>
+            ${htmlStatus(despesa, anoMes)}
+          </div>
+        </div>
 
-// ── Renderizacao da tabela desktop ────────────
-
-function htmlSublistaItens(despesa) {
-  if (!temItens(despesa)) return '';
-  const linhas = despesa.itens.map(it => `
-    <div class="item-linha">
-      <span class="item-linha-nome">${it.nome || 'Item'}</span>
-      <span class="item-linha-valor">${formatReal(parseFloat(it.valor) || 0)}</span>
-    </div>`).join('');
-  return `<div class="itens-sublista">${linhas}</div>`;
-}
-
-function renderTr(despesa, anoMes, mesRef) {
-  const expandido   = state.expandidos.has(despesa.id);
-  const hasItens    = temItens(despesa);
-  const chevronCls  = expandido ? 'expandido' : '';
-  const nomeHint    = hasItens
-    ? `<span class="td-nome-itens-hint">${despesa.itens.length} ${despesa.itens.length === 1 ? 'item' : 'itens'}</span>`
-    : '';
-
-  const trPrincipal = `
-    <tr>
-      <td class="td-expand">
-        ${hasItens ? `
-          <button class="btn-expand ${chevronCls}" data-acao="expandir" data-id="${despesa.id}" aria-label="Ver itens">
+        <div class="subbloco-actions-row">
+          <button class="subbloco-toggle ${expandido ? 'expandido' : ''}" type="button" data-acao="toggle-itens" data-id="${despesa.id}" aria-expanded="${expandido}">
+            <span>${expandido ? 'Ocultar despesas' : 'Ver despesas'}</span>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>` : ''}
-      </td>
-      <td class="td-nome td-nome-com-itens">
-        <span class="td-nome-text" title="${despesa.nome || ''}">${despesa.nome || '-'}</span>
-        ${nomeHint}
-      </td>
-      <td>${htmlTipoBadge(despesa.tipo)}</td>
-      <td class="td-parcela">${labelParcela(despesa, mesRef)}</td>
-      <td class="td-vencimento">Dia ${despesa.vencimento_dia || '-'}</td>
-      <td class="td-valor">${formatReal(despesa.valor)}</td>
-      <td>${htmlBtnStatus(despesa, anoMes)}</td>
-      <td class="td-acoes">${htmlAcoes(despesa.id)}</td>
-    </tr>`;
-
-  if (!hasItens || !expandido) return trPrincipal;
-
-  const trItens = `
-    <tr class="tr-itens" data-itens-id="${despesa.id}">
-      <td colspan="8">
-        <div class="tr-itens-inner">${htmlSublistaItens(despesa)}</div>
-      </td>
-    </tr>`;
-
-  return trPrincipal + trItens;
-}
-
-// ── Renderizacao dos cards mobile ─────────────
-
-function renderCard(despesa, anoMes, mesRef) {
-  const parcela  = labelParcela(despesa, mesRef);
-  const tipo     = despesa.tipo === 'fixa' ? 'Fixa' : 'Parcelamento';
-  const hasItens = temItens(despesa);
-  const expandido = state.expandidos.has(despesa.id + '_card');
-
-  const itensToggle = hasItens ? `
-    <button class="despesa-card-itens-toggle ${expandido ? 'expandido' : ''}"
-            data-acao="expandir-card" data-id="${despesa.id}">
-      <span>${despesa.itens.length} ${despesa.itens.length === 1 ? 'item' : 'itens'} na composicao</span>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-    </button>
-    ${expandido ? `
-    <div class="despesa-card-itens-lista">
-      ${despesa.itens.map(it => `
-        <div class="despesa-card-item-row">
-          <span class="despesa-card-item-nome">${it.nome || 'Item'}</span>
-          <span class="despesa-card-item-valor">${formatReal(parseFloat(it.valor) || 0)}</span>
-        </div>`).join('')}
-    </div>` : ''}` : '';
-
-  return `
-    <div class="despesa-card">
-      <div class="despesa-card-top">
-        <span class="despesa-card-nome" title="${despesa.nome || ''}">${despesa.nome || '-'}</span>
-        <span class="despesa-card-valor">${formatReal(despesa.valor)}</span>
-      </div>
-      <div class="despesa-card-meta">
-        <span class="despesa-card-meta-item">${tipo}</span>
-        ${parcela !== '-' ? `<span class="despesa-card-meta-sep"></span><span class="despesa-card-meta-item">${parcela}</span>` : ''}
-        <span class="despesa-card-meta-sep"></span>
-        <span class="despesa-card-meta-item">Vence dia ${despesa.vencimento_dia || '-'}</span>
-      </div>
-      <div class="despesa-card-footer">
-        ${htmlBtnStatus(despesa, anoMes)}
-        <div class="despesa-card-acoes">
-          <button class="btn-acao" data-acao="editar" data-id="${despesa.id}" aria-label="Editar">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
           </button>
-          <button class="btn-acao btn-acao-excluir" data-acao="excluir" data-id="${despesa.id}" aria-label="Excluir">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-          </button>
+          <div class="subbloco-actions">
+            ${htmlIconEditar('editar-subbloco', despesa.id)}
+            ${htmlIconExcluir('excluir-subbloco', despesa.id)}
+          </div>
         </div>
       </div>
-      ${itensToggle}
-    </div>`;
+
+      <div class="itens-painel" ${expandido ? '' : 'hidden'}>
+        ${itensVisiveis.length > 0
+          ? itensVisiveis.map(item => renderItemRow(despesa, item, mesRef)).join('')
+          : '<p class="item-lista-vazia">Nenhuma despesa neste filtro e mês.</p>'}
+        <button class="item-add-inline" type="button" data-acao="adicionar-item" data-id="${despesa.id}" data-feature="despesas.itens.criar">+ Adicionar despesa</button>
+      </div>
+    </article>`;
 }
 
-function renderEncerradoTr(despesa) {
-  return `
-    <tr class="tr-encerrada">
-      <td class="td-nome"><span class="td-nome-text">${despesa.nome || '-'}</span></td>
-      <td>${despesa.natureza === 'trabalho' ? 'Trabalho' : 'Pessoal'}</td>
-      <td class="td-parcela">${despesa.parcela_total || '-'} parcelas</td>
-      <td class="td-vencimento">Dia ${despesa.vencimento_dia || '-'}</td>
-      <td class="td-valor">${formatReal(despesa.valor)}</td>
-      <td class="td-acoes">${htmlAcoes(despesa.id)}</td>
-    </tr>`;
-}
+function renderSubblocoDireto(despesa, mesRef) {
+  const anoMes = anoMesStr(mesRef);
+  const parcela = labelParcela(despesa, mesRef);
 
-function renderEncerradoCard(despesa) {
   return `
-    <div class="despesa-card despesa-card-encerrada">
-      <div class="despesa-card-top">
-        <span class="despesa-card-nome">${despesa.nome || '-'}</span>
-        <span class="despesa-card-valor">${formatReal(despesa.valor)}</span>
-      </div>
-      <div class="despesa-card-meta">
-        <span class="despesa-card-meta-item">${despesa.parcela_total || '-'} parcelas</span>
-        <span class="despesa-card-meta-sep"></span>
-        <span class="despesa-card-meta-item">Dia ${despesa.vencimento_dia || '-'}</span>
-        <span class="despesa-card-meta-sep"></span>
-        <span class="despesa-card-meta-item">${despesa.natureza === 'trabalho' ? 'Trabalho' : 'Pessoal'}</span>
-      </div>
-      <div class="despesa-card-footer">
-        <div class="despesa-card-acoes">
-          <button class="btn-acao" data-acao="editar" data-id="${despesa.id}" aria-label="Editar">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
-          </button>
-          <button class="btn-acao btn-acao-excluir" data-acao="excluir" data-id="${despesa.id}" aria-label="Excluir">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-          </button>
+    <article class="subbloco-card">
+      <div class="subbloco-main">
+        <div class="subbloco-top">
+          <div class="subbloco-identidade">
+            <span class="subbloco-nome" title="${escapeHtml(despesa.nome)}">${escapeHtml(despesa.nome || 'Sem nome')}</span>
+            <div class="subbloco-meta">
+              <span>Vence dia ${Number(despesa.vencimento_dia) || '-'}</span>
+              <span class="meta-sep"></span>
+              ${htmlNatureza(despesa.natureza)}
+              ${htmlTipo(despesa, mesRef)}
+              ${parcela ? `<span class="meta-sep"></span><span>Parcela ${escapeHtml(parcela)}</span>` : ''}
+            </div>
+          </div>
+          <div class="subbloco-valor-wrap">
+            <span class="subbloco-valor">${formatReal(despesa.valor)}</span>
+            ${htmlStatus(despesa, anoMes)}
+          </div>
+        </div>
+
+        <div class="subbloco-actions-row subbloco-actions-row-direto">
+          <span></span>
+          <div class="subbloco-actions">
+            ${htmlIconEditar('editar-subbloco', despesa.id)}
+            ${htmlIconExcluir('excluir-subbloco', despesa.id)}
+          </div>
         </div>
       </div>
-    </div>`;
+    </article>`;
 }
 
-// ── Render lista principal ────────────────────
+function renderGrupo(grupo, mesRef) {
+  const subblocos = state.despesas.filter(d => d.grupo_id === grupo.id);
+  const visiveis = ordenarSubblocos(
+    subblocos.filter(d => despesaVisivel(d, mesRef, state.filtro)),
+    state.ordenar,
+    mesRef,
+    state.filtro
+  );
+
+  const totalGrupo = visiveis.reduce(
+    (total, despesa) => total + valorDespesaNoMes(despesa, mesRef, state.filtro),
+    0
+  );
+
+  const descricaoEstrutura = grupo.estrutura === 'agregador'
+    ? 'Total calculado pelas despesas internas'
+    : 'Cada subbloco possui valor próprio';
+
+  return `
+    <section class="grupo-card" data-grupo-id="${grupo.id}">
+      <header class="grupo-card-header">
+        <div class="grupo-card-title-wrap">
+          <div class="grupo-card-title-row">
+            <h2 class="grupo-card-title" title="${escapeHtml(grupo.nome)}">${escapeHtml(grupo.nome)}</h2>
+            <span class="grupo-count">${visiveis.length}</span>
+          </div>
+          <p class="grupo-card-subtitle">${escapeHtml(descricaoEstrutura)} • ${formatReal(totalGrupo)}</p>
+        </div>
+        <div class="grupo-card-actions">
+          ${htmlIconEditar('editar-grupo', grupo.id)}
+          ${htmlIconExcluir('excluir-grupo', grupo.id)}
+        </div>
+      </header>
+
+      <div class="grupo-card-body">
+        <div class="subblocos-lista">
+          ${visiveis.length > 0
+            ? visiveis.map(despesa => estruturaDespesa(despesa) === 'agregador'
+              ? renderSubblocoAgregador(despesa, mesRef, state.filtro)
+              : renderSubblocoDireto(despesa, mesRef)).join('')
+            : `
+              <div class="grupo-empty">
+                <span>${state.filtro === 'todos' ? 'Nenhum subbloco cadastrado.' : 'Nenhuma despesa encontrada neste filtro.'}</span>
+              </div>`}
+        </div>
+
+        <button class="grupo-add-btn" type="button" data-acao="adicionar-subbloco" data-id="${grupo.id}" data-feature="despesas.subblocos.criar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Adicionar subbloco
+        </button>
+      </div>
+    </section>`;
+}
+
+function calcularResumo() {
+  const mesRef = state.mesAtual;
+  const anoMes = anoMesStr(mesRef);
+  let totalTrabalho = 0;
+  let totalPessoal = 0;
+  let countTrabalho = 0;
+  let countPessoal = 0;
+  let totalPago = 0;
+
+  state.despesas.forEach(despesa => {
+    if (estruturaDespesa(despesa) === 'agregador') {
+      const ativos = itensAtivosNoMes(despesa, mesRef, 'todos');
+      let totalSubbloco = 0;
+
+      ativos.forEach(item => {
+        const valor = Number(item.valor) || 0;
+        totalSubbloco += valor;
+        if (item.natureza === 'trabalho') {
+          totalTrabalho += valor;
+          countTrabalho += 1;
+        } else {
+          totalPessoal += valor;
+          countPessoal += 1;
+        }
+      });
+
+      if (getStatusMes(despesa, anoMes) === 'pago') totalPago += totalSubbloco;
+      return;
+    }
+
+    if (!entidadeAtivaNoMes(despesa, mesRef)) return;
+    const valor = Number(despesa.valor) || 0;
+
+    if (despesa.natureza === 'trabalho') {
+      totalTrabalho += valor;
+      countTrabalho += 1;
+    } else {
+      totalPessoal += valor;
+      countPessoal += 1;
+    }
+
+    if (getStatusMes(despesa, anoMes) === 'pago') totalPago += valor;
+  });
+
+  const totalGeral = totalTrabalho + totalPessoal;
+  const percentualPago = totalGeral > 0
+    ? Math.round((totalPago / totalGeral) * 100)
+    : 0;
+
+  return {
+    totalTrabalho,
+    totalPessoal,
+    countTrabalho,
+    countPessoal,
+    totalGeral,
+    percentualPago
+  };
+}
+
+function renderResumo() {
+  const resumo = calcularResumo();
+  $('total-trabalho').textContent = formatReal(resumo.totalTrabalho);
+  $('total-pessoal').textContent = formatReal(resumo.totalPessoal);
+  $('total-geral').textContent = formatReal(resumo.totalGeral);
+  $('count-trabalho').textContent = `${resumo.countTrabalho} ${resumo.countTrabalho === 1 ? 'despesa' : 'despesas'}`;
+  $('count-pessoal').textContent = `${resumo.countPessoal} ${resumo.countPessoal === 1 ? 'despesa' : 'despesas'}`;
+  $('resumo-pago-pct').textContent = `${resumo.percentualPago}% pago`;
+  $('resumo-fill').style.width = `${resumo.percentualPago}%`;
+}
+
+function obterEncerrados() {
+  const mesRef = state.mesAtual;
+  const encerrados = [];
+
+  state.despesas.forEach(despesa => {
+    if (estruturaDespesa(despesa) === 'direto') {
+      if (parcelamentoEncerrado(despesa, mesRef)
+          && (state.filtro === 'todos' || despesa.natureza === state.filtro)) {
+        encerrados.push({
+          nome: despesa.nome,
+          contexto: 'Subbloco',
+          valor: Number(despesa.valor) || 0,
+          natureza: despesa.natureza
+        });
+      }
+      return;
+    }
+
+    itensNormalizados(despesa).forEach(item => {
+      if (parcelamentoEncerrado(item, mesRef)
+          && (state.filtro === 'todos' || item.natureza === state.filtro)) {
+        encerrados.push({
+          nome: item.nome,
+          contexto: despesa.nome,
+          valor: Number(item.valor) || 0,
+          natureza: item.natureza
+        });
+      }
+    });
+  });
+
+  return encerrados.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+function renderEncerrados() {
+  const encerrados = obterEncerrados();
+  $('encerrados-section').hidden = encerrados.length === 0;
+  $('count-encerrados').textContent = String(encerrados.length);
+  $('encerrados-lista').innerHTML = encerrados.map(item => `
+    <article class="encerrado-card">
+      <div>
+        <strong>${escapeHtml(item.nome)}</strong>
+        <span>${escapeHtml(item.contexto)} • ${item.natureza === 'trabalho' ? 'Trabalho' : 'Pessoal'}</span>
+      </div>
+      <div class="encerrado-card-value">${formatReal(item.valor)}</div>
+    </article>`).join('');
+}
 
 function renderMesNav() {
   $('mes-label').textContent = labelMes(state.mesAtual);
 }
 
-function renderLista() {
-  const mesRef  = state.mesAtual;
-  const anoMes  = anoMesStr(mesRef);
-  const filtro  = state.filtro;
-  const ordenar = state.ordenar;
+function renderPagina() {
+  renderResumo();
 
-  const ativas     = state.despesas.filter(d => despesaAtivaNoMes(d, mesRef));
-  const encerradas = state.despesas.filter(d => parcelamentoEncerrado(d, mesRef));
-
-  const ativasFiltradas = filtro === 'todos'
-    ? ativas
-    : ativas.filter(d => d.natureza === filtro);
-
-  const trabalho = ordenarDespesas(ativasFiltradas.filter(d => d.natureza === 'trabalho'), ordenar, mesRef);
-  const pessoal  = ordenarDespesas(ativasFiltradas.filter(d => d.natureza === 'pessoal'),  ordenar, mesRef);
-
-  const totalTrabalho = trabalho.reduce((s, d) => s + (d.valor || 0), 0);
-  const totalPessoal  = pessoal.reduce((s, d) => s + (d.valor || 0), 0);
-  const totalGeral    = totalTrabalho + totalPessoal;
-
-  const pagas = ativasFiltradas.filter(d => getStatusMes(d, anoMes) === 'pago');
-  const pct   = ativasFiltradas.length > 0
-    ? Math.round((pagas.length / ativasFiltradas.length) * 100)
-    : 0;
-
-  $('total-trabalho').textContent  = formatReal(totalTrabalho);
-  $('total-pessoal').textContent   = formatReal(totalPessoal);
-  $('total-geral').textContent     = formatReal(totalGeral);
-  $('count-trabalho').textContent  = `${trabalho.length} ${trabalho.length === 1 ? 'despesa' : 'despesas'}`;
-  $('count-pessoal').textContent   = `${pessoal.length} ${pessoal.length === 1 ? 'despesa' : 'despesas'}`;
-  $('resumo-fill').style.width     = `${pct}%`;
-  $('resumo-pago-pct').textContent = `${pct}% pago`;
-
-  $('badge-trabalho').textContent    = trabalho.length;
-  $('subtotal-trabalho').textContent = formatReal(totalTrabalho);
-  $('tbody-trabalho').innerHTML      = trabalho.map(d => renderTr(d, anoMes, mesRef)).join('');
-  $('cards-trabalho').innerHTML      = trabalho.map(d => renderCard(d, anoMes, mesRef)).join('');
-  $('empty-trabalho').hidden         = trabalho.length > 0;
-
-  $('badge-pessoal').textContent    = pessoal.length;
-  $('subtotal-pessoal').textContent = formatReal(totalPessoal);
-  $('tbody-pessoal').innerHTML      = pessoal.map(d => renderTr(d, anoMes, mesRef)).join('');
-  $('cards-pessoal').innerHTML      = pessoal.map(d => renderCard(d, anoMes, mesRef)).join('');
-  $('empty-pessoal').hidden         = pessoal.length > 0;
-
-  $('empty-global').hidden = (trabalho.length + pessoal.length) > 0 || encerradas.length > 0;
-  $('grupo-trabalho').hidden = filtro === 'pessoal';
-  $('grupo-pessoal').hidden  = filtro === 'trabalho';
-
-  const encSection = $('encerrados-section');
-  encSection.hidden = encerradas.length === 0;
-  if (encerradas.length > 0) {
-    $('count-encerrados').textContent = encerradas.length;
-    $('tbody-encerrados').innerHTML   = encerradas.map(renderEncerradoTr).join('');
-    $('cards-encerrados').innerHTML   = encerradas.map(renderEncerradoCard).join('');
-  }
-}
-
-// ── Modal form — itens ────────────────────────
-
-function renderItensForm() {
-  const container = $('itens-lista-form');
-  if (state.itensForm.length === 0) {
-    container.innerHTML = '';
-    // Sem itens: mostra campo de valor manual
-    $('bloco-valor').hidden       = false;
-    $('bloco-valor-itens').hidden = true;
-    return;
-  }
-
-  // Com itens: esconde campo de valor manual, mostra valor calculado
-  $('bloco-valor').hidden       = true;
-  $('bloco-valor-itens').hidden = false;
-
-  const soma = somaItens(state.itensForm);
-  $('valor-calculado-label').textContent = formatReal(soma);
-
-  container.innerHTML = state.itensForm.map((it, idx) => `
-    <div class="item-form-row" data-idx="${idx}">
-      <input class="item-form-nome" type="text" placeholder="Nome do item"
-             value="${it.nome || ''}" data-campo="nome" data-idx="${idx}" maxlength="60" />
-      <input class="item-form-valor" type="number" placeholder="0,00" min="0" step="0.01"
-             value="${it.valor || ''}" data-campo="valor" data-idx="${idx}" />
-      <button class="btn-remover-item" data-remover="${idx}" aria-label="Remover item">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
-    </div>`).join('');
-
-  // Eventos dos inputs de item
-  container.querySelectorAll('[data-campo]').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const idx   = parseInt(inp.dataset.idx, 10);
-      const campo = inp.dataset.campo;
-      state.itensForm[idx][campo] = campo === 'valor' ? inp.value : inp.value;
-      // Atualiza o total em tempo real sem re-renderizar tudo
-      if (campo === 'valor') {
-        $('valor-calculado-label').textContent = formatReal(somaItens(state.itensForm));
-      }
-    });
+  const gruposOrdenados = [...state.grupos].sort((a, b) => {
+    const ordemA = Number(a.ordem ?? 9999);
+    const ordemB = Number(b.ordem ?? 9999);
+    if (ordemA !== ordemB) return ordemA - ordemB;
+    return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
   });
 
-  container.querySelectorAll('[data-remover]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.remover, 10);
-      state.itensForm.splice(idx, 1);
-      renderItensForm();
+  $('grupos-grid').innerHTML = gruposOrdenados
+    .map(grupo => renderGrupo(grupo, state.mesAtual))
+    .join('');
+
+  $('empty-global').hidden = gruposOrdenados.length > 0;
+  renderEncerrados();
+}
+
+function preencherSelectMeses() {
+  const options = MESES.map((mes, index) => `<option value="${index + 1}">${mes}</option>`).join('');
+  $('inp-subbloco-mes-inicio').innerHTML = options;
+  $('inp-item-mes-inicio').innerHTML = options;
+}
+
+async function garantirEstruturaInicial() {
+  state.grupos = await getGruposDespesas(state.user.uid);
+  state.despesas = await getDespesas(state.user.uid);
+
+  if (state.grupos.length === 0) {
+    const cartoesRef = await addGrupoDespesa(state.user.uid, {
+      nome: 'Cartões',
+      estrutura: 'agregador',
+      ordem: 1
     });
-  });
-}
+    const boletosRef = await addGrupoDespesa(state.user.uid, {
+      nome: 'Boletos',
+      estrutura: 'direto',
+      ordem: 2
+    });
 
-function adicionarItemForm() {
-  state.itensForm.push({ nome: '', valor: '' });
-  renderItensForm();
-  // Foca no input de nome do novo item
-  const inputs = $('itens-lista-form').querySelectorAll('.item-form-nome');
-  if (inputs.length > 0) inputs[inputs.length - 1].focus();
-}
-
-// ── Modal form — abrir / fechar / salvar ──────
-
-function resetarForm() {
-  $('inp-nome').value       = '';
-  $('inp-natureza').value   = 'pessoal';
-  $('inp-tipo').value       = 'fixa';
-  $('inp-valor').value      = '';
-  $('inp-vencimento').value = '';
-  $('inp-vencimento2').value = '';
-  $('inp-parcela-atual').value = '1';
-  $('inp-parcela-total').value = '';
-  $('inp-mes-inicio').value = String(new Date().getMonth() + 1);
-  $('inp-ano-inicio').value = String(new Date().getFullYear());
-  $('inp-retroativo').checked = false;
-  $('campos-parcelamento').hidden = true;
-  $('opcao-retroativo').hidden    = true;
-  state.itensForm = [];
-  renderItensForm();
-}
-
-function abrirModalAdicionar() {
-  state.modoEdicao = null;
-  $('modal-form-titulo').textContent = 'Adicionar despesa';
-  resetarForm();
-  $('modal-form').hidden = false;
-}
-
-function abrirModalEditar(despesa) {
-  state.modoEdicao = despesa.id;
-  $('modal-form-titulo').textContent = 'Editar despesa';
-
-  $('inp-nome').value      = despesa.nome || '';
-  $('inp-natureza').value  = despesa.natureza || 'pessoal';
-  $('inp-tipo').value      = despesa.tipo || 'fixa';
-  $('inp-vencimento').value  = despesa.vencimento_dia || '';
-  $('inp-vencimento2').value = despesa.vencimento_dia || '';
-  $('inp-parcela-atual').value = despesa.parcela_atual || 1;
-  $('inp-parcela-total').value = despesa.parcela_total || '';
-  $('inp-mes-inicio').value    = String(despesa.mes_inicio || new Date().getMonth() + 1);
-  $('inp-ano-inicio').value    = String(despesa.ano_inicio || new Date().getFullYear());
-  $('inp-retroativo').checked  = false;
-  $('campos-parcelamento').hidden = despesa.tipo !== 'parcelamento';
-  $('opcao-retroativo').hidden    = false;
-
-  // Carrega itens existentes
-  state.itensForm = Array.isArray(despesa.itens)
-    ? despesa.itens.map(it => ({ nome: it.nome || '', valor: it.valor || '' }))
-    : [];
-
-  // Se nao tem itens, preenche valor manual
-  if (state.itensForm.length === 0) {
-    $('inp-valor').value = despesa.valor || '';
+    state.grupos = [
+      { id: cartoesRef.id, nome: 'Cartões', estrutura: 'agregador', ordem: 1 },
+      { id: boletosRef.id, nome: 'Boletos', estrutura: 'direto', ordem: 2 }
+    ];
   }
 
-  renderItensForm();
-  $('modal-form').hidden = false;
-}
+  const semGrupo = state.despesas.filter(d => !d.grupo_id);
+  if (semGrupo.length === 0) return;
 
-function fecharModalForm() {
-  $('modal-form').hidden = true;
-  state.modoEdicao = null;
-}
+  let grupoAgregador = state.grupos.find(g => g.estrutura === 'agregador');
+  let grupoDireto = state.grupos.find(g => g.estrutura === 'direto');
 
-function getVencimentoAtual() {
-  // Usa o campo visivel: se ha itens usa inp-vencimento2, senao inp-vencimento
-  const hasItens = state.itensForm.length > 0;
-  return parseInt(hasItens ? $('inp-vencimento2').value : $('inp-vencimento').value, 10);
-}
-
-async function salvarForm() {
-  const nome       = $('inp-nome').value.trim();
-  const natureza   = $('inp-natureza').value;
-  const tipo       = $('inp-tipo').value;
-  const retroativo = $('inp-retroativo').checked;
-  const vencimento = getVencimentoAtual();
-  const hasItens   = state.itensForm.length > 0;
-
-  if (!nome) { toast('Informe o nome da despesa.', 'aviso'); return; }
-  if (!vencimento || vencimento < 1 || vencimento > 31) {
-    toast('Informe um dia de vencimento entre 1 e 31.', 'aviso');
-    return;
+  if (!grupoAgregador && semGrupo.some(d => estruturaDespesa(d) === 'agregador')) {
+    const ref = await addGrupoDespesa(state.user.uid, {
+      nome: 'Cartões',
+      estrutura: 'agregador',
+      ordem: state.grupos.length + 1
+    });
+    grupoAgregador = { id: ref.id, nome: 'Cartões', estrutura: 'agregador' };
+    state.grupos.push(grupoAgregador);
   }
 
-  let valor;
-  let itens = [];
+  if (!grupoDireto && semGrupo.some(d => estruturaDespesa(d) === 'direto')) {
+    const ref = await addGrupoDespesa(state.user.uid, {
+      nome: 'Boletos',
+      estrutura: 'direto',
+      ordem: state.grupos.length + 1
+    });
+    grupoDireto = { id: ref.id, nome: 'Boletos', estrutura: 'direto' };
+    state.grupos.push(grupoDireto);
+  }
 
-  if (hasItens) {
-    // Valida itens
-    for (const it of state.itensForm) {
-      if (!it.nome || !it.nome.trim()) { toast('Preencha o nome de todos os itens.', 'aviso'); return; }
-      const v = parseFloat(it.valor);
-      if (isNaN(v) || v <= 0) { toast('Preencha o valor de todos os itens.', 'aviso'); return; }
+  await Promise.all(semGrupo.map(despesa => {
+    const estrutura = estruturaDespesa(despesa);
+    const dados = {
+      grupo_id: estrutura === 'agregador' ? grupoAgregador.id : grupoDireto.id,
+      estrutura
+    };
+
+    if (estrutura === 'agregador') {
+      const itens = itensNormalizados(despesa);
+      dados.itens = itens;
+      dados.valor = totalItens(itens);
     }
-    itens = state.itensForm.map(it => ({ nome: it.nome.trim(), valor: parseFloat(it.valor) }));
-    valor = somaItens(itens);
-    if (valor <= 0) { toast('O valor total deve ser maior que zero.', 'aviso'); return; }
-  } else {
-    valor = parseFloat($('inp-valor').value);
-    if (isNaN(valor) || valor <= 0) { toast('Informe um valor valido.', 'aviso'); return; }
+
+    return updateDespesa(state.user.uid, despesa.id, dados);
+  }));
+
+  state.despesas = await getDespesas(state.user.uid);
+}
+
+async function recarregarDados() {
+  const [grupos, despesas] = await Promise.all([
+    getGruposDespesas(state.user.uid),
+    getDespesas(state.user.uid)
+  ]);
+  state.grupos = grupos;
+  state.despesas = despesas;
+  renderPagina();
+}
+
+/* ─────────────────────────────────────────────
+   Modal de grupo
+───────────────────────────────────────────── */
+
+function atualizarHintEstruturaGrupo() {
+  const agregador = $('inp-grupo-estrutura').value === 'agregador';
+  $('grupo-estrutura-hint').textContent = agregador
+    ? 'Ideal para cartões: o total é a soma das despesas internas.'
+    : 'Ideal para boletos e contas: cada subbloco possui valor e vencimento próprios.';
+}
+
+function abrirModalGrupo(grupo = null) {
+  state.grupoEdicaoId = grupo?.id || null;
+  $('modal-grupo-titulo').textContent = grupo ? 'Editar bloco' : 'Novo bloco';
+  $('inp-grupo-nome').value = grupo?.nome || '';
+  $('inp-grupo-estrutura').value = grupo?.estrutura || 'agregador';
+
+  const possuiSubblocos = grupo
+    ? state.despesas.some(d => d.grupo_id === grupo.id)
+    : false;
+  $('inp-grupo-estrutura').disabled = possuiSubblocos;
+
+  atualizarHintEstruturaGrupo();
+  $('modal-grupo').hidden = false;
+  setTimeout(() => $('inp-grupo-nome').focus(), 0);
+}
+
+function fecharModalGrupo() {
+  $('modal-grupo').hidden = true;
+  $('inp-grupo-estrutura').disabled = false;
+  state.grupoEdicaoId = null;
+}
+
+async function salvarGrupo() {
+  const nome = $('inp-grupo-nome').value.trim();
+  const estrutura = $('inp-grupo-estrutura').value;
+
+  if (!nome) {
+    toast('Informe o nome do bloco.', 'aviso');
+    return;
   }
 
-  const dados = { nome, natureza, tipo, valor, vencimento_dia: vencimento, itens };
-
-  if (tipo === 'parcelamento') {
-    const parcelaAtual = parseInt($('inp-parcela-atual').value, 10);
-    const parcelaTotal = parseInt($('inp-parcela-total').value, 10);
-    const mesInicio    = parseInt($('inp-mes-inicio').value, 10);
-    const anoInicio    = parseInt($('inp-ano-inicio').value, 10);
-
-    if (isNaN(parcelaAtual) || parcelaAtual < 1) { toast('Informe a parcela inicial.', 'aviso'); return; }
-    if (isNaN(parcelaTotal) || parcelaTotal < 1) { toast('Informe o total de parcelas.', 'aviso'); return; }
-    if (parcelaAtual > parcelaTotal) { toast('A parcela inicial nao pode ser maior que o total.', 'aviso'); return; }
-    if (isNaN(mesInicio) || isNaN(anoInicio)) { toast('Informe mes e ano de inicio.', 'aviso'); return; }
-
-    dados.parcela_atual = parcelaAtual;
-    dados.parcela_total = parcelaTotal;
-    dados.mes_inicio    = mesInicio;
-    dados.ano_inicio    = anoInicio;
-  }
-
-  const btn = $('btn-salvar-form');
-  btn.disabled    = true;
+  const btn = $('btn-salvar-grupo');
+  btn.disabled = true;
   btn.textContent = 'Salvando...';
 
   try {
-    if (state.modoEdicao) {
-      if (retroativo) dados.status_mensal = {};
-      await updateDespesa(state.user.uid, state.modoEdicao, dados);
-      toast('Despesa atualizada.', 'sucesso');
+    if (state.grupoEdicaoId) {
+      await updateGrupoDespesa(state.user.uid, state.grupoEdicaoId, { nome, estrutura });
+      toast('Bloco atualizado.', 'sucesso');
     } else {
-      await addDespesa(state.user.uid, dados);
-      toast('Despesa adicionada.', 'sucesso');
+      await addGrupoDespesa(state.user.uid, {
+        nome,
+        estrutura,
+        ordem: state.grupos.length + 1
+      });
+      toast('Bloco criado.', 'sucesso');
     }
-    fecharModalForm();
-    await recarregarDespesas();
-  } catch (err) {
-    console.error('[DriveFinance/despesas]', err);
-    toast('Erro ao salvar. Tente novamente.', 'erro');
+
+    fecharModalGrupo();
+    await recarregarDados();
+  } catch (erro) {
+    console.error('[DriveFinance/despesas/grupo]', erro);
+    toast('Não foi possível salvar o bloco.', 'erro');
   } finally {
-    btn.disabled    = false;
+    btn.disabled = false;
     btn.textContent = 'Salvar';
   }
 }
 
-// ── Modal excluir ─────────────────────────────
+/* ─────────────────────────────────────────────
+   Modal de subbloco
+───────────────────────────────────────────── */
 
-function abrirModalExcluir(id) {
-  const despesa = state.despesas.find(d => d.id === id);
+function grupoPorId(id) {
+  return state.grupos.find(grupo => grupo.id === id) || null;
+}
+
+function despesaPorId(id) {
+  return state.despesas.find(despesa => despesa.id === id) || null;
+}
+
+function atualizarCamposSubbloco() {
+  const grupo = grupoPorId(state.grupoSubblocoId);
+  const agregador = grupo?.estrutura === 'agregador';
+
+  $('bloco-subbloco-valor').hidden = agregador;
+  $('campos-subbloco-direto').hidden = agregador;
+  $('agregador-explicacao').hidden = !agregador;
+  $('campos-parcelamento-subbloco').hidden = agregador
+    || $('inp-subbloco-tipo').value !== 'parcelamento';
+}
+
+function resetarSubblocoForm() {
+  const agora = new Date();
+  $('inp-subbloco-nome').value = '';
+  $('inp-subbloco-vencimento').value = '';
+  $('inp-subbloco-valor').value = '';
+  $('inp-subbloco-natureza').value = 'pessoal';
+  $('inp-subbloco-tipo').value = 'fixa';
+  $('inp-subbloco-parcela-atual').value = '1';
+  $('inp-subbloco-parcela-total').value = '';
+  $('inp-subbloco-mes-inicio').value = String(agora.getMonth() + 1);
+  $('inp-subbloco-ano-inicio').value = String(agora.getFullYear());
+}
+
+function abrirModalSubbloco(grupoId, despesa = null) {
+  const grupo = grupoPorId(grupoId);
+  if (!grupo) return;
+
+  state.grupoSubblocoId = grupoId;
+  state.subblocoEdicaoId = despesa?.id || null;
+  resetarSubblocoForm();
+
+  $('modal-subbloco-titulo').textContent = despesa ? 'Editar subbloco' : 'Novo subbloco';
+  $('subbloco-contexto').innerHTML = `
+    <strong>${escapeHtml(grupo.nome)}</strong>
+    <span>${grupo.estrutura === 'agregador'
+      ? 'O vencimento será herdado por todas as despesas internas.'
+      : 'Este subbloco terá valor, natureza e vencimento próprios.'}</span>`;
+
+  if (despesa) {
+    $('inp-subbloco-nome').value = despesa.nome || '';
+    $('inp-subbloco-vencimento').value = despesa.vencimento_dia || '';
+
+    if (grupo.estrutura === 'direto') {
+      $('inp-subbloco-valor').value = despesa.valor || '';
+      $('inp-subbloco-natureza').value = despesa.natureza || 'pessoal';
+      $('inp-subbloco-tipo').value = despesa.tipo || 'fixa';
+      $('inp-subbloco-parcela-atual').value = despesa.parcela_atual || 1;
+      $('inp-subbloco-parcela-total').value = despesa.parcela_total || '';
+      $('inp-subbloco-mes-inicio').value = String(despesa.mes_inicio || new Date().getMonth() + 1);
+      $('inp-subbloco-ano-inicio').value = String(despesa.ano_inicio || new Date().getFullYear());
+    }
+  }
+
+  atualizarCamposSubbloco();
+  $('modal-subbloco').hidden = false;
+  setTimeout(() => $('inp-subbloco-nome').focus(), 0);
+}
+
+function fecharModalSubbloco() {
+  $('modal-subbloco').hidden = true;
+  state.grupoSubblocoId = null;
+  state.subblocoEdicaoId = null;
+}
+
+function validarParcelamento(prefixo) {
+  const parcelaAtual = Number($(`inp-${prefixo}-parcela-atual`).value);
+  const parcelaTotal = Number($(`inp-${prefixo}-parcela-total`).value);
+  const mesInicio = Number($(`inp-${prefixo}-mes-inicio`).value);
+  const anoInicio = Number($(`inp-${prefixo}-ano-inicio`).value);
+
+  if (!Number.isInteger(parcelaAtual) || parcelaAtual < 1) {
+    toast('Informe a parcela inicial.', 'aviso');
+    return null;
+  }
+  if (!Number.isInteger(parcelaTotal) || parcelaTotal < 1) {
+    toast('Informe o total de parcelas.', 'aviso');
+    return null;
+  }
+  if (parcelaAtual > parcelaTotal) {
+    toast('A parcela inicial não pode ser maior que o total.', 'aviso');
+    return null;
+  }
+  if (!Number.isInteger(mesInicio) || !Number.isInteger(anoInicio)) {
+    toast('Informe o mês e o ano de início.', 'aviso');
+    return null;
+  }
+
+  return {
+    parcela_atual: parcelaAtual,
+    parcela_total: parcelaTotal,
+    mes_inicio: mesInicio,
+    ano_inicio: anoInicio
+  };
+}
+
+async function salvarSubbloco() {
+  const grupo = grupoPorId(state.grupoSubblocoId);
+  if (!grupo) return;
+
+  const nome = $('inp-subbloco-nome').value.trim();
+  const vencimento = Number($('inp-subbloco-vencimento').value);
+
+  if (!nome) {
+    toast('Informe o nome do subbloco.', 'aviso');
+    return;
+  }
+  if (!Number.isInteger(vencimento) || vencimento < 1 || vencimento > 31) {
+    toast('Informe um dia de vencimento entre 1 e 31.', 'aviso');
+    return;
+  }
+
+  const dados = {
+    grupo_id: grupo.id,
+    estrutura: grupo.estrutura,
+    nome,
+    vencimento_dia: vencimento
+  };
+
+  if (grupo.estrutura === 'agregador') {
+    const existente = despesaPorId(state.subblocoEdicaoId);
+    dados.itens = existente ? itensNormalizados(existente) : [];
+    dados.valor = existente ? totalItens(dados.itens) : 0;
+    dados.tipo = 'agregador';
+  } else {
+    const valor = Number($('inp-subbloco-valor').value);
+    const natureza = $('inp-subbloco-natureza').value;
+    const tipo = $('inp-subbloco-tipo').value;
+
+    if (!Number.isFinite(valor) || valor <= 0) {
+      toast('Informe um valor válido.', 'aviso');
+      return;
+    }
+
+    Object.assign(dados, { valor, natureza, tipo });
+
+    if (tipo === 'parcelamento') {
+      const parcelamento = validarParcelamento('subbloco');
+      if (!parcelamento) return;
+      Object.assign(dados, parcelamento);
+    }
+  }
+
+  const btn = $('btn-salvar-subbloco');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try {
+    if (state.subblocoEdicaoId) {
+      await updateDespesa(state.user.uid, state.subblocoEdicaoId, dados);
+      toast('Subbloco atualizado.', 'sucesso');
+    } else {
+      const ref = await addDespesa(state.user.uid, dados);
+      if (grupo.estrutura === 'agregador') state.expandidos.add(ref.id);
+      toast('Subbloco criado.', 'sucesso');
+    }
+
+    fecharModalSubbloco();
+    await recarregarDados();
+  } catch (erro) {
+    console.error('[DriveFinance/despesas/subbloco]', erro);
+    toast('Não foi possível salvar o subbloco.', 'erro');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Modal de item interno
+───────────────────────────────────────────── */
+
+function resetarItemForm() {
+  const agora = new Date();
+  $('inp-item-nome').value = '';
+  $('inp-item-valor').value = '';
+  $('inp-item-natureza').value = 'pessoal';
+  $('inp-item-tipo').value = 'fixa';
+  $('inp-item-parcela-atual').value = '1';
+  $('inp-item-parcela-total').value = '';
+  $('inp-item-mes-inicio').value = String(agora.getMonth() + 1);
+  $('inp-item-ano-inicio').value = String(agora.getFullYear());
+  $('campos-parcelamento-item').hidden = true;
+}
+
+function abrirModalItem(despesa, item = null) {
+  if (!despesa || estruturaDespesa(despesa) !== 'agregador') return;
+
+  state.itemEdicao = {
+    despesaId: despesa.id,
+    itemId: item?.id || null
+  };
+
+  resetarItemForm();
+  $('modal-item-titulo').textContent = item ? 'Editar despesa' : 'Adicionar despesa';
+  $('item-heranca-vencimento').innerHTML = `
+    <strong>${escapeHtml(despesa.nome)}</strong>
+    <span>Vencimento herdado: dia ${Number(despesa.vencimento_dia) || '-'}</span>`;
+
+  if (item) {
+    $('inp-item-nome').value = item.nome || '';
+    $('inp-item-valor').value = item.valor || '';
+    $('inp-item-natureza').value = item.natureza || 'pessoal';
+    $('inp-item-tipo').value = item.tipo || 'fixa';
+    $('inp-item-parcela-atual').value = item.parcela_atual || 1;
+    $('inp-item-parcela-total').value = item.parcela_total || '';
+    $('inp-item-mes-inicio').value = String(item.mes_inicio || new Date().getMonth() + 1);
+    $('inp-item-ano-inicio').value = String(item.ano_inicio || new Date().getFullYear());
+    $('campos-parcelamento-item').hidden = item.tipo !== 'parcelamento';
+  }
+
+  $('modal-item').hidden = false;
+  setTimeout(() => $('inp-item-nome').focus(), 0);
+}
+
+function fecharModalItem() {
+  $('modal-item').hidden = true;
+  state.itemEdicao = null;
+}
+
+async function salvarItem() {
+  if (!state.itemEdicao) return;
+  const despesa = despesaPorId(state.itemEdicao.despesaId);
   if (!despesa) return;
-  state.excluirId = id;
-  $('excluir-nome').textContent = despesa.nome || 'esta despesa';
+
+  const nome = $('inp-item-nome').value.trim();
+  const valor = Number($('inp-item-valor').value);
+  const natureza = $('inp-item-natureza').value;
+  const tipo = $('inp-item-tipo').value;
+
+  if (!nome) {
+    toast('Informe o nome da despesa.', 'aviso');
+    return;
+  }
+  if (!Number.isFinite(valor) || valor <= 0) {
+    toast('Informe um valor válido.', 'aviso');
+    return;
+  }
+
+  const item = {
+    id: state.itemEdicao.itemId || gerarIdLocal(),
+    nome,
+    valor,
+    natureza,
+    tipo
+  };
+
+  if (tipo === 'parcelamento') {
+    const parcelamento = validarParcelamento('item');
+    if (!parcelamento) return;
+    Object.assign(item, parcelamento);
+  }
+
+  const itens = itensNormalizados(despesa);
+  const indice = itens.findIndex(atual => atual.id === state.itemEdicao.itemId);
+
+  if (indice >= 0) itens[indice] = item;
+  else itens.push(item);
+
+  const btn = $('btn-salvar-item');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try {
+    await updateDespesa(state.user.uid, despesa.id, {
+      itens,
+      valor: totalItens(itens),
+      estrutura: 'agregador'
+    });
+    state.expandidos.add(despesa.id);
+    toast(indice >= 0 ? 'Despesa atualizada.' : 'Despesa adicionada.', 'sucesso');
+    fecharModalItem();
+    await recarregarDados();
+  } catch (erro) {
+    console.error('[DriveFinance/despesas/item]', erro);
+    toast('Não foi possível salvar a despesa.', 'erro');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Exclusão
+───────────────────────────────────────────── */
+
+function abrirModalExcluir(config) {
+  state.excluir = config;
+  $('modal-excluir-titulo').textContent = config.titulo || 'Excluir';
+  $('excluir-texto').textContent = config.texto || 'Tem certeza? Essa ação não pode ser desfeita.';
   $('modal-excluir').hidden = false;
 }
 
 function fecharModalExcluir() {
   $('modal-excluir').hidden = true;
-  state.excluirId = null;
+  state.excluir = null;
 }
 
 async function confirmarExcluir() {
-  if (!state.excluirId) return;
+  if (!state.excluir) return;
   const btn = $('btn-confirmar-excluir');
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = 'Excluindo...';
+
   try {
-    await deleteDespesa(state.user.uid, state.excluirId);
-    toast('Despesa excluida.', 'sucesso');
+    if (state.excluir.tipo === 'grupo') {
+      await deleteGrupoDespesa(state.user.uid, state.excluir.id);
+      toast('Bloco excluído.', 'sucesso');
+    }
+
+    if (state.excluir.tipo === 'subbloco') {
+      await deleteDespesa(state.user.uid, state.excluir.id);
+      state.expandidos.delete(state.excluir.id);
+      toast('Subbloco excluído.', 'sucesso');
+    }
+
+    if (state.excluir.tipo === 'item') {
+      const despesa = despesaPorId(state.excluir.despesaId);
+      if (!despesa) throw new Error('Subbloco não encontrado.');
+      const itens = itensNormalizados(despesa)
+        .filter(item => item.id !== state.excluir.itemId);
+      await updateDespesa(state.user.uid, despesa.id, {
+        itens,
+        valor: totalItens(itens)
+      });
+      toast('Despesa excluída.', 'sucesso');
+    }
+
     fecharModalExcluir();
-    await recarregarDespesas();
-  } catch (err) {
-    console.error('[DriveFinance/despesas]', err);
-    toast('Erro ao excluir. Tente novamente.', 'erro');
+    await recarregarDados();
+  } catch (erro) {
+    console.error('[DriveFinance/despesas/excluir]', erro);
+    toast('Não foi possível concluir a exclusão.', 'erro');
   } finally {
-    btn.disabled    = false;
+    btn.disabled = false;
     btn.textContent = 'Excluir';
   }
 }
 
-// ── Modal pagar ───────────────────────────────
+/* ─────────────────────────────────────────────
+   Status e pagamentos
+───────────────────────────────────────────── */
 
-function abrirModalPagar(id) {
-  const despesa = state.despesas.find(d => d.id === id);
-  if (!despesa) return;
-  state.pagarId = id;
+function abrirModalPagar(despesa) {
+  state.pagarId = despesa.id;
   const parcela = calcularParcelaAtual(despesa, state.mesAtual);
   $('modal-pagar-texto').textContent = parcela
-    ? `Pagando "${despesa.nome}" - parcela ${parcela}/${despesa.parcela_total}. Como deseja registrar?`
-    : `Como deseja registrar o pagamento de "${despesa.nome}"?`;
+    ? `Pagando “${despesa.nome}” — parcela ${parcela}/${despesa.parcela_total}. Como deseja registrar?`
+    : `Como deseja registrar o pagamento de “${despesa.nome}”?`;
   $('modal-pagar').hidden = false;
 }
 
@@ -650,197 +1091,228 @@ function fecharModalPagar() {
 async function pagarMes() {
   if (!state.pagarId) return;
   const anoMes = anoMesStr(state.mesAtual);
+
   try {
     await setStatusMensal(state.user.uid, state.pagarId, anoMes, 'pago');
-    const d = state.despesas.find(x => x.id === state.pagarId);
-    if (d) {
-      d.status_mensal = d.status_mensal || {};
-      d.status_mensal[anoMes] = 'pago';
-    }
-    toast('Marcado como pago neste mes.', 'sucesso');
+    toast('Marcado como pago neste mês.', 'sucesso');
     fecharModalPagar();
-    renderLista();
-  } catch (err) {
-    console.error('[DriveFinance/despesas]', err);
-    toast('Erro ao registrar pagamento.', 'erro');
+    await recarregarDados();
+  } catch (erro) {
+    console.error('[DriveFinance/despesas/pagar-mes]', erro);
+    toast('Não foi possível registrar o pagamento.', 'erro');
   }
 }
 
 async function pagarTotal() {
-  if (!state.pagarId) return;
-  const despesa = state.despesas.find(d => d.id === state.pagarId);
+  const despesa = despesaPorId(state.pagarId);
   if (!despesa) return;
+
   try {
     await quitarTudo(state.user.uid, despesa, state.mesAtual);
     toast('Parcelamento quitado.', 'sucesso');
     fecharModalPagar();
-    await recarregarDespesas();
-  } catch (err) {
-    console.error('[DriveFinance/despesas]', err);
-    toast('Erro ao quitar. Tente novamente.', 'erro');
+    await recarregarDados();
+  } catch (erro) {
+    console.error('[DriveFinance/despesas/quitar]', erro);
+    toast('Não foi possível quitar o parcelamento.', 'erro');
   }
 }
 
-// ── Toggle status ─────────────────────────────
-
 async function toggleStatus(id) {
-  const despesa  = state.despesas.find(d => d.id === id);
+  const despesa = despesaPorId(id);
   if (!despesa) return;
-  const anoMes   = anoMesStr(state.mesAtual);
-  const statusAtual = getStatusMes(despesa, anoMes);
 
-  if (statusAtual === 'pago') {
+  const anoMes = anoMesStr(state.mesAtual);
+  const atual = getStatusMes(despesa, anoMes);
+
+  if (atual === 'pago') {
     try {
       await setStatusMensal(state.user.uid, id, anoMes, 'pendente');
-      despesa.status_mensal = despesa.status_mensal || {};
-      despesa.status_mensal[anoMes] = 'pendente';
-      toast('Marcado como pendente.', 'info');
-      renderLista();
-    } catch { toast('Erro ao atualizar status.', 'erro'); }
+      toast('Marcado como em aberto.', 'info');
+      await recarregarDados();
+    } catch {
+      toast('Não foi possível atualizar o status.', 'erro');
+    }
     return;
   }
 
-  if (despesa.tipo === 'parcelamento') { abrirModalPagar(id); return; }
+  if (estruturaDespesa(despesa) === 'direto' && despesa.tipo === 'parcelamento') {
+    abrirModalPagar(despesa);
+    return;
+  }
 
   try {
     await setStatusMensal(state.user.uid, id, anoMes, 'pago');
-    despesa.status_mensal = despesa.status_mensal || {};
-    despesa.status_mensal[anoMes] = 'pago';
     toast('Marcado como pago.', 'sucesso');
-    renderLista();
-  } catch { toast('Erro ao atualizar status.', 'erro'); }
-}
-
-// ── Expandir sublista ─────────────────────────
-
-function toggleExpandir(id) {
-  if (state.expandidos.has(id)) {
-    state.expandidos.delete(id);
-  } else {
-    state.expandidos.add(id);
+    await recarregarDados();
+  } catch {
+    toast('Não foi possível atualizar o status.', 'erro');
   }
-  renderLista();
 }
 
-function toggleExpandirCard(id) {
-  const key = id + '_card';
-  if (state.expandidos.has(key)) {
-    state.expandidos.delete(key);
-  } else {
-    state.expandidos.add(key);
-  }
-  renderLista();
+/* ─────────────────────────────────────────────
+   Eventos
+───────────────────────────────────────────── */
+
+function fecharModaisAbertos() {
+  if (!$('modal-grupo').hidden) fecharModalGrupo();
+  if (!$('modal-subbloco').hidden) fecharModalSubbloco();
+  if (!$('modal-item').hidden) fecharModalItem();
+  if (!$('modal-excluir').hidden) fecharModalExcluir();
+  if (!$('modal-pagar').hidden) fecharModalPagar();
 }
-
-// ── Carregamento ──────────────────────────────
-
-async function recarregarDespesas() {
-  state.despesas = await getDespesas(state.user.uid);
-  renderLista();
-}
-
-// ── Eventos ───────────────────────────────────
 
 function bindEvents() {
   $('btn-mes-anterior').addEventListener('click', () => {
     state.mesAtual = avancarMes(state.mesAtual, -1);
     renderMesNav();
-    renderLista();
+    renderPagina();
   });
+
   $('btn-mes-proximo').addEventListener('click', () => {
     state.mesAtual = avancarMes(state.mesAtual, 1);
     renderMesNav();
-    renderLista();
+    renderPagina();
   });
 
-  $('btn-adicionar').addEventListener('click', abrirModalAdicionar);
-  $('btn-adicionar-empty').addEventListener('click', abrirModalAdicionar);
+  $('btn-adicionar-grupo').addEventListener('click', () => abrirModalGrupo());
+  $('btn-adicionar-grupo-empty').addEventListener('click', () => abrirModalGrupo());
 
-  document.querySelectorAll('.chip[data-filtro]').forEach(chip => {
+  document.querySelectorAll('[data-filtro]').forEach(chip => {
     chip.addEventListener('click', () => {
-      document.querySelectorAll('.chip[data-filtro]').forEach(c => c.classList.remove('chip-ativo'));
+      document.querySelectorAll('[data-filtro]').forEach(item => item.classList.remove('chip-ativo'));
       chip.classList.add('chip-ativo');
       state.filtro = chip.dataset.filtro;
-      renderLista();
+      renderPagina();
     });
   });
 
-  $('select-ordenar').addEventListener('change', (e) => {
-    state.ordenar = e.target.value;
-    renderLista();
+  $('select-ordenar').addEventListener('change', event => {
+    state.ordenar = event.target.value;
+    renderPagina();
   });
 
-  // Modal form
-  $('inp-tipo').addEventListener('change', (e) => {
-    $('campos-parcelamento').hidden = e.target.value !== 'parcelamento';
-  });
-  $('btn-adicionar-item').addEventListener('click', adicionarItemForm);
-  $('btn-fechar-form').addEventListener('click', fecharModalForm);
-  $('btn-cancelar-form').addEventListener('click', fecharModalForm);
-  $('btn-salvar-form').addEventListener('click', salvarForm);
+  $('inp-grupo-estrutura').addEventListener('change', atualizarHintEstruturaGrupo);
+  $('btn-fechar-grupo').addEventListener('click', fecharModalGrupo);
+  $('btn-cancelar-grupo').addEventListener('click', fecharModalGrupo);
+  $('btn-salvar-grupo').addEventListener('click', salvarGrupo);
 
-  // Modal excluir
+  $('inp-subbloco-tipo').addEventListener('change', atualizarCamposSubbloco);
+  $('btn-fechar-subbloco').addEventListener('click', fecharModalSubbloco);
+  $('btn-cancelar-subbloco').addEventListener('click', fecharModalSubbloco);
+  $('btn-salvar-subbloco').addEventListener('click', salvarSubbloco);
+
+  $('inp-item-tipo').addEventListener('change', event => {
+    $('campos-parcelamento-item').hidden = event.target.value !== 'parcelamento';
+  });
+  $('btn-fechar-item').addEventListener('click', fecharModalItem);
+  $('btn-cancelar-item').addEventListener('click', fecharModalItem);
+  $('btn-salvar-item').addEventListener('click', salvarItem);
+
   $('btn-fechar-excluir').addEventListener('click', fecharModalExcluir);
   $('btn-cancelar-excluir').addEventListener('click', fecharModalExcluir);
   $('btn-confirmar-excluir').addEventListener('click', confirmarExcluir);
 
-  // Modal pagar
   $('btn-fechar-pagar').addEventListener('click', fecharModalPagar);
   $('btn-pagar-mes').addEventListener('click', pagarMes);
   $('btn-pagar-total').addEventListener('click', pagarTotal);
 
-  // Escape fecha modais
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    if (!$('modal-form').hidden)    fecharModalForm();
-    if (!$('modal-excluir').hidden) fecharModalExcluir();
-    if (!$('modal-pagar').hidden)   fecharModalPagar();
-  });
-
-  // Encerrados toggle
   $('btn-encerrados').addEventListener('click', () => {
-    const expandido = $('btn-encerrados').getAttribute('aria-expanded') === 'true';
-    $('btn-encerrados').setAttribute('aria-expanded', String(!expandido));
-    $('encerrados-lista').hidden = expandido;
+    const aberto = $('btn-encerrados').getAttribute('aria-expanded') === 'true';
+    $('btn-encerrados').setAttribute('aria-expanded', String(!aberto));
+    $('encerrados-lista').hidden = aberto;
   });
 
-  // Delegacao na lista principal
-  $('lista-despesas').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-acao]');
+  $('grupos-grid').addEventListener('click', event => {
+    const btn = event.target.closest('[data-acao]');
     if (!btn) return;
-    const id   = btn.dataset.id;
-    const acao = btn.dataset.acao;
 
-    if (acao === 'editar') {
-      const despesa = state.despesas.find(d => d.id === id);
-      if (despesa) abrirModalEditar(despesa);
-    } else if (acao === 'excluir') {
-      abrirModalExcluir(id);
-    } else if (acao === 'toggle-status') {
-      toggleStatus(id);
-    } else if (acao === 'expandir') {
-      toggleExpandir(id);
-    } else if (acao === 'expandir-card') {
-      toggleExpandirCard(id);
+    const acao = btn.dataset.acao;
+    const id = btn.dataset.id;
+    const itemId = btn.dataset.itemId;
+
+    if (acao === 'editar-grupo') {
+      abrirModalGrupo(grupoPorId(id));
+      return;
     }
+
+    if (acao === 'excluir-grupo') {
+      const grupo = grupoPorId(id);
+      const possuiSubblocos = state.despesas.some(d => d.grupo_id === id);
+      if (possuiSubblocos) {
+        toast('Exclua os subblocos antes de remover este bloco.', 'aviso');
+        return;
+      }
+      abrirModalExcluir({
+        tipo: 'grupo',
+        id,
+        titulo: 'Excluir bloco',
+        texto: `Excluir o bloco “${grupo?.nome || 'selecionado'}”? Essa ação não pode ser desfeita.`
+      });
+      return;
+    }
+
+    if (acao === 'adicionar-subbloco') {
+      abrirModalSubbloco(id);
+      return;
+    }
+
+    if (acao === 'editar-subbloco') {
+      const despesa = despesaPorId(id);
+      if (despesa) abrirModalSubbloco(despesa.grupo_id, despesa);
+      return;
+    }
+
+    if (acao === 'excluir-subbloco') {
+      const despesa = despesaPorId(id);
+      abrirModalExcluir({
+        tipo: 'subbloco',
+        id,
+        titulo: 'Excluir subbloco',
+        texto: `Excluir “${despesa?.nome || 'este subbloco'}” e todas as despesas internas? Essa ação não pode ser desfeita.`
+      });
+      return;
+    }
+
+    if (acao === 'toggle-itens') {
+      if (state.expandidos.has(id)) state.expandidos.delete(id);
+      else state.expandidos.add(id);
+      renderPagina();
+      return;
+    }
+
+    if (acao === 'adicionar-item') {
+      abrirModalItem(despesaPorId(id));
+      return;
+    }
+
+    if (acao === 'editar-item') {
+      const despesa = despesaPorId(id);
+      const item = itensNormalizados(despesa).find(atual => atual.id === itemId);
+      if (item) abrirModalItem(despesa, item);
+      return;
+    }
+
+    if (acao === 'excluir-item') {
+      const despesa = despesaPorId(id);
+      const item = itensNormalizados(despesa).find(atual => atual.id === itemId);
+      abrirModalExcluir({
+        tipo: 'item',
+        despesaId: id,
+        itemId,
+        titulo: 'Excluir despesa',
+        texto: `Excluir “${item?.nome || 'esta despesa'}” do subbloco “${despesa?.nome || ''}”?`
+      });
+      return;
+    }
+
+    if (acao === 'toggle-status') toggleStatus(id);
   });
 
-  // Delegacao nos encerrados
-  $('encerrados-lista').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-acao]');
-    if (!btn) return;
-    const id   = btn.dataset.id;
-    const acao = btn.dataset.acao;
-    if (acao === 'editar') {
-      const despesa = state.despesas.find(d => d.id === id);
-      if (despesa) abrirModalEditar(despesa);
-    } else if (acao === 'excluir') {
-      abrirModalExcluir(id);
-    }
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') fecharModaisAbertos();
   });
 }
-
-// ── Init ──────────────────────────────────────
 
 async function init() {
   try {
@@ -849,21 +1321,21 @@ async function init() {
 
     if (!permitido) {
       window.location.href = motivo === 'trial_expirado' || motivo === 'plano_expirado'
-        ? 'planos.html'
+        ? 'landing.html#planos'
         : 'login.html';
       return;
     }
 
     state.perfil = perfil;
     renderNav('despesas.html', perfil, { paginasProntas: PAGINAS_PRONTAS });
+    preencherSelectMeses();
     renderMesNav();
-
-    state.despesas = await getDespesas(state.user.uid);
-    renderLista();
     bindEvents();
-  } catch (err) {
-    console.error('[DriveFinance/despesas]', err);
-    toast('Erro ao carregar despesas. Recarregue a pagina.', 'erro');
+    await garantirEstruturaInicial();
+    renderPagina();
+  } catch (erro) {
+    console.error('[DriveFinance/despesas]', erro);
+    toast('Erro ao carregar despesas. Recarregue a página.', 'erro');
   }
 }
 

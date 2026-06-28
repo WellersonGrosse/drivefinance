@@ -327,6 +327,40 @@ export async function deleteVeiculo(uid, veiculoId) {
 }
 
 // ─────────────────────────────────────────────
+// GRUPOS DE DESPESAS
+// ─────────────────────────────────────────────
+
+export async function getGruposDespesas(uid) {
+  const snap = await getDocs(collection(db, "users", uid, "grupos_despesas"));
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const ordemA = Number(a.ordem ?? 9999);
+      const ordemB = Number(b.ordem ?? 9999);
+      if (ordemA !== ordemB) return ordemA - ordemB;
+      return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR");
+    });
+}
+
+export async function addGrupoDespesa(uid, dados) {
+  return await addDoc(collection(db, "users", uid, "grupos_despesas"), {
+    ...dados,
+    criado_em: serverTimestamp()
+  });
+}
+
+export async function updateGrupoDespesa(uid, grupoId, dados) {
+  await updateDoc(doc(db, "users", uid, "grupos_despesas", grupoId), {
+    ...dados,
+    atualizado_em: serverTimestamp()
+  });
+}
+
+export async function deleteGrupoDespesa(uid, grupoId) {
+  await deleteDoc(doc(db, "users", uid, "grupos_despesas", grupoId));
+}
+
+// ─────────────────────────────────────────────
 // DESPESAS
 // ─────────────────────────────────────────────
 
@@ -352,26 +386,61 @@ export async function deleteDespesa(uid, despesaId) {
   await deleteDoc(doc(db, "users", uid, "despesas", despesaId));
 }
 
-export async function getDespesasAtivas(uid) {
-  const todas = await getDespesas(uid);
-  const hoje = new Date();
-  const mesAtual = hoje.getMonth() + 1;
-  const anoAtual = hoje.getFullYear();
+function _parcelaAtualNoMes(entidade, data = new Date()) {
+  if (entidade?.tipo !== "parcelamento") return null;
+  if (!entidade.mes_inicio || !entidade.ano_inicio || !entidade.parcela_total) return null;
 
-  return todas.filter(d => {
-    if (d.tipo === "fixa") return true;
-    if (d.tipo === "parcelamento") {
-      if (d.parcela_atual > d.parcela_total) return false;
-      if (d.ano_inicio && d.mes_inicio) {
-        const mesEncerramento = d.mes_inicio + d.parcela_total - 1;
-        const anoEncerramento = d.ano_inicio + Math.floor((d.mes_inicio + d.parcela_total - 2) / 12);
-        if (anoAtual > anoEncerramento) return false;
-        if (anoAtual === anoEncerramento && mesAtual > (mesEncerramento % 12 || 12)) return false;
-      }
-      return true;
+  const diffMeses =
+    (data.getFullYear() - Number(entidade.ano_inicio)) * 12
+    + ((data.getMonth() + 1) - Number(entidade.mes_inicio));
+
+  const parcela = Number(entidade.parcela_atual || 1) + diffMeses;
+  if (parcela < 1 || parcela > Number(entidade.parcela_total)) return null;
+  return parcela;
+}
+
+function _entidadeAtivaNoMes(entidade, data = new Date()) {
+  if (entidade?.tipo !== "parcelamento") return true;
+  return _parcelaAtualNoMes(entidade, data) !== null;
+}
+
+function _estruturaDespesa(despesa) {
+  if (despesa?.estrutura === "agregador" || despesa?.estrutura === "direto") {
+    return despesa.estrutura;
+  }
+  return Array.isArray(despesa?.itens) && despesa.itens.length > 0
+    ? "agregador"
+    : "direto";
+}
+
+export async function getDespesasAtivas(uid, data = new Date()) {
+  const todas = await getDespesas(uid);
+
+  return todas.reduce((ativas, despesa) => {
+    if (_estruturaDespesa(despesa) === "agregador") {
+      const itensAtivos = (Array.isArray(despesa.itens) ? despesa.itens : [])
+        .filter(item => _entidadeAtivaNoMes({
+          ...item,
+          tipo: item.tipo || despesa.tipo || "fixa",
+          parcela_atual: item.parcela_atual || despesa.parcela_atual || 1,
+          parcela_total: item.parcela_total || despesa.parcela_total,
+          mes_inicio: item.mes_inicio || despesa.mes_inicio,
+          ano_inicio: item.ano_inicio || despesa.ano_inicio
+        }, data));
+
+      if (itensAtivos.length === 0) return ativas;
+
+      ativas.push({
+        ...despesa,
+        itens_ativos: itensAtivos,
+        valor: itensAtivos.reduce((total, item) => total + (Number(item.valor) || 0), 0)
+      });
+      return ativas;
     }
-    return true;
-  });
+
+    if (_entidadeAtivaNoMes(despesa, data)) ativas.push(despesa);
+    return ativas;
+  }, []);
 }
 
 // ─────────────────────────────────────────────
@@ -459,7 +528,7 @@ export async function getDiasTrabalhoMes(uid, data = new Date()) {
 
 export async function calcularMetaDia(uid, data = new Date()) {
   const config = await getConfig(uid);
-  const despesas = await getDespesasAtivas(uid);
+  const despesas = await getDespesasAtivas(uid, data);
   const lancamentosMes = await getLancamentosMes(uid, data);
   const diasTrabalho = await getDiasTrabalhoMes(uid, data);
 
