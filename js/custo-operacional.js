@@ -144,73 +144,108 @@ function renderTabela() {
 
   if (!temItens) return;
 
-  // Desktop — linhas da tabela
-  tbody.innerHTML = _itens.map(item => {
-    const total = (Number(item.qtd) || 0) * (Number(item.valor_unitario) || 0);
-    const custoKm = calcularCustoKmItem(item);
-    return `
-      <tr>
-        <td class="co-td-nome">${item.nome}</td>
-        <td class="text-right co-td-muted">${formatQtd(item.qtd, item.unidade)}</td>
-        <td class="text-right co-td-muted">${formatReal(item.valor_unitario)}</td>
-        <td class="text-right co-td-muted">${formatReal(total)}</td>
-        <td class="text-right co-td-muted">${formatKm(item.vida_util_km)}</td>
-        <td class="text-right co-td-custo">${formatCustoKm(custoKm)}</td>
-        <td>
-          <div class="co-td-actions">
-            <button class="co-btn-action" data-id="${item.id}" data-action="editar" aria-label="Editar ${item.nome}">
-              <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
-            </button>
-            <button class="co-btn-action danger" data-id="${item.id}" data-action="deletar" aria-label="Remover ${item.nome}">
-              <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-            </button>
-          </div>
-        </td>
-      </tr>`;
+  // Agrupa itens por categoria
+  const ORDEM_CATS = [
+    'Motor e Lubrificação', 'Arrefecimento', 'Freios',
+    'Suspensão e Direção', 'Pneus', 'Filtros',
+    'Elétrica', 'Transmissão', 'Limpeza e Visibilidade', 'Outros'
+  ];
+  const grupos = {};
+  _itens.forEach(item => {
+    const cat = item.categoria || 'Sem categoria';
+    if (!grupos[cat]) grupos[cat] = [];
+    grupos[cat].push(item);
+  });
+  const todasCats = Object.keys(grupos);
+  const catsOrdenadas = [
+    ...ORDEM_CATS.filter(c => grupos[c]),
+    ...todasCats.filter(c => !ORDEM_CATS.includes(c))
+  ];
+  // Se todos sem categoria, não agrupa
+  const agrupar = todasCats.length > 1 || (todasCats.length === 1 && todasCats[0] !== 'Sem categoria');
+
+  // Desktop — linhas agrupadas por categoria
+  tbody.innerHTML = catsOrdenadas.map(cat => {
+    const headerRow = agrupar ? `
+      <tr class="co-tr-categoria">
+        <td colspan="7">${cat}</td>
+      </tr>` : '';
+    const rows = grupos[cat].map(item => {
+      const total = (Number(item.qtd) || 0) * (Number(item.valor_unitario) || 0);
+      const custoKm = calcularCustoKmItem(item);
+      return `
+        <tr>
+          <td class="co-td-nome">${item.nome}</td>
+          <td class="text-right co-td-muted">${formatQtd(item.qtd, item.unidade)}</td>
+          <td class="text-right co-td-muted">${formatReal(item.valor_unitario)}</td>
+          <td class="text-right co-td-muted">${formatReal(total)}</td>
+          <td class="text-right co-td-muted">${formatKm(item.vida_util_km)}</td>
+          <td class="text-right co-td-custo">${formatCustoKm(custoKm)}</td>
+          <td>
+            <div class="co-td-actions">
+              <button class="co-btn-action" data-id="${item.id}" data-action="editar" aria-label="Editar ${item.nome}">
+                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+              </button>
+              <button class="co-btn-action danger" data-id="${item.id}" data-action="deletar" aria-label="Remover ${item.nome}">
+                <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+    return headerRow + rows;
   }).join('');
 
   // Tfoot
   $('tfoot-custo-km').textContent = formatCustoKm(calcularCustoKmTotal());
 
-  // Mobile — cards
-  cardsMobile.innerHTML = _itens.map(item => {
-    const total = (Number(item.qtd) || 0) * (Number(item.valor_unitario) || 0);
-    const custoKm = calcularCustoKmItem(item);
-    return `
-      <div class="co-card-item">
-        <div class="co-card-item-header">
-          <span class="co-card-item-nome">${item.nome}</span>
-          <span class="co-card-item-custo">${formatCustoKm(custoKm)}<small style="font-size:10px;font-weight:400;color:var(--text-muted)">/KM</small></span>
-        </div>
-        <div class="co-card-item-body">
-          <div class="co-card-item-row">
-            <span>Quantidade</span>
-            <span>${formatQtd(item.qtd, item.unidade)}</span>
+  // Mobile — cards agrupados por categoria
+  cardsMobile.innerHTML = catsOrdenadas.map(cat => {
+    const cards = grupos[cat].map(item => {
+      const total = (Number(item.qtd) || 0) * (Number(item.valor_unitario) || 0);
+      const custoKm = calcularCustoKmItem(item);
+      return `
+        <div class="co-card-item">
+          <div class="co-card-item-header">
+            <span class="co-card-item-nome">${item.nome}</span>
+            <span class="co-card-item-custo">${formatCustoKm(custoKm)}<small style="font-size:10px;font-weight:400;color:var(--text-muted)">/KM</small></span>
           </div>
-          <div class="co-card-item-row">
-            <span>Valor unit.</span>
-            <span>${formatReal(item.valor_unitario)}</span>
+          <div class="co-card-item-body">
+            <div class="co-card-item-row">
+              <span>Quantidade</span>
+              <span>${formatQtd(item.qtd, item.unidade)}</span>
+            </div>
+            <div class="co-card-item-row">
+              <span>Valor unit.</span>
+              <span>${formatReal(item.valor_unitario)}</span>
+            </div>
+            <div class="co-card-item-row">
+              <span>Total</span>
+              <span>${formatReal(total)}</span>
+            </div>
+            <div class="co-card-item-row">
+              <span>Vida útil</span>
+              <span>${formatKm(item.vida_util_km)}</span>
+            </div>
           </div>
-          <div class="co-card-item-row">
-            <span>Total</span>
-            <span>${formatReal(total)}</span>
+          <div class="co-card-item-actions">
+            <button class="btn btn-secondary co-btn-action" data-id="${item.id}" data-action="editar">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+              Editar
+            </button>
+            <button class="btn btn-secondary co-btn-action danger" data-id="${item.id}" data-action="deletar">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+              Remover
+            </button>
           </div>
-          <div class="co-card-item-row">
-            <span>Vida útil</span>
-            <span>${formatKm(item.vida_util_km)}</span>
-          </div>
-        </div>
-        <div class="co-card-item-actions">
-          <button class="btn btn-secondary co-btn-action" data-id="${item.id}" data-action="editar">
-            <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
-            Editar
-          </button>
-          <button class="btn btn-secondary co-btn-action danger" data-id="${item.id}" data-action="deletar">
-            <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
-            Remover
-          </button>
-        </div>
-      </div>`;
+        </div>`;
+    }).join('');
+
+    return agrupar ? `
+      <div class="co-cards-categoria-grupo">
+        <div class="co-cards-categoria-titulo">${cat}</div>
+        ${cards}
+      </div>` : cards;
   }).join('');
 }
 
