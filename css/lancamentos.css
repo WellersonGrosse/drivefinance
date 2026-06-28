@@ -1,0 +1,732 @@
+/* ─────────────────────────────────────────────
+   DriveFinance — lancamentos.css
+   Página de registro diário de corridas e ganhos
+───────────────────────────────────────────── */
+
+/* Aproveita toda a largura disponível igual ao despesas.css */
+.main-content {
+  width: calc(100% - var(--sidebar-w));
+  max-width: 1480px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Cabeçalho ── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-lg);
+  margin-bottom: var(--gap-lg);
+  flex-wrap: wrap;
+}
+
+.page-header-left {
+  flex: 1;
+  min-width: 220px;
+}
+
+.page-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+  flex-shrink: 0;
+}
+
+.veiculo-selector-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.select-veiculo {
+  min-width: 200px;
+}
+
+/* ── Layout principal: calendário + painel do dia ── */
+.lancamentos-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: var(--gap-lg);
+  align-items: start;
+}
+
+/* ── Painel do calendário ── */
+.calendario-panel {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--gap-md));
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.calendario-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-xs);
+}
+
+.btn-mes-nav {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  transition: background var(--transition), color var(--transition);
+  cursor: pointer;
+}
+
+.btn-mes-nav:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.btn-mes-nav svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mes-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  text-transform: capitalize;
+  flex: 1;
+}
+
+.calendario-semanas {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-dia {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  transition: background var(--transition), color var(--transition);
+  user-select: none;
+}
+
+.cal-dia:hover:not(.cal-dia-outro-mes):not(.cal-dia-desabilitado) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.cal-dia-outro-mes {
+  color: var(--text-muted);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.cal-dia-hoje {
+  color: var(--roxo);
+  font-weight: 700;
+}
+
+.cal-dia-hoje::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--roxo);
+}
+
+.cal-dia-selecionado {
+  background: var(--roxo) !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.cal-dia-selecionado::after {
+  display: none;
+}
+
+.cal-dia-tem-lancamento::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.cal-dia-selecionado.cal-dia-tem-lancamento::before {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.cal-dia-desabilitado {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* Legenda */
+.calendario-legenda {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+  padding-top: 4px;
+  border-top: 0.5px solid var(--dark-border);
+}
+
+.legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.legenda-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legenda-tem-lancamento {
+  background: var(--teal);
+}
+
+.legenda-hoje {
+  background: var(--roxo);
+}
+
+/* ── Painel do dia selecionado ── */
+.dia-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+}
+
+.dia-panel-header {
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.dia-panel-titulo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  margin-bottom: 4px;
+}
+
+.dia-panel-titulo {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.dia-panel-total {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--teal);
+  font-family: 'Syne', sans-serif;
+  white-space: nowrap;
+}
+
+.dia-panel-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── Bloco de lançamento ── */
+.bloco-lancamento {
+  background: var(--dark-card);
+  border: 0.5px solid var(--dark-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.bloco-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding: 14px 16px;
+  border-bottom: 0.5px solid var(--dark-border);
+}
+
+.bloco-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bloco-icone {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.bloco-icone svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bloco-icone-app {
+  background: rgba(123, 94, 167, 0.15);
+  color: var(--roxo);
+}
+
+.bloco-icone-particular {
+  background: rgba(79, 195, 161, 0.12);
+  color: var(--teal);
+}
+
+.bloco-icone-combustivel {
+  background: rgba(240, 168, 48, 0.12);
+  color: #F0A830;
+}
+
+.bloco-icone-ocioso {
+  background: rgba(224, 92, 92, 0.12);
+  color: var(--coral);
+}
+
+.bloco-titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1px;
+}
+
+.bloco-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.btn-bloco-add {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(123, 94, 167, 0.12);
+  border: 0.5px solid rgba(123, 94, 167, 0.3);
+  color: var(--roxo);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  white-space: nowrap;
+  font-family: 'Poppins', sans-serif;
+}
+
+.btn-bloco-add:hover {
+  background: rgba(123, 94, 167, 0.2);
+  border-color: rgba(123, 94, 167, 0.5);
+}
+
+.btn-bloco-add svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Lista de corridas dentro do bloco ── */
+.bloco-lista {
+  padding: 0;
+}
+
+.bloco-empty {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.corrida-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: 10px 16px;
+  border-top: 0.5px solid var(--dark-border);
+  transition: background var(--transition);
+}
+
+.corrida-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.corrida-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.corrida-plataforma {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.corrida-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.corrida-valor {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--teal);
+  white-space: nowrap;
+}
+
+.corrida-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Combustível resumido no bloco */
+.combustivel-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: 10px 16px;
+  border-top: 0.5px solid var(--dark-border);
+}
+
+.combustivel-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.combustivel-titulo-row {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.combustivel-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.combustivel-valor {
+  font-size: 14px;
+  font-weight: 700;
+  color: #F0A830;
+  white-space: nowrap;
+}
+
+.combustivel-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* KM Ocioso form dentro do bloco */
+.km-ocioso-form {
+  padding: 12px 16px 14px;
+  border-top: 0.5px solid var(--dark-border);
+}
+
+.km-ocioso-form .form-group {
+  margin: 0;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  display: block;
+  width: 40px;
+  height: 22px;
+  background: var(--dark-border);
+  border-radius: 11px;
+  transition: background var(--transition);
+  position: relative;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform var(--transition), background var(--transition);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--roxo);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+/* Botões de ação inline (editar/excluir) */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+}
+
+.icon-btn-danger:hover {
+  background: rgba(224, 92, 92, 0.1);
+  color: var(--coral);
+}
+
+.icon-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Rodapé do painel ── */
+.dia-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-salvar-dia {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  min-width: 220px;
+  justify-content: center;
+}
+
+.btn-salvar-dia svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Total do combustível no modal ── */
+.comb-total-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(240, 168, 48, 0.07);
+  border: 0.5px solid rgba(240, 168, 48, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-top: 2px;
+}
+
+.comb-total-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.comb-total-valor {
+  font-size: 15px;
+  font-weight: 700;
+  color: #F0A830;
+}
+
+/* ── Modais: SVGs ── */
+.modal-header button svg,
+.modal-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.modal-footer .btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Responsivo: tablet ── */
+@media (max-width: 1023px) {
+  .main-content {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .lancamentos-layout {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+}
+
+/* ── Responsivo: mobile ── */
+@media (max-width: 768px) {
+  .lancamentos-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .calendario-panel {
+    position: static;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-header-right {
+    width: 100%;
+  }
+
+  .select-veiculo {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dia-panel-footer {
+    justify-content: stretch;
+  }
+
+  .btn-salvar-dia {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .main-content {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .bloco-header {
+    padding: 12px 14px;
+  }
+
+  .corrida-row,
+  .combustivel-row {
+    padding: 10px 14px;
+    grid-template-columns: 1fr auto;
+  }
+
+  .corrida-actions,
+  .combustivel-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    margin-top: -4px;
+  }
+
+  .dia-panel-header {
+    padding: 14px;
+  }
+
+  .dia-panel-total {
+    font-size: 17px;
+  }
+}
