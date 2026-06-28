@@ -593,6 +593,11 @@
   color: var(--ambar);
 }
 
+.tipo-unica {
+  background: rgba(224, 92, 92, 0.10);
+  color: var(--coral);
+}
+
 .btn-status {
   display: inline-flex;
   align-items: center;
