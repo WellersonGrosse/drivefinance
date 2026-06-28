@@ -152,7 +152,7 @@ function renderTabela() {
   ];
   const grupos = {};
   _itens.forEach(item => {
-    const cat = item.categoria || 'Sem categoria';
+    const cat = item.categoria || 'Outros';
     if (!grupos[cat]) grupos[cat] = [];
     grupos[cat].push(item);
   });
@@ -161,8 +161,8 @@ function renderTabela() {
     ...ORDEM_CATS.filter(c => grupos[c]),
     ...todasCats.filter(c => !ORDEM_CATS.includes(c))
   ];
-  // Se todos sem categoria, não agrupa
-  const agrupar = todasCats.length > 1 || (todasCats.length === 1 && todasCats[0] !== 'Sem categoria');
+  // Sempre agrupa — itens sem categoria vão para "Outros"
+  const agrupar = catsOrdenadas.length > 0;
 
   // Desktop — linhas agrupadas por categoria
   tbody.innerHTML = catsOrdenadas.map(cat => {
