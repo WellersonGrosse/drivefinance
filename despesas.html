@@ -36,10 +36,17 @@
             </button>
           </div>
 
-          <button class="btn btn-primary" id="btn-adicionar-grupo" type="button" data-feature="despesas.grupos.criar">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            Novo bloco
-          </button>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary" id="btn-adicionar-grupo" type="button" data-feature="despesas.grupos.criar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Nova categoria
+            </button>
+
+            <button class="btn btn-primary" id="btn-lancar-despesa" type="button" data-feature="despesas.lancamentos.criar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Lançar despesa
+            </button>
+          </div>
         </div>
       </div>
 
@@ -96,8 +103,8 @@
 
       <div class="empty-state" id="empty-global" hidden>
         <div class="empty-state-icon" aria-hidden="true">▦</div>
-        <p>Você ainda não possui blocos de despesas.</p>
-        <button class="btn btn-primary" id="btn-adicionar-grupo-empty" type="button">Criar primeiro bloco</button>
+        <p>Você ainda não possui categorias de despesas.</p>
+        <button class="btn btn-primary" id="btn-adicionar-grupo-empty" type="button">Criar primeira categoria</button>
       </div>
 
       <section class="encerrados-section" id="encerrados-section" hidden data-feature="despesas.parcelamentos.encerrados">
@@ -112,11 +119,50 @@
     </main>
   </div>
 
-  <!-- Modal: criar ou editar bloco -->
+
+
+  <!-- Modal: escolher onde lançar a despesa -->
+  <div class="modal-overlay" id="modal-lancamento" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-lancamento-titulo">
+      <div class="modal-header">
+        <h2 id="modal-lancamento-titulo">Lançar despesa</h2>
+        <button class="modal-close" id="btn-fechar-lancamento" type="button" aria-label="Fechar">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body modal-form-body">
+        <div class="form-group">
+          <label class="form-label" for="inp-lancamento-grupo">Categoria</label>
+          <select class="select" id="inp-lancamento-grupo"></select>
+        </div>
+
+        <div class="form-group" id="lancamento-destino-wrap">
+          <label class="form-label" id="lancamento-destino-label" for="inp-lancamento-destino">Destino</label>
+          <select class="select" id="inp-lancamento-destino"></select>
+          <p class="form-hint" id="lancamento-destino-hint"></p>
+        </div>
+
+        <div class="lancamento-info" id="lancamento-direto-info" hidden></div>
+
+        <button class="btn-inline-link" id="btn-lancamento-nova-categoria" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Criar nova categoria
+        </button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancelar-lancamento" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="btn-continuar-lancamento" type="button">Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: criar ou editar categoria -->
   <div class="modal-overlay" id="modal-grupo" hidden>
     <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="modal-grupo-titulo">
       <div class="modal-header">
-        <h2 id="modal-grupo-titulo">Novo bloco</h2>
+        <h2 id="modal-grupo-titulo">Nova categoria</h2>
         <button class="modal-close" id="btn-fechar-grupo" type="button" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
@@ -124,17 +170,17 @@
 
       <div class="modal-body modal-form-body">
         <div class="form-group">
-          <label class="form-label" for="inp-grupo-nome">Nome do bloco</label>
-          <input class="input" id="inp-grupo-nome" type="text" placeholder="Ex: Cartões, Boletos, Casa..." maxlength="60" />
+          <label class="form-label" for="inp-grupo-nome">Nome da categoria</label>
+          <input class="input" id="inp-grupo-nome" type="text" placeholder="Ex: Cartões, Boletos, Financiamentos..." maxlength="60" />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="inp-grupo-estrutura">Como esse bloco funciona?</label>
+          <label class="form-label" for="inp-grupo-estrutura">Como esta categoria funciona?</label>
           <select class="select" id="inp-grupo-estrutura">
-            <option value="agregador">Subblocos com despesas internas</option>
-            <option value="direto">Subblocos com valor próprio</option>
+            <option value="agregador">Contas com despesas internas</option>
+            <option value="direto">Despesas com valor próprio</option>
           </select>
-          <p class="form-hint" id="grupo-estrutura-hint">Ideal para cartões: o total é a soma das despesas internas.</p>
+          <p class="form-hint" id="grupo-estrutura-hint">Ideal para cartões: cada cartão reúne várias despesas.</p>
         </div>
       </div>
 
@@ -145,11 +191,11 @@
     </div>
   </div>
 
-  <!-- Modal: criar ou editar subbloco -->
+  <!-- Modal: criar ou editar item da categoria -->
   <div class="modal-overlay" id="modal-subbloco" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-subbloco-titulo">
       <div class="modal-header">
-        <h2 id="modal-subbloco-titulo">Novo subbloco</h2>
+        <h2 id="modal-subbloco-titulo">Novo item</h2>
         <button class="modal-close" id="btn-fechar-subbloco" type="button" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
@@ -159,7 +205,7 @@
         <div class="subbloco-contexto" id="subbloco-contexto"></div>
 
         <div class="form-group">
-          <label class="form-label" for="inp-subbloco-nome">Nome</label>
+          <label class="form-label" id="label-subbloco-nome" for="inp-subbloco-nome">Nome</label>
           <input class="input" id="inp-subbloco-nome" type="text" placeholder="Ex: Nubank, Aluguel, Financiamento..." maxlength="80" />
         </div>
 
@@ -219,7 +265,7 @@
 
         <div class="agregador-explicacao" id="agregador-explicacao" hidden>
           <strong>O valor será calculado automaticamente.</strong>
-          <span>Depois de salvar, adicione as despesas dentro deste subbloco. Todas herdarão o vencimento informado acima.</span>
+          <span>Depois de salvar, adicione as despesas dentro deste item. Todas herdarão o vencimento informado acima.</span>
         </div>
       </div>
 
@@ -234,7 +280,7 @@
   <div class="modal-overlay" id="modal-item" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-item-titulo">
       <div class="modal-header">
-        <h2 id="modal-item-titulo">Adicionar despesa</h2>
+        <h2 id="modal-item-titulo">Lançar despesa</h2>
         <button class="modal-close" id="btn-fechar-item" type="button" aria-label="Fechar">
           <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
