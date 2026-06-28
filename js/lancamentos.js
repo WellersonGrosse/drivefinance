@@ -104,11 +104,18 @@ function avancarMes(date, delta) {
 
 function normalizarPlataformas(lista) {
   if (!Array.isArray(lista)) return ['Uber'];
-  return lista.map(p => {
-    if (typeof p === 'string') return p;
-    if (p && typeof p === 'object') return p.nome || p.name || 'Uber';
-    return 'Uber';
-  }).filter(Boolean);
+  return lista
+    .filter(p => {
+      // Objeto com flag ativa: só inclui as ativas
+      if (p && typeof p === 'object') return p.ativa !== false;
+      // String simples: sempre inclui
+      return Boolean(p);
+    })
+    .map(p => {
+      if (typeof p === 'string') return p;
+      return p.nome || p.name || '';
+    })
+    .filter(Boolean);
 }
 
 // ─────────────────────────────────────────────
