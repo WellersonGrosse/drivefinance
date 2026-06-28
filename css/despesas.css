@@ -50,12 +50,24 @@
   flex-shrink: 0;
 }
 
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.page-header-actions .btn {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
 .page-header-right .btn svg,
 .grupo-add-btn svg,
 .icon-btn svg,
 .subbloco-toggle svg,
 .btn-status svg,
-.encerrados-toggle svg {
+.encerrados-toggle svg,
+.btn-inline-link svg {
   width: 16px;
   height: 16px;
   fill: none;
@@ -720,7 +732,8 @@
 
 .subbloco-contexto,
 .heranca-vencimento,
-.agregador-explicacao {
+.agregador-explicacao,
+.lancamento-info {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -735,10 +748,35 @@
 
 .subbloco-contexto strong,
 .heranca-vencimento strong,
-.agregador-explicacao strong {
+.agregador-explicacao strong,
+.lancamento-info strong {
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
+}
+
+.btn-inline-link {
+  width: fit-content;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  transition: color var(--transition);
+}
+
+.btn-inline-link:hover {
+  color: var(--text-secondary);
+}
+
+.btn-inline-link svg {
+  width: 14px;
+  height: 14px;
 }
 
 .campos-parcelamento {
@@ -794,6 +832,10 @@
     justify-content: space-between;
   }
 
+  .page-header-actions {
+    margin-left: auto;
+  }
+
   .resumo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -834,6 +876,13 @@
   .page-header-right {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .page-header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-left: 0;
   }
 
   .mes-nav,
@@ -888,5 +937,12 @@
     grid-column: 1 / -1;
     justify-content: flex-end;
     margin-top: -4px;
+  }
+}
+
+
+@media (max-width: 380px) {
+  .page-header-actions {
+    grid-template-columns: 1fr;
   }
 }
