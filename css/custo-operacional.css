@@ -225,7 +225,7 @@
 .co-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .co-table thead tr {
@@ -268,6 +268,8 @@
 
 .co-table td.co-td-nome {
   font-weight: 500;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .co-table td.co-td-muted {
@@ -282,13 +284,9 @@
 .text-right { text-align: right; }
 
 /* Coluna widths */
-.co-table col.c-nome  { width: 26%; }
-.co-table col.c-qtd   { width: 11%; }
-.co-table col.c-unit  { width: 13%; }
-.co-table col.c-total { width: 13%; }
-.co-table col.c-vida  { width: 13%; }
-.co-table col.c-custo { width: 13%; }
-.co-table col.c-act   { width: 11%; }
+/* colunas com largura automática exceto ações */
+.co-table td:last-child,
+.co-table th:last-child { width: 72px; }
 
 .co-td-actions {
   display: flex;
