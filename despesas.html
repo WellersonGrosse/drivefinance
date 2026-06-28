@@ -234,6 +234,7 @@
             <label class="form-label" for="inp-subbloco-tipo">Tipo</label>
             <select class="select" id="inp-subbloco-tipo">
               <option value="fixa">Fixa recorrente</option>
+              <option value="unica">Única</option>
               <option value="parcelamento">Parcelamento</option>
             </select>
           </div>
@@ -259,6 +260,19 @@
             <div class="form-group">
               <label class="form-label" for="inp-subbloco-ano-inicio">Ano de início</label>
               <input class="input" id="inp-subbloco-ano-inicio" type="number" inputmode="numeric" min="2020" max="2099" />
+            </div>
+          </div>
+        </div>
+
+        <div class="campos-parcelamento" id="bloco-subbloco-mes-inicio" hidden>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="inp-subbloco-mes-unica">Mês de referência</label>
+              <select class="select" id="inp-subbloco-mes-unica"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-subbloco-ano-unica">Ano</label>
+              <input class="input" id="inp-subbloco-ano-unica" type="number" inputmode="numeric" min="2020" max="2099" />
             </div>
           </div>
         </div>
@@ -312,6 +326,7 @@
           <label class="form-label" for="inp-item-tipo">Tipo</label>
           <select class="select" id="inp-item-tipo">
             <option value="fixa">Fixa recorrente</option>
+            <option value="unica">Única</option>
             <option value="parcelamento">Parcelamento</option>
           </select>
         </div>
@@ -340,6 +355,19 @@
           </div>
         </div>
       </div>
+
+        <div class="campos-parcelamento" id="bloco-item-mes-inicio" hidden>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="inp-item-mes-unica">Mês de referência</label>
+              <select class="select" id="inp-item-mes-unica"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-item-ano-unica">Ano</label>
+              <input class="input" id="inp-item-ano-unica" type="number" inputmode="numeric" min="2020" max="2099" />
+            </div>
+          </div>
+        </div>
 
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btn-cancelar-item" type="button">Cancelar</button>
